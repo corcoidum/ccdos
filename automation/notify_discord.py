@@ -31,10 +31,11 @@ def is_discord_webhook(url: str) -> bool:
 def send_message(webhook_url: str, message: str) -> None:
     if not is_discord_webhook(webhook_url):
         raise ValueError("DISCORD_WEBHOOK_URL must be an HTTPS Discord webhook URL")
+    # Discord's edge rejects the default Python-urllib User-Agent with 403.
     request = Request(
         webhook_url,
         data=json.dumps({"content": message}).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "User-Agent": "corcoidum-os-automation/1.0"},
         method="POST",
     )
     with urlopen(request, timeout=10) as response:
