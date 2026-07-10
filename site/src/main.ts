@@ -47,6 +47,10 @@ function navigate(route: Route): void {
   render();
 }
 
+function isPlainLeftClick(event: MouseEvent): boolean {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
 function formatDate(timestamp: string): string {
   return new Intl.DateTimeFormat("ko-KR", { dateStyle: "long", timeZone: "UTC" }).format(
     new Date(timestamp),
@@ -58,6 +62,9 @@ function createLink(route: Route, label: string, activeRoute: Route): HTMLAnchor
   link.href = route;
   link.className = route === activeRoute ? "nav-link active" : "nav-link";
   link.addEventListener("click", (event) => {
+    if (!isPlainLeftClick(event)) {
+      return;
+    }
     event.preventDefault();
     navigate(route);
   });
@@ -208,6 +215,9 @@ function pageFor(route: Route): HTMLElement {
 
 function render(): void {
   const route = currentRoute();
+  if (window.location.pathname !== route) {
+    window.history.replaceState({}, "", route);
+  }
   const shell = createElement("main");
   const nav = createElement("nav");
   nav.className = "site-nav";
@@ -217,6 +227,9 @@ function render(): void {
     brand.href = "/os";
     brand.className = "brand";
     brand.addEventListener("click", (event) => {
+      if (!isPlainLeftClick(event)) {
+        return;
+      }
       event.preventDefault();
       navigate("/os");
     });

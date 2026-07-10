@@ -26,7 +26,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, help="optional JSON output path")
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[1]
-    payload = json.loads((root / "content" / "public" / "index.json").read_text(encoding="utf-8"))
+    index_path = root / "content" / "public" / "index.json"
+    try:
+        payload = json.loads(index_path.read_text(encoding="utf-8"))
+        if not isinstance(payload.get("notes"), list):
+            raise ValueError("notes must be a list")
+    except (OSError, UnicodeError, ValueError) as error:
+        print(f"FAIL: cannot read approved public content index: {error}")
+        return 1
     review = create_weekly_review(payload, datetime.now(UTC))
     rendered = json.dumps(review, ensure_ascii=False, indent=2) + "\n"
     if args.output:

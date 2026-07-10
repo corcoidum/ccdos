@@ -20,17 +20,30 @@ def run_check(name: str, command: list[str], root: Path) -> dict[str, str]:
     }
 
 
+def count_approved_notes(root: Path) -> tuple[int, dict[str, str]]:
+    """Read the approved note count as a check so a broken index cannot crash the report."""
+    path = root / "content" / "public" / "index.json"
+    try:
+        notes = json.loads(path.read_text(encoding="utf-8"))["notes"]
+        if not isinstance(notes, list):
+            raise ValueError("notes must be a list")
+    except (OSError, UnicodeError, ValueError, KeyError) as error:
+        return 0, {"name": "public_content_index_readable", "status": "failed", "summary": f"cannot read {path.name}: {error}"}
+    return len(notes), {"name": "public_content_index_readable", "status": "passed", "summary": f"{len(notes)} approved public note(s)"}
+
+
 def create_report(root: Path) -> dict[str, object]:
     checks = [
         run_check("architecture", [sys.executable, "scripts/verify_phase0.py"], root),
         run_check("public_notes", [sys.executable, "automation/validate_notes.py", "vaults/CORCOIDUM-Public"], root),
         run_check("public_content_index", [sys.executable, "automation/build_public_content.py", "--check"], root),
     ]
-    payload = json.loads((root / "content" / "public" / "index.json").read_text(encoding="utf-8"))
+    note_count, index_check = count_approved_notes(root)
+    checks.append(index_check)
     return {
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "overall_status": "passed" if all(check["status"] == "passed" for check in checks) else "failed",
-        "approved_public_note_count": len(payload["notes"]),
+        "approved_public_note_count": note_count,
         "checks": checks,
     }
 
