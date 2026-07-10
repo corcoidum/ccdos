@@ -1,6 +1,6 @@
 # CORCOIDUM OS Architecture Charter
 
-**상태:** Phase 6 구현 완료 (외부 CI·배포·Discord 검증 대기)
+**상태:** Phase 7 retrieval-only MVP 완료 (외부 CI·Discord·LLM provider 검증 대기)
 **갱신일:** 2026-07-10
 **적용 범위:** 개인 지식 관리, 개발, 자동화, 공개 포트폴리오
 
@@ -108,4 +108,4 @@ Phase 1을 시작하기 전 다음을 확인한다.
 - [x] 공개 후보의 privacy review checklist와 review 증적 규칙을 정의했다.
 - [x] 승인 후 수정된 Public 노트가 이전 검토 증적을 재사용하지 못하도록 검사한다.
 
-Phase 3·4에서는 Public Vault 검증과 승인 콘텐츠 index 생성을 CI gate에 연결했고, Phase 5에서는 그 index만 읽는 Vite 정적 UI와 공개 경로를 구현했다. Phase 6에서는 비식별 상태 보고·선택적 Discord 알림·주간 검토 자동화를 추가했다.
+Phase 3·4에서는 Public Vault 검증과 승인 콘텐츠 index 생성을 CI gate에 연결했고, Phase 5에서는 그 index만 읽는 Vite 정적 UI와 공개 경로를 구현했다. Phase 6에서는 비식별 상태 보고·선택적 Discord 알림·주간 검토 자동화를 추가했다. Phase 7에서는 외부 LLM 호출 없이 승인된 공개 출처만 검색·인용하는 retrieval-only Wiki MVP를 추가했다.

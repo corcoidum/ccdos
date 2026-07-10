@@ -4,7 +4,7 @@
 
 CORCOIDUM OS는 의료 현장에서 얻은 **비식별 운영 인사이트**와 개인의 학습·개발 경험을 안전한 지식, 재사용 가능한 소프트웨어, 공개 사례 연구로 연결하는 1인용 운영체제입니다.
 
-현재 저장소는 **Phase 6 — Automation MVP**까지 구현한 초기 상태입니다. Vault 예시와 검증기를 기반으로 다음 자동화를 단계별로 추가합니다.
+현재 저장소는 **Phase 7 — Public Wiki / RAG MVP**까지 구현한 초기 상태입니다. Vault 예시와 검증기를 기반으로 다음 자동화를 단계별로 추가합니다.
 
 ## 원칙
 
@@ -74,5 +74,13 @@ npm run dev
 ## 다음 단계
 
 Phase 6은 배포 상태·오류·주간 리뷰를 비식별 요약으로 생성합니다. Discord 전송은 `DISCORD_WEBHOOK_URL` Secret 또는 로컬 환경 변수가 있고 명시적으로 요청될 때만 수행합니다. 자세한 절차는 [Automation MVP Runbook](docs/runbooks/automation-mvp.md)을 따릅니다.
+
+## Phase 7 Public Wiki 검색
+
+```powershell
+python rag/search_public_wiki.py "automation"
+```
+
+이 검색은 승인된 Public index만 대상으로 하며, 현재 단계에서는 외부 LLM을 호출하지 않습니다. 자세한 경계와 사용 방법은 [RAG README](rag/README.md)를 참조하세요.
 
 Cloudflare Workers Static Assets 배포 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)을 따릅니다. Worker 이름은 `ccdos`이며, 계정 서브도메인 기준 공개 주소는 `https://ccdos.corcoidum.workers.dev`입니다.

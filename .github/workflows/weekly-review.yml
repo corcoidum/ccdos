@@ -21,7 +21,11 @@ jobs:
       - name: Create redacted weekly review
         run: python automation/weekly_review.py --output "$RUNNER_TEMP/ccdos-weekly-review.json"
       - name: Send optional Discord review summary
-        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: python automation/notify_discord.py --report "$RUNNER_TEMP/ccdos-weekly-review.json" --send
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "SKIP: DISCORD_WEBHOOK_URL is not configured"
+            exit 0
+          fi
+          python automation/notify_discord.py --report "$RUNNER_TEMP/ccdos-weekly-review.json" --send
