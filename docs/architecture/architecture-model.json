@@ -1,0 +1,19 @@
+{
+  "version": "0.1",
+  "components": [
+    {"id": "clinicops_local", "owner": "Obsidian / local device", "security_level": "S3_RESTRICTED", "external": false},
+    {"id": "corcoidum_core", "owner": "Obsidian", "security_level": "S1_PRIVATE", "external": false},
+    {"id": "corcoidum_public", "owner": "Obsidian public vault", "security_level": "S0_PUBLIC", "external": true},
+    {"id": "github", "owner": "GitHub", "security_level": "S0_PUBLIC", "external": true},
+    {"id": "discord", "owner": "Discord", "security_level": "S1_PRIVATE", "external": true},
+    {"id": "openkiki_org", "owner": "openkiki.org", "security_level": "S0_PUBLIC", "external": true},
+    {"id": "rag_mvp", "owner": "RAG service", "security_level": "S0_PUBLIC", "external": false}
+  ],
+  "flows": [
+    {"from": "corcoidum_core", "to": "corcoidum_public", "control": "manual review and promotion"},
+    {"from": "corcoidum_public", "to": "github", "control": "metadata and privacy validation"},
+    {"from": "github", "to": "openkiki_org", "control": "approved production deployment"},
+    {"from": "github", "to": "discord", "control": "redacted status notification"},
+    {"from": "corcoidum_public", "to": "rag_mvp", "control": "approved-source allowlist"}
+  ]
+}

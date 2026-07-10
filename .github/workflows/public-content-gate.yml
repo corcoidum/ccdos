@@ -1,0 +1,50 @@
+name: Public content gate
+
+on:
+  pull_request:
+    paths:
+      - "automation/**"
+      - "content/**"
+      - "schemas/**"
+      - "site/**"
+      - "tests/**"
+      - "vaults/CORCOIDUM-Public/**"
+      - ".github/workflows/public-content-gate.yml"
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-public-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify architecture boundaries
+        run: python scripts/verify_phase0.py
+      - name: Validate public note metadata and privacy rules
+        run: python automation/validate_notes.py vaults/CORCOIDUM-Public
+      - name: Run automation tests
+        run: python -m unittest discover -s tests -v
+      - name: Require current approved-content index
+        run: python automation/build_public_content.py --check
+
+  build-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install website dependencies
+        working-directory: site
+        run: npm ci
+      - name: Build static website
+        working-directory: site
+        run: npm run build

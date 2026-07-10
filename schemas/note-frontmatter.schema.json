@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CORCOIDUM OS note frontmatter",
+  "description": "Obsidian-compatible common metadata. Validation is implemented without external dependencies in automation/validate_notes.py.",
+  "type": "object",
+  "required": ["id", "title", "created", "updated", "classification", "visibility", "publish_state", "tags"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "title": {"type": "string", "minLength": 1},
+    "created": {"type": "string", "format": "date-time"},
+    "updated": {"type": "string", "format": "date-time"},
+    "classification": {"enum": ["S0_PUBLIC", "S1_PRIVATE", "S2_INTERNAL_DEIDENTIFIED"]},
+    "visibility": {"enum": ["local", "private", "public"]},
+    "publish_state": {"enum": ["draft", "review", "approved", "published", "archived"]},
+    "tags": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "approved_by": {"type": "string", "minLength": 1},
+    "approved_at": {"type": "string", "format": "date-time"},
+    "review_requested_at": {"type": "string", "format": "date-time"},
+    "privacy_reviewed_by": {"type": "string", "minLength": 1},
+    "privacy_reviewed_at": {"type": "string", "format": "date-time"},
+    "privacy_review_result": {"const": "passed"},
+    "reviewed_revision": {"type": "string", "format": "date-time"},
+    "published_at": {"type": "string", "format": "date-time"},
+    "source_note": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": true
+}

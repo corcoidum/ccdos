@@ -1,0 +1,40 @@
+name: Deploy CCDOS Worker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Build approved public content index
+        run: python automation/build_public_content.py --check
+      - name: Install website dependencies
+        working-directory: site
+        run: npm ci
+      - name: Deploy static assets to Cloudflare Worker
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run deploy
+      - name: Create redacted deployment status
+        run: python automation/create_status_report.py --output "$RUNNER_TEMP/ccdos-status.json"
+      - name: Send optional Discord deployment status
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python automation/notify_discord.py --report "$RUNNER_TEMP/ccdos-status.json" --send

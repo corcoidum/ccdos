@@ -1,0 +1,25 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# JavaScript
+node_modules/
+dist/
+
+# Private and local-only knowledge must never be versioned.
+vaults/ClinicOps-Local/
+vaults/CORCOIDUM-Core/.obsidian/workspace*.json
+vaults/ClinicOps-Local.example/**/real-data/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db

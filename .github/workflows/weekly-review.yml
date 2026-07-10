@@ -1,0 +1,27 @@
+name: Weekly CORCOIDUM review
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate approved public content
+        run: python automation/build_public_content.py --check
+      - name: Create redacted weekly review
+        run: python automation/weekly_review.py --output "$RUNNER_TEMP/ccdos-weekly-review.json"
+      - name: Send optional Discord review summary
+        if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python automation/notify_discord.py --report "$RUNNER_TEMP/ccdos-weekly-review.json" --send
