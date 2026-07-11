@@ -46,6 +46,10 @@ type RenderOptions = {
   restoreHistory?: boolean;
 };
 
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void) => unknown;
+};
+
 const publicContent = content as PublicContent;
 const routeDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
@@ -86,6 +90,19 @@ function isPlainLeftClick(event: MouseEvent): boolean {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function renderWithTransition(options: RenderOptions): void {
+  const transitionDocument = document as ViewTransitionDocument;
+  if (!prefersReducedMotion() && typeof transitionDocument.startViewTransition === "function") {
+    transitionDocument.startViewTransition(() => render(options));
+    return;
+  }
+  render(options);
+}
+
 function navigate(route: Route): void {
   if (window.location.pathname === route) {
     if (window.location.hash) {
@@ -95,7 +112,7 @@ function navigate(route: Route): void {
     return;
   }
   window.history.pushState({}, "", route);
-  render({ announce: true });
+  renderWithTransition({ announce: true });
 }
 
 function createRouteLink(route: Route, label: string, className: string): HTMLAnchorElement {
@@ -688,6 +705,76 @@ function createFooter(): HTMLElement {
   return footer;
 }
 
+const REVEAL_SELECTORS = [
+  ".hero-copy",
+  ".section-heading",
+  ".journey-step",
+  ".value-item",
+  ".portal-row",
+  ".lifecycle-list li",
+  ".experiment-row",
+  ".principle-item",
+  ".case-story-item",
+  ".phase-item",
+  ".note-entry",
+  ".seed-state",
+  ".evidence-links",
+  ".dur-note",
+].join(", ");
+
+let revealCleanup: (() => void) | null = null;
+
+function setupReveals(root: HTMLElement): void {
+  revealCleanup?.();
+  revealCleanup = null;
+  if (prefersReducedMotion()) {
+    return;
+  }
+
+  const pending = new Set<HTMLElement>();
+  const groupCounts = new Map<HTMLElement | null, number>();
+  root.querySelectorAll<HTMLElement>(REVEAL_SELECTORS).forEach((element) => {
+    const parent = element.parentElement;
+    const index = groupCounts.get(parent) ?? 0;
+    groupCounts.set(parent, index + 1);
+    element.classList.add("reveal");
+    element.style.setProperty("--reveal-delay", `${Math.min(index * 70, 350)}ms`);
+    pending.add(element);
+  });
+
+  const revealOnScreen = (): void => {
+    for (const element of pending) {
+      const rect = element.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
+        element.classList.add("is-visible");
+        pending.delete(element);
+      }
+    }
+    if (pending.size === 0) {
+      revealCleanup?.();
+      revealCleanup = null;
+    }
+  };
+
+  // Scroll reacts immediately; the timer chain guarantees reveal even where
+  // scroll events are throttled, so content can never stay hidden.
+  let pollTimer = 0;
+  const poll = (): void => {
+    revealOnScreen();
+    if (pending.size > 0) {
+      pollTimer = window.setTimeout(poll, 400);
+    }
+  };
+  window.addEventListener("scroll", revealOnScreen, { passive: true });
+  window.addEventListener("resize", revealOnScreen);
+  revealCleanup = () => {
+    window.removeEventListener("scroll", revealOnScreen);
+    window.removeEventListener("resize", revealOnScreen);
+    window.clearTimeout(pollTimer);
+  };
+  pollTimer = window.setTimeout(poll, 40);
+}
+
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
   const route = currentRoute();
   if (window.location.pathname !== route) {
@@ -702,6 +789,7 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   main.id = "main-content";
   main.append(pageFor(route));
   appRoot.replaceChildren(skipLink, createHeader(route), main, createFooter());
+  setupReveals(main);
 
   if (announce) {
     window.requestAnimationFrame(() => {
@@ -721,5 +809,7 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   }
 }
 
-window.addEventListener("popstate", () => render({ announce: true, restoreHistory: true }));
+window.addEventListener("popstate", () =>
+  renderWithTransition({ announce: true, restoreHistory: true }),
+);
 render();

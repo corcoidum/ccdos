@@ -40,6 +40,8 @@ body {
   overflow-x: clip;
   color: var(--ivory);
   background: var(--night);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 button,
@@ -101,7 +103,15 @@ img {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid var(--line);
-  background: rgba(4, 24, 23, 0.97);
+  background: var(--night);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .site-header {
+    background: rgba(4, 24, 23, 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
 }
 
 .header-inner {
@@ -218,8 +228,8 @@ img {
   font-weight: 600;
   letter-spacing: -0.055em;
   line-height: 1.12;
-  word-break: keep-all;
   white-space: pre-line;
+  text-wrap: balance;
 }
 
 .hero-description {
@@ -228,7 +238,7 @@ img {
   color: var(--muted-strong);
   font-size: clamp(0.94rem, 1vw, 1.05rem);
   line-height: 1.9;
-  word-break: keep-all;
+  text-wrap: pretty;
 }
 
 .hero-actions,
@@ -280,6 +290,14 @@ img {
   transform: translateY(-2px);
 }
 
+.action-link:active,
+.constellation-node:active,
+.filter-button:active,
+.portal-row:active {
+  transform: translateY(1px);
+  transition-duration: 60ms;
+}
+
 .hero-note {
   max-width: 610px;
   margin: 24px 0 0;
@@ -305,6 +323,17 @@ img {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  animation: hero-breathe 36s ease-in-out infinite alternate;
+}
+
+@keyframes hero-breathe {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.05);
+  }
 }
 
 .constellation-nav {
@@ -325,13 +354,24 @@ img {
   font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
-  transition: color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: color 160ms ease, border-color 160ms ease;
+  animation: node-float 7s ease-in-out infinite;
+}
+
+@keyframes node-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .constellation-node:hover {
   color: var(--coral-bright);
   border-bottom-color: var(--coral-bright);
-  transform: translateY(-2px);
 }
 
 .constellation-node--os {
@@ -342,25 +382,51 @@ img {
 .constellation-node--garden {
   top: 46%;
   left: 25%;
+  animation-delay: -1.8s;
 }
 
 .constellation-node--lab {
   top: 44%;
   right: 3%;
+  animation-delay: -3.6s;
 }
 
 .constellation-node--projects {
   right: 28%;
   bottom: 8%;
+  animation-delay: -5.2s;
 }
 
 .hero--garden .hero-visual img {
   object-position: 55% center;
 }
 
-.hero--lab .hero-visual img,
-.hero--projects .hero-visual img {
+.hero--lab .hero-visual img {
   object-position: 50% center;
+}
+
+.hero--projects .hero-visual img {
+  object-position: 62% center;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: ease;
 }
 
 .content-section {
@@ -394,7 +460,7 @@ img {
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1.2;
-  word-break: keep-all;
+  text-wrap: balance;
 }
 
 .section-description {
@@ -403,7 +469,7 @@ img {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.9;
-  word-break: keep-all;
+  text-wrap: pretty;
 }
 
 .journey-section {
@@ -479,7 +545,6 @@ img {
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.75;
-  word-break: keep-all;
 }
 
 .value-list {
@@ -832,7 +897,6 @@ img {
   margin: 0;
   color: var(--muted);
   line-height: 1.85;
-  word-break: keep-all;
 }
 
 .phase-timeline {
@@ -1012,24 +1076,43 @@ img {
 }
 
 @media (max-width: 860px) {
-  .constellation-nav {
-    display: none;
-  }
-
   .hero {
     grid-template-columns: 1fr;
     min-height: auto;
   }
 
   .hero-copy {
-    min-height: 640px;
-    padding: 88px max(32px, calc((100vw - 720px) / 2));
+    min-height: 0;
+    padding: 64px max(32px, calc((100vw - 720px) / 2)) 56px;
   }
 
   .hero-visual {
-    min-height: 520px;
+    min-height: 0;
     border-top: 1px solid var(--line);
     border-left: 0;
+  }
+
+  .hero-visual img {
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .constellation-nav {
+    position: static;
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px 18px;
+    overflow-x: auto;
+    border-top: 1px solid var(--line);
+  }
+
+  .constellation-node {
+    position: static;
+    flex: 0 0 auto;
+    padding: 8px 18px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    animation: none;
   }
 
   .section-heading {
@@ -1039,6 +1122,14 @@ img {
 
   .section-heading .eyebrow {
     grid-column: auto;
+  }
+
+  .journey-section .section-heading {
+    display: block;
+  }
+
+  .journey-section .section-description {
+    margin-top: 18px;
   }
 
   .portal-row {
@@ -1079,8 +1170,8 @@ img {
     flex-direction: column;
     width: min(100% - 36px, var(--content));
     min-height: 0;
-    padding: 12px 0 10px;
-    gap: 4px;
+    padding: 8px 0 6px;
+    gap: 2px;
   }
 
   #journey,
@@ -1088,11 +1179,12 @@ img {
   #experiments,
   #case-study,
   #roadmap {
-    scroll-margin-top: 116px;
+    scroll-margin-top: 108px;
   }
 
   .brand {
-    min-height: 38px;
+    min-height: 30px;
+    font-size: 0.76rem;
   }
 
   .site-nav {
@@ -1103,13 +1195,13 @@ img {
   .nav-link {
     flex: 1 1 0;
     justify-content: center;
-    min-height: 46px;
+    min-height: 44px;
     font-size: 0.88rem;
   }
 
   .hero-copy {
     min-height: 0;
-    padding: 72px 20px 64px;
+    padding: 48px 20px 44px;
   }
 
   .hero-credo {
@@ -1119,7 +1211,8 @@ img {
 
   .hero h1 {
     font-size: clamp(2.1rem, 8.7vw, 2.55rem);
-    line-height: 1.16;
+    line-height: 1.2;
+    white-space: normal;
   }
 
   .hero-description {
@@ -1141,10 +1234,6 @@ img {
 
   .hero-note {
     margin-top: 28px;
-  }
-
-  .hero-visual {
-    min-height: 360px;
   }
 
   .content-section {
@@ -1308,5 +1397,10 @@ img {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
