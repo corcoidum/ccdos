@@ -900,12 +900,60 @@ img {
 }
 
 .phase-timeline {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--line-strong);
   list-style: none;
+}
+
+/* Scroll-driven roadmap: a progress thread draws beside the timeline and each
+   phase scrubs in with scroll. Browsers without scroll timelines keep the
+   time-based reveal instead (mirrored in setupReveals). */
+@supports (animation-timeline: view()) {
+  .phase-timeline::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -16px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--coral-bright), var(--gold));
+    transform-origin: top;
+    animation: rail-draw linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 75%;
+  }
+
+  @keyframes rail-draw {
+    from {
+      transform: scaleY(0);
+    }
+
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  .phase-item {
+    animation: phase-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 5% cover 40%;
+  }
+
+  @keyframes phase-rise {
+    from {
+      opacity: 0;
+      transform: translateY(26px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 .phase-item {
@@ -1338,6 +1386,10 @@ img {
     padding: 34px 0 42px;
   }
 
+  .phase-timeline::before {
+    left: -12px;
+  }
+
   .phase-item,
   .phase-item:nth-child(even) {
     grid-template-columns: 1fr;
@@ -1402,5 +1454,12 @@ img {
   .reveal {
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  /* Scroll-linked scrubbing ignores the duration override above, so switch
+     the roadmap animations off explicitly; the rail stays as a static line. */
+  .phase-item,
+  .phase-timeline::before {
+    animation: none !important;
   }
 }

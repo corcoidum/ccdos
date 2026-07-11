@@ -94,6 +94,10 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+function supportsScrollDrivenAnimations(): boolean {
+  return typeof CSS !== "undefined" && CSS.supports("animation-timeline", "view()");
+}
+
 function renderWithTransition(options: RenderOptions): void {
   const transitionDocument = document as ViewTransitionDocument;
   if (!prefersReducedMotion() && typeof transitionDocument.startViewTransition === "function") {
@@ -731,9 +735,14 @@ function setupReveals(root: HTMLElement): void {
     return;
   }
 
+  const scrollDriven = supportsScrollDrivenAnimations();
   const pending = new Set<HTMLElement>();
   const groupCounts = new Map<HTMLElement | null, number>();
   root.querySelectorAll<HTMLElement>(REVEAL_SELECTORS).forEach((element) => {
+    if (scrollDriven && element.classList.contains("phase-item")) {
+      // The CSS scroll-driven roadmap animation owns this element's entrance.
+      return;
+    }
     const parent = element.parentElement;
     const index = groupCounts.get(parent) ?? 0;
     groupCounts.set(parent, index + 1);
