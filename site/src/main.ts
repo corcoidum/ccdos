@@ -667,11 +667,21 @@ function pageFor(route: Route): HTMLElement {
   return pages[route]();
 }
 
+function createBrandLogo(size: number): HTMLImageElement {
+  const logo = createElement("img", "brand-logo");
+  logo.src = "/assets/logo.png";
+  logo.alt = "";
+  logo.width = size;
+  logo.height = size;
+  return logo;
+}
+
 function createHeader(route: Route): HTMLElement {
   const header = createElement("header", "site-header");
   const inner = createElement("div", "header-inner");
-  const brand = createRouteLink("/os", "CORCOIDUM OS", "brand");
+  const brand = createRouteLink("/os", "", "brand");
   brand.setAttribute("aria-label", "CORCOIDUM OS 홈");
+  brand.append(createBrandLogo(28), createElement("span", undefined, "CORCOIDUM OS"));
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
@@ -692,8 +702,10 @@ function createFooter(): HTMLElement {
   const footer = createElement("footer", "site-footer");
   const inner = createElement("div", "footer-inner");
   const identity = createElement("div", "footer-identity");
+  const footerBrand = createElement("div", "footer-brand");
+  footerBrand.append(createBrandLogo(22), createElement("strong", undefined, "CORCOIDUM"));
   identity.append(
-    createElement("strong", undefined, "CORCOIDUM"),
+    footerBrand,
     createElement("p", undefined, "Where codes and hearts coexist, the future of tech is HUMAN."),
   );
   const links = createElement("div", "footer-links");

@@ -127,12 +127,18 @@ img {
 .brand {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   min-height: 44px;
   color: var(--ivory-strong);
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  flex-shrink: 0;
 }
 
 .site-nav {
@@ -1006,6 +1012,12 @@ img {
   gap: 48px;
 }
 
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .footer-identity strong {
   color: var(--ivory-strong);
   font-size: 0.82rem;
@@ -1233,6 +1245,11 @@ img {
   .brand {
     min-height: 30px;
     font-size: 0.76rem;
+  }
+
+  .brand-logo {
+    width: 24px;
+    height: 24px;
   }
 
   .site-nav {
