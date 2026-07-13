@@ -1,7 +1,7 @@
 # Phase 7 완료 보고서 — Public Wiki / RAG MVP
 
 **완료일:** 2026-07-10
-**판정:** retrieval-only MVP 구현 완료, LLM provider 결정 대기
+**판정:** retrieval-only MVP 구현 완료, 이후 ADR-0002와 Phase 8b로 확장됨
 
 ## 구현 결과
 
@@ -12,4 +12,4 @@
 
 ## 다음 조치
 
-LLM 답변 기능은 provider, 비용 한도, 외부 전송 여부를 결정한 뒤 별도로 추가한다. 생성 결과는 항상 `_AI_Staging`과 사람 승인 흐름을 거친다.
+Provider와 외부 전송 경계 결정은 ADR-0002에 기록되었고, 생성 계층은 Phase 8b 완료 보고서의 안전 조건에 따라 구현되었다. Public 콘텐츠로 승격하는 생성 결과는 여전히 `_AI_Staging`과 사람 승인 흐름을 거쳐야 한다.

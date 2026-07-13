@@ -173,6 +173,11 @@ def validate_note(path: Path) -> list[ValidationIssue]:
             issues.append(ValidationIssue(path, "published note requires published_at"))
         elif not is_utc_timestamp(metadata["published_at"]):
             issues.append(ValidationIssue(path, "published_at must be an ISO 8601 UTC timestamp ending in Z"))
+        else:
+            published_at = parse_utc_timestamp(metadata["published_at"])
+            approved_at = parse_utc_timestamp(metadata.get("approved_at"))
+            if published_at and approved_at and published_at < approved_at:
+                issues.append(ValidationIssue(path, "published_at must not be earlier than approved_at"))
 
     if name:
         expected_classification, expected_visibility = VAULT_RULES[name]

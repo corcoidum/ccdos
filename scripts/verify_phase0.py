@@ -14,6 +14,8 @@ REQUIRED_COMPONENTS = {
     "discord",
     "openkiki_org",
     "rag_mvp",
+    "grounded_answer_layer",
+    "openai_api",
 }
 REQUIRED_DOCUMENTS = {
     "docs/architecture/charter.md",

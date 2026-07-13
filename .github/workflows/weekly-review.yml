@@ -21,6 +21,7 @@ jobs:
       - name: Create redacted weekly review
         run: python automation/weekly_review.py --output "$RUNNER_TEMP/ccdos-weekly-review.json"
       - name: Send optional Discord review summary
+        if: ${{ always() }}
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |

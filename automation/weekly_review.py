@@ -26,14 +26,23 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[1]
     index_path = root / "content" / "public" / "index.json"
+    report = create_report(root)
     try:
         payload = json.loads(index_path.read_text(encoding="utf-8"))
         if not isinstance(payload.get("notes"), list):
             raise ValueError("notes must be a list")
     except (OSError, UnicodeError, ValueError) as error:
-        print(f"FAIL: cannot read approved public content index: {error}")
-        return 1
-    review = create_weekly_review(create_report(root), payload)
+        report["checks"].append(
+            {
+                "name": "weekly_public_index",
+                "status": "failed",
+                "summary": f"cannot read approved public content index: {error}",
+            }
+        )
+        report["overall_status"] = "failed"
+        review = {**report, "top_tags": []}
+    else:
+        review = create_weekly_review(report, payload)
     rendered = json.dumps(review, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

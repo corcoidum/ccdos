@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from automation.create_status_report import count_approved_notes, run_check
+from automation.create_status_report import count_approved_notes, create_report, run_check
 from automation.notify_discord import format_message, is_discord_webhook
 from automation.weekly_review import create_weekly_review
 
@@ -55,6 +55,14 @@ class AutomationReportTests(unittest.TestCase):
         )
         self.assertEqual(check["status"], "failed")
         self.assertIn("boom", check["summary"])
+
+    def test_deployment_failure_marks_status_report_failed(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        report = create_report(root, deployment_status="failure")
+        deployment = next(check for check in report["checks"] if check["name"] == "deployment")
+        self.assertEqual(report["overall_status"], "failed")
+        self.assertEqual(deployment["status"], "failed")
+        self.assertNotIn("body", deployment)
 
     def test_weekly_review_extends_report_with_public_metadata_only(self) -> None:
         report = {

@@ -7,13 +7,17 @@
     {"id": "github", "owner": "GitHub", "security_level": "S0_PUBLIC", "external": true},
     {"id": "discord", "owner": "Discord", "security_level": "S1_PRIVATE", "external": true},
     {"id": "openkiki_org", "owner": "openkiki.org", "security_level": "S0_PUBLIC", "external": true},
-    {"id": "rag_mvp", "owner": "RAG service", "security_level": "S0_PUBLIC", "external": false}
+    {"id": "rag_mvp", "owner": "Browser retrieval", "security_level": "S0_PUBLIC", "external": false},
+    {"id": "grounded_answer_layer", "owner": "Cloudflare Worker", "security_level": "S0_PUBLIC", "external": true},
+    {"id": "openai_api", "owner": "OpenAI", "security_level": "S0_PUBLIC", "external": true}
   ],
   "flows": [
     {"from": "corcoidum_core", "to": "corcoidum_public", "control": "manual review and promotion"},
     {"from": "corcoidum_public", "to": "github", "control": "metadata and privacy validation"},
     {"from": "github", "to": "openkiki_org", "control": "approved production deployment"},
     {"from": "github", "to": "discord", "control": "redacted status notification"},
-    {"from": "corcoidum_public", "to": "rag_mvp", "control": "approved-source allowlist"}
+    {"from": "corcoidum_public", "to": "rag_mvp", "control": "approved-source allowlist"},
+    {"from": "corcoidum_public", "to": "grounded_answer_layer", "control": "Worker-side approved-source retrieval only"},
+    {"from": "grounded_answer_layer", "to": "openai_api", "control": "question plus up to three approved public excerpts; store disabled; citation required"}
   ]
 }

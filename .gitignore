@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.dev.vars*
 *.key
 *.pem
 
@@ -14,6 +15,10 @@ __pycache__/
 # JavaScript
 node_modules/
 dist/
+worker-configuration.d.ts
+.wrangler/
+test-results/
+playwright-report/
 
 # Private and local-only knowledge must never be versioned.
 vaults/ClinicOps-Local/

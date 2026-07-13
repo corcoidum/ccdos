@@ -6,6 +6,8 @@
 - `approved` 또는 `published` 상태이며 검증을 통과한 노트만 `content/public/index.json`에 포함한다.
 - `draft`, `review`, `archived` 노트는 공개 빌드에서 제외한다.
 - 빌드는 본문을 정리하거나 해석하지 않는다. review와 validator가 통과시킨 내용을 정적 index로 변환할 뿐이다.
+- 노트 ID는 Public Vault 전체에서 유일해야 하며, 단독 build 실행도 중복 ID를 차단한다.
+- `published_at`은 `approved_at`보다 빠를 수 없고, 공개 index는 게시 시각을 우선해 정렬한다.
 
 ## 로컬 실행
 

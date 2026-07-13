@@ -5,6 +5,7 @@
       "id": "value-of-invisible-work",
       "title": "화면에 보이지 않는 작업의 가치",
       "updated": "2026-07-13T08:54:00Z",
+      "published_at": "2026-07-13T08:59:28Z",
       "tags": [
         "ci",
         "case-study"
@@ -16,6 +17,7 @@
       "id": "search-that-does-not-guess",
       "title": "추측하지 않는 검색",
       "updated": "2026-07-13T08:54:00Z",
+      "published_at": "2026-07-13T08:59:28Z",
       "tags": [
         "retrieval",
         "automation"
@@ -27,6 +29,7 @@
       "id": "safe-automation-case-study",
       "title": "안전한 운영 자동화의 작은 시작",
       "updated": "2026-07-13T08:54:00Z",
+      "published_at": "2026-07-13T08:59:28Z",
       "tags": [
         "automation",
         "case-study"
@@ -38,6 +41,7 @@
       "id": "empty-garden-is-a-promise",
       "title": "빈 정원은 실패가 아니라 약속이다",
       "updated": "2026-07-13T08:54:00Z",
+      "published_at": "2026-07-13T08:59:28Z",
       "tags": [
         "governance",
         "case-study"
@@ -49,6 +53,7 @@
       "id": "discord-webhook-403-lesson",
       "title": "403은 항상 권한 문제가 아니다",
       "updated": "2026-07-13T08:54:00Z",
+      "published_at": "2026-07-13T08:59:28Z",
       "tags": [
         "automation",
         "debugging"

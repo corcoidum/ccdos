@@ -1,19 +1,6 @@
 import content from "../../content/public/index.json";
+import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
-
-type PublicNote = {
-  id: string;
-  title: string;
-  updated: string;
-  tags: string[];
-  state: "approved" | "published";
-  body: string;
-};
-
-type PublicContent = {
-  version: number;
-  notes: PublicNote[];
-};
 
 type Route = "/os" | "/garden" | "/lab" | "/projects";
 
@@ -41,13 +28,27 @@ type RouteDefinition = {
   title: string;
 };
 
+type AnswerApiResponse = {
+  mode: "generated" | "retrieval";
+  reason?: string;
+  answer: string;
+  sources: Array<{ id: string; title: string }>;
+  model?: string;
+};
+
 type RenderOptions = {
   announce?: boolean;
   restoreHistory?: boolean;
 };
 
+type NavigationDirection = "backward" | "forward" | "none";
+
+type ViewTransition = {
+  finished: Promise<void>;
+};
+
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => unknown;
+  startViewTransition?: (update: () => void) => ViewTransition;
 };
 
 const publicContent = content as PublicContent;
@@ -98,16 +99,26 @@ function supportsScrollDrivenAnimations(): boolean {
   return typeof CSS !== "undefined" && CSS.supports("animation-timeline", "view()");
 }
 
-function renderWithTransition(options: RenderOptions): void {
+function routeDirection(from: Route, to: Route): NavigationDirection {
+  const difference = routes.indexOf(to) - routes.indexOf(from);
+  return difference > 0 ? "forward" : difference < 0 ? "backward" : "none";
+}
+
+function renderWithTransition(options: RenderOptions, direction: NavigationDirection = "none"): void {
   const transitionDocument = document as ViewTransitionDocument;
   if (!prefersReducedMotion() && typeof transitionDocument.startViewTransition === "function") {
-    transitionDocument.startViewTransition(() => render(options));
+    document.documentElement.dataset.navigationDirection = direction;
+    const transition = transitionDocument.startViewTransition(() => render(options));
+    void transition.finished.finally(() => {
+      delete document.documentElement.dataset.navigationDirection;
+    });
     return;
   }
   render(options);
 }
 
-function navigate(route: Route): void {
+function navigate(route: Route, direction?: NavigationDirection): void {
+  const from = currentRoute();
   if (window.location.pathname === route) {
     if (window.location.hash) {
       window.history.replaceState({}, "", route);
@@ -116,7 +127,7 @@ function navigate(route: Route): void {
     return;
   }
   window.history.pushState({}, "", route);
-  renderWithTransition({ announce: true });
+  renderWithTransition({ announce: true }, direction ?? routeDirection(from, route));
 }
 
 function createRouteLink(route: Route, label: string, className: string): HTMLAnchorElement {
@@ -159,55 +170,6 @@ function formatDate(timestamp: string): string {
   return new Intl.DateTimeFormat("ko-KR", { dateStyle: "long", timeZone: "UTC" }).format(
     new Date(timestamp),
   );
-}
-
-// Client-side twin of rag/search_public_wiki.py: same tokens, weights, and
-// excerpt shape, so the on-page demo behaves exactly like the CLI tool.
-const TOKEN_PATTERN = /[0-9A-Za-z가-힣_]+/g;
-
-function tokenize(text: string): string[] {
-  return (text.match(TOKEN_PATTERN) ?? []).map((token) => token.toLowerCase());
-}
-
-function countTokens(tokens: string[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const token of tokens) {
-    counts.set(token, (counts.get(token) ?? 0) + 1);
-  }
-  return counts;
-}
-
-// Prefix matching so Korean particles ("403은", "자동화를") still match the
-// bare query token.
-function prefixCount(counts: Map<string, number>, queryToken: string): number {
-  let total = 0;
-  for (const [token, count] of counts) {
-    if (token.startsWith(queryToken)) {
-      total += count;
-    }
-  }
-  return total;
-}
-
-function scoreNote(note: PublicNote, queryTokens: string[]): number {
-  const title = countTokens(tokenize(note.title));
-  const tags = countTokens(tokenize(note.tags.join(" ")));
-  const body = countTokens(tokenize(note.body));
-  return queryTokens.reduce(
-    (score, token) =>
-      score + 4 * prefixCount(title, token) + 3 * prefixCount(tags, token) + prefixCount(body, token),
-    0,
-  );
-}
-
-function excerptOf(body: string, queryTokens: string[], limit = 180): string {
-  const normalized = body.split(/\s+/).join(" ");
-  const lower = normalized.toLowerCase();
-  const matchIndex =
-    queryTokens.map((token) => lower.indexOf(token)).find((position) => position >= 0) ?? 0;
-  const start = Math.max(matchIndex - 40, 0);
-  const end = Math.min(start + limit, normalized.length);
-  return `${start > 0 ? "…" : ""}${normalized.slice(start, end)}${end < normalized.length ? "…" : ""}`;
 }
 
 function createSectionHeading(eyebrow: string, title: string, description: string): HTMLElement {
@@ -411,8 +373,9 @@ function createLifecycle(): HTMLElement {
 function createNoteCard(note: PublicNote): HTMLElement {
   const article = createElement("article", "note-entry");
   const meta = createElement("p", "note-meta");
-  const time = createElement("time", undefined, formatDate(note.updated));
-  time.dateTime = note.updated;
+  const displayDate = note.published_at ?? note.updated;
+  const time = createElement("time", undefined, formatDate(displayDate));
+  time.dateTime = displayDate;
   meta.append(time, document.createTextNode(` · ${note.state}`));
   article.append(meta, createElement("h3", undefined, note.title));
 
@@ -428,6 +391,7 @@ function createNoteCard(note: PublicNote): HTMLElement {
 }
 
 function createPublicArchive(): HTMLElement {
+  const initialLimit = 2;
   const section = createElement("section", "content-section archive-section");
   section.id = "public-notes";
   section.tabIndex = -1;
@@ -464,15 +428,25 @@ function createPublicArchive(): HTMLElement {
   filters.setAttribute("role", "group");
   filters.setAttribute("aria-label", "기록 태그 필터");
   const results = createElement("div", "note-list");
+  results.id = "public-note-list";
   results.setAttribute("aria-live", "polite");
+  const toggle = createElement("button", "archive-toggle");
+  toggle.type = "button";
+  toggle.setAttribute("aria-controls", results.id);
   let activeTag = "all";
+  let expanded = false;
 
   const renderResults = (): void => {
-    const visibleNotes =
+    const filteredNotes =
       activeTag === "all"
         ? publicContent.notes
         : publicContent.notes.filter((note) => note.tags.includes(activeTag));
+    const visibleNotes = expanded ? filteredNotes : filteredNotes.slice(0, initialLimit);
     results.replaceChildren(...visibleNotes.map(createNoteCard));
+    const remaining = Math.max(filteredNotes.length - initialLimit, 0);
+    toggle.hidden = remaining === 0;
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.textContent = expanded ? "기록 접기" : `기록 ${remaining}개 더 보기`;
     filters.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.tag === activeTag));
     });
@@ -485,11 +459,16 @@ function createPublicArchive(): HTMLElement {
     button.dataset.tag = tag;
     button.addEventListener("click", () => {
       activeTag = tag;
+      expanded = false;
       renderResults();
     });
     filters.append(button);
   }
-  section.append(filters, results);
+  toggle.addEventListener("click", () => {
+    expanded = !expanded;
+    renderResults();
+  });
+  section.append(filters, results, toggle);
   renderResults();
   return section;
 }
@@ -525,7 +504,7 @@ function createWikiSearch(): HTMLElement {
     createSectionHeading(
       "TRY THE LIVE EXPERIMENT",
       "공개 위키 검색, 직접 써보세요",
-      "승인된 공개 기록만 검색하고, 근거가 없으면 없다고 답합니다. 검색은 브라우저 안에서만 실행되어 아무 데이터도 외부로 전송하지 않습니다.",
+      "기본 검색은 브라우저 안에서만 실행됩니다. AI 답변 생성을 직접 선택한 경우에만 질문과 관련 승인 공개 출처가 OpenAI로 전송되며, 근거가 없으면 생성하지 않습니다.",
     ),
   );
 
@@ -533,25 +512,32 @@ function createWikiSearch(): HTMLElement {
   const input = createElement("input", "wiki-search-input");
   input.type = "search";
   input.placeholder = "예: 403, 자동화, 정원";
+  input.maxLength = 200;
   input.setAttribute("aria-label", "공개 기록 검색어");
-  const button = createElement("button", "action-link action-link--primary", "검색");
-  button.type = "submit";
-  form.append(input, button);
+  const searchButton = createElement("button", "action-link action-link--primary", "근거 검색");
+  searchButton.type = "submit";
+  const answerButton = createElement("button", "action-link action-link--secondary", "AI 답변 생성");
+  answerButton.type = "button";
+  form.append(input, searchButton, answerButton);
+
+  const privacyNotice = createElement(
+    "p",
+    "wiki-ai-notice",
+    "AI 답변에는 개인·환자·직원 정보를 입력하지 마세요. 이 기능은 공개 승인 기록의 운영·학습 내용을 요약하며 의료 판단을 대신하지 않습니다.",
+  );
 
   const results = createElement("div", "wiki-search-results");
   results.setAttribute("aria-live", "polite");
+  const answerPanel = createElement("section", "wiki-answer-panel");
+  answerPanel.setAttribute("aria-live", "polite");
 
-  const renderResults = (): void => {
+  const renderResults = (): number => {
     const queryTokens = tokenize(input.value);
     results.replaceChildren();
     if (queryTokens.length === 0) {
-      return;
+      return 0;
     }
-    const ranked = publicContent.notes
-      .map((note) => ({ note, score: scoreNote(note, queryTokens) }))
-      .filter((entry) => entry.score > 0)
-      .sort((a, b) => b.score - a.score || b.note.updated.localeCompare(a.note.updated))
-      .slice(0, 5);
+    const ranked = searchPublicNotes(publicContent, input.value, 5);
     if (ranked.length === 0) {
       results.append(
         createElement(
@@ -560,18 +546,19 @@ function createWikiSearch(): HTMLElement {
           "일치하는 승인된 공개 출처가 없습니다. 이 검색은 추측하지 않고 근거만 보여 줍니다.",
         ),
       );
-      return;
+      return 0;
     }
-    for (const { note } of ranked) {
+    for (const { note, excerpt } of ranked) {
       const item = createElement("article", "wiki-search-result");
       const meta = createElement("p", "note-meta");
-      const time = createElement("time", undefined, formatDate(note.updated));
-      time.dateTime = note.updated;
+      const displayDate = note.published_at ?? note.updated;
+      const time = createElement("time", undefined, formatDate(displayDate));
+      time.dateTime = displayDate;
       meta.append(time, document.createTextNode(` · ${note.state}`));
       item.append(
         meta,
         createElement("h3", undefined, note.title),
-        createElement("p", "wiki-search-excerpt", excerptOf(note.body, queryTokens)),
+        createElement("p", "wiki-search-excerpt", excerpt),
       );
       const tagList = createElement("div", "tag-list");
       for (const tag of note.tags) {
@@ -581,6 +568,22 @@ function createWikiSearch(): HTMLElement {
       results.append(item);
     }
     results.append(createRouteLink("/garden", "Garden에서 전체 기록 보기", "text-link"));
+    return ranked.length;
+  };
+
+  const renderAnswer = (payload: AnswerApiResponse): void => {
+    const label = payload.mode === "generated" ? "GROUNDED AI ANSWER" : "SAFE RETRIEVAL FALLBACK";
+    const heading = payload.mode === "generated" ? "승인된 근거로 생성한 답변" : "생성하지 않고 근거만 표시합니다";
+    const sourceList = createElement("ul", "wiki-answer-sources");
+    for (const source of payload.sources) {
+      sourceList.append(createElement("li", undefined, `${source.title} [${source.id}]`));
+    }
+    answerPanel.replaceChildren(
+      createElement("p", "eyebrow", label),
+      createElement("h3", undefined, heading),
+      createElement("p", "wiki-answer-copy", payload.answer),
+      sourceList,
+    );
   };
 
   form.addEventListener("submit", (event) => {
@@ -588,7 +591,40 @@ function createWikiSearch(): HTMLElement {
     renderResults();
   });
   input.addEventListener("input", renderResults);
-  section.append(form, results);
+  input.addEventListener("input", () => answerPanel.replaceChildren());
+  answerButton.addEventListener("click", async () => {
+    const query = input.value.trim();
+    answerPanel.replaceChildren();
+    if (!query || renderResults() === 0) {
+      answerPanel.append(createElement("p", "wiki-search-empty", "먼저 근거가 있는 검색어를 입력해 주세요."));
+      return;
+    }
+    answerButton.disabled = true;
+    answerButton.textContent = "생성 중…";
+    try {
+      const response = await fetch("/api/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      if (!response.ok) {
+        throw new Error(`answer API returned ${response.status}`);
+      }
+      renderAnswer((await response.json()) as AnswerApiResponse);
+    } catch {
+      answerPanel.append(
+        createElement(
+          "p",
+          "wiki-search-empty",
+          "생성 계층에 연결할 수 없습니다. 위의 retrieval 검색 결과는 계속 확인할 수 있습니다.",
+        ),
+      );
+    } finally {
+      answerButton.disabled = false;
+      answerButton.textContent = "AI 답변 생성";
+    }
+  });
+  section.append(form, privacyNotice, results, answerPanel);
   return section;
 }
 
@@ -646,10 +682,10 @@ function renderLab(): HTMLElement {
     },
     {
       phase: "PHASE 8B",
-      status: "DECIDED",
+      status: "LIVE",
       title: "Grounded Answer Layer",
       question: "어떤 provider와 비용·외부 전송 경계가 이 세계관에 맞는가?",
-      result: "ADR-0002로 결정했습니다. 승인된 공개 근거와 질문만 전달하는 경계 안에서 Claude API를 연결하고, 비용·남용 방어를 코드로 강제한 뒤 도입합니다.",
+      result: "ADR-0003에 따라 승인된 공개 근거와 질문만 OpenAI Responses API에 전달하며, 비용·남용 방어와 인용 검증을 코드로 강제합니다.",
     },
   ]) {
     const row = createElement("article", "experiment-row");
@@ -765,7 +801,7 @@ function renderProjects(): HTMLElement {
     ["5", "Public OS UI", "OS·Garden·Lab·Projects 공개 화면", "LIVE"],
     ["6", "Automation & Discord", "비식별 상태 보고와 선택적 webhook", "VERIFIED"],
     ["7", "Retrieval-only Public Wiki", "외부 LLM 없이 승인된 출처 검색 · Lab에서 체험 가능", "LIVE"],
-    ["8", "Grounded Answer Layer", "ADR-0002 결정: 경계 안에서 Claude API 연결", "IN PROGRESS"],
+    ["8", "Grounded Answer Layer", "ADR-0003 결정: 경계 안에서 OpenAI Responses API 연결", "LIVE"],
   ]) {
     const item = createElement("li", "phase-item");
     item.append(
@@ -955,7 +991,120 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   }
 }
 
+const SWIPE_DISTANCE_PX = 72;
+const SWIPE_MAX_DURATION_MS = 700;
+const SWIPE_AXIS_RATIO = 1.3;
+const WHEEL_THRESHOLD_PX = 150;
+const WHEEL_SEQUENCE_GAP_MS = 180;
+const WHEEL_COOLDOWN_MS = 850;
+
+function gestureTargetIsBlocked(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return Boolean(
+    target.closest(
+      "a, button, input, textarea, select, [contenteditable='true'], .constellation-nav, [data-swipe-ignore]",
+    ),
+  );
+}
+
+function navigateAdjacentRoute(direction: "backward" | "forward"): boolean {
+  const index = routes.indexOf(currentRoute());
+  const nextIndex = index + (direction === "forward" ? 1 : -1);
+  const route = routes[nextIndex];
+  if (!route) {
+    return false;
+  }
+  navigate(route, direction);
+  return true;
+}
+
+function setupRouteGestures(): void {
+  let pointerStart: { id: number; x: number; y: number; time: number } | null = null;
+  let wheelTotal = 0;
+  let lastWheelAt = 0;
+  let wheelLockedUntil = 0;
+
+  window.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.pointerType !== "touch" || !event.isPrimary || gestureTargetIsBlocked(event.target)) {
+        pointerStart = null;
+        return;
+      }
+      pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    "pointerup",
+    (event) => {
+      if (!pointerStart || event.pointerId !== pointerStart.id) {
+        return;
+      }
+      const start = pointerStart;
+      pointerStart = null;
+      const deltaX = event.clientX - start.x;
+      const deltaY = event.clientY - start.y;
+      const duration = event.timeStamp - start.time;
+      const horizontal =
+        Math.abs(deltaX) >= SWIPE_DISTANCE_PX &&
+        Math.abs(deltaX) > Math.abs(deltaY) * SWIPE_AXIS_RATIO;
+      if (horizontal && duration <= SWIPE_MAX_DURATION_MS && window.getSelection()?.type !== "Range") {
+        navigateAdjacentRoute(deltaX < 0 ? "forward" : "backward");
+      }
+    },
+    { passive: true },
+  );
+  window.addEventListener("pointercancel", () => {
+    pointerStart = null;
+  });
+
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      const now = event.timeStamp;
+      const scale =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? window.innerWidth
+            : 1;
+      const deltaX = event.deltaX * scale;
+      const deltaY = event.deltaY * scale;
+      if (
+        now < wheelLockedUntil ||
+        gestureTargetIsBlocked(event.target) ||
+        Math.abs(deltaX) < 2 ||
+        Math.abs(deltaX) <= Math.abs(deltaY) * SWIPE_AXIS_RATIO
+      ) {
+        if (now - lastWheelAt > WHEEL_SEQUENCE_GAP_MS) {
+          wheelTotal = 0;
+        }
+        return;
+      }
+
+      // 앱 내부 route gesture로 판정된 수평 wheel은 브라우저 history gesture와 경쟁하지 않게 막는다.
+      event.preventDefault();
+      if (now - lastWheelAt > WHEEL_SEQUENCE_GAP_MS || Math.sign(wheelTotal) !== Math.sign(deltaX)) {
+        wheelTotal = 0;
+      }
+      wheelTotal += deltaX;
+      lastWheelAt = now;
+      if (Math.abs(wheelTotal) >= WHEEL_THRESHOLD_PX) {
+        navigateAdjacentRoute(wheelTotal > 0 ? "forward" : "backward");
+        wheelTotal = 0;
+        wheelLockedUntil = now + WHEEL_COOLDOWN_MS;
+      }
+    },
+    { passive: false },
+  );
+}
+
 window.addEventListener("popstate", () =>
   renderWithTransition({ announce: true, restoreHistory: true }),
 );
+setupRouteGestures();
 render();

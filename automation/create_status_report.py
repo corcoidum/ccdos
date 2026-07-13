@@ -39,7 +39,7 @@ def count_approved_notes(root: Path) -> tuple[int, dict[str, str]]:
     return len(notes), {"name": "public_content_index_readable", "status": "passed", "summary": f"{len(notes)} approved public note(s)"}
 
 
-def create_report(root: Path) -> dict[str, object]:
+def create_report(root: Path, deployment_status: str | None = None) -> dict[str, object]:
     checks = [
         run_check("architecture", [sys.executable, "scripts/verify_phase0.py"], root),
         run_check("public_notes", [sys.executable, "automation/validate_notes.py", "vaults/CORCOIDUM-Public"], root),
@@ -47,6 +47,14 @@ def create_report(root: Path) -> dict[str, object]:
     ]
     note_count, index_check = count_approved_notes(root)
     checks.append(index_check)
+    if deployment_status is not None:
+        checks.append(
+            {
+                "name": "deployment",
+                "status": "passed" if deployment_status == "success" else "failed",
+                "summary": f"deployment step outcome: {deployment_status}",
+            }
+        )
     return {
         "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "overall_status": "passed" if all(check["status"] == "passed" for check in checks) else "failed",
@@ -58,9 +66,14 @@ def create_report(root: Path) -> dict[str, object]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Create a redacted CORCOIDUM OS status report.")
     parser.add_argument("--output", type=Path, help="optional JSON output path")
+    parser.add_argument(
+        "--deployment-status",
+        choices=("success", "failure", "cancelled", "skipped"),
+        help="optional GitHub Actions deployment step outcome",
+    )
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[1]
-    report = create_report(root)
+    report = create_report(root, args.deployment_status)
     rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

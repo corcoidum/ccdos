@@ -105,6 +105,23 @@ reviewed_revision: 2026-07-09T00:00:00Z""",
             messages = [issue.message for issue in validate_note(self.write_note(Path(temp_dir), content))]
         self.assertIn("reviewed_revision must equal updated; changed content must return to review", messages)
 
+    def test_rejects_published_at_before_approved_at(self) -> None:
+        content = VALID_NOTE.replace(
+            "publish_state: draft",
+            """publish_state: published
+approved_by: content-owner
+approved_at: 2026-07-10T02:00:00Z
+published_at: 2026-07-10T01:30:00Z
+review_requested_at: 2026-07-10T00:30:00Z
+privacy_reviewed_by: privacy-reviewer
+privacy_reviewed_at: 2026-07-10T01:00:00Z
+privacy_review_result: passed
+reviewed_revision: 2026-07-10T00:00:00Z""",
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            messages = [issue.message for issue in validate_note(self.write_note(Path(temp_dir), content))]
+        self.assertIn("published_at must not be earlier than approved_at", messages)
+
     def test_rejects_sensitive_pattern(self) -> None:
         content = VALID_NOTE + "\nSynthetic contact: 010-1234-5678\n"
         with tempfile.TemporaryDirectory() as temp_dir:

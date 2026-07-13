@@ -8,9 +8,9 @@ import sys
 from pathlib import Path
 
 try:
-    from automation.validate_notes import markdown_files, parse_frontmatter, validate_note
+    from automation.validate_notes import collect_duplicate_id_issues, markdown_files, parse_frontmatter, validate_note
 except ModuleNotFoundError:  # Direct execution: python automation/build_public_content.py
-    from validate_notes import markdown_files, parse_frontmatter, validate_note
+    from validate_notes import collect_duplicate_id_issues, markdown_files, parse_frontmatter, validate_note
 
 PUBLISHABLE_STATES = {"approved", "published"}
 
@@ -22,6 +22,8 @@ def build_payload(source: Path) -> dict[str, object]:
         raise ValueError(f"no Markdown notes found in {source}")
 
     issues = [issue for path in files for issue in validate_note(path)]
+    # 단독 build 실행에서도 인용 ID의 유일성을 보장한다.
+    issues.extend(collect_duplicate_id_issues(files))
     if issues:
         messages = "\n".join(f"{issue.path}: {issue.message}" for issue in issues)
         raise ValueError(f"public content validation failed:\n{messages}")
@@ -36,13 +38,17 @@ def build_payload(source: Path) -> dict[str, object]:
                 "id": metadata["id"],
                 "title": metadata["title"],
                 "updated": metadata["updated"],
+                "published_at": metadata.get("published_at"),
                 "tags": metadata["tags"],
                 "state": metadata["publish_state"],
                 "body": body.strip(),
             }
         )
 
-    notes.sort(key=lambda note: (str(note["updated"]), str(note["id"])), reverse=True)
+    notes.sort(
+        key=lambda note: (str(note.get("published_at") or note["updated"]), str(note["updated"]), str(note["id"])),
+        reverse=True,
+    )
     return {"version": 1, "notes": notes}
 
 

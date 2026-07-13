@@ -51,6 +51,14 @@ class BuildPublicContentTests(unittest.TestCase):
             payload = build_payload(source)
         self.assertEqual([note["id"] for note in payload["notes"]], ["approved-case-study"])
 
+    def test_build_payload_rejects_duplicate_note_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source = Path(temp_dir) / "CORCOIDUM-Public"
+            self.write_note(Path(temp_dir), "first.md", APPROVED_NOTE)
+            self.write_note(Path(temp_dir), "second.md", APPROVED_NOTE)
+            with self.assertRaisesRegex(ValueError, "duplicate note id"):
+                build_payload(source)
+
     def test_check_detects_stale_generated_index(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

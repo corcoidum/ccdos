@@ -52,4 +52,10 @@ jobs:
         run: npm ci
       - name: Build static website
         working-directory: site
-        run: npm run build
+        run: npm run typecheck && npm run build
+      - name: Install Playwright browser
+        working-directory: site
+        run: npx playwright install --with-deps chromium
+      - name: Run frontend smoke tests
+        working-directory: site
+        run: npm test
