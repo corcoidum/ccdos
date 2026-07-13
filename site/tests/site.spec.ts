@@ -13,12 +13,14 @@ test("주요 route가 SPA 안에서 이동한다", async ({ page }) => {
 test("Garden은 처음 두 기록만 보여 주고 펼치기·필터를 지원한다", async ({ page }) => {
   await page.goto("/garden");
   const notes = page.locator("#public-note-list .note-entry");
-  const toggle = page.getByRole("button", { name: "기록 3개 더 보기" });
+  const toggle = page.getByRole("button", { name: /기록 \d+개 더 보기/ });
 
   await expect(notes).toHaveCount(2);
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  const remainingCount = Number((await toggle.textContent())?.match(/\d+/)?.[0]);
+  expect(remainingCount).toBeGreaterThan(0);
   await toggle.click();
-  await expect(notes).toHaveCount(5);
+  await expect(notes).toHaveCount(remainingCount + 2);
   await expect(page.getByRole("button", { name: "기록 접기" })).toHaveAttribute("aria-expanded", "true");
 
   await page.getByRole("button", { name: "#debugging" }).click();
