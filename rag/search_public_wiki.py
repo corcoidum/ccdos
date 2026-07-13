@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 PUBLISHABLE_STATES = {"approved", "published"}
@@ -27,11 +28,11 @@ def approved_notes(payload: dict[str, object]) -> list[dict[str, object]]:
 
 
 def score_note(note: dict[str, object], query_tokens: list[str]) -> int:
-    title_tokens = tokenize(str(note.get("title", "")))
-    tag_tokens = tokenize(" ".join(str(tag) for tag in note.get("tags", [])))
-    body_tokens = tokenize(str(note.get("body", "")))
+    title_counts = Counter(tokenize(str(note.get("title", ""))))
+    tag_counts = Counter(tokenize(" ".join(str(tag) for tag in note.get("tags", []))))
+    body_counts = Counter(tokenize(str(note.get("body", ""))))
     return sum(
-        4 * title_tokens.count(token) + 3 * tag_tokens.count(token) + body_tokens.count(token)
+        4 * title_counts[token] + 3 * tag_counts[token] + body_counts[token]
         for token in query_tokens
     )
 
@@ -39,7 +40,10 @@ def score_note(note: dict[str, object], query_tokens: list[str]) -> int:
 def excerpt(body: str, query_tokens: list[str], limit: int = 180) -> str:
     normalized = " ".join(body.split())
     lower_body = normalized.lower()
-    match_index = next((lower_body.find(token) for token in query_tokens if lower_body.find(token) >= 0), 0)
+    match_index = next(
+        (position for position in (lower_body.find(token) for token in query_tokens) if position >= 0),
+        0,
+    )
     start = max(match_index - 40, 0)
     end = min(start + limit, len(normalized))
     prefix = "…" if start else ""
@@ -60,10 +64,10 @@ def search_public_wiki(payload: dict[str, object], query: str, limit: int = 5) -
     ranked.sort(key=lambda item: (item[0], str(item[1].get("updated", ""))), reverse=True)
     sources = [
         {
-            "id": note["id"],
-            "title": note["title"],
-            "updated": note["updated"],
-            "tags": note["tags"],
+            "id": str(note.get("id", "")),
+            "title": str(note.get("title", "")),
+            "updated": str(note.get("updated", "")),
+            "tags": note.get("tags", []),
             "excerpt": excerpt(str(note.get("body", "")), query_tokens),
         }
         for _, note in ranked[:limit]

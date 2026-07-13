@@ -31,6 +31,13 @@ class SearchPublicWikiTests(unittest.TestCase):
         self.assertEqual([source["id"] for source in result["sources"]], ["approved-automation"])
         self.assertIn("근거", result["answer"])
 
+    def test_survives_note_missing_optional_fields(self) -> None:
+        payload = {"notes": [{"state": "approved", "body": "automation evidence"}]}
+        result = search_public_wiki(payload, "automation")
+        self.assertEqual(len(result["sources"]), 1)
+        self.assertEqual(result["sources"][0]["id"], "")
+        self.assertIn("automation", result["sources"][0]["excerpt"])
+
     def test_returns_no_answer_without_approved_sources(self) -> None:
         result = search_public_wiki({"notes": []}, "clinic")
         self.assertEqual(result["sources"], [])

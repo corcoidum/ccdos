@@ -1,24 +1,23 @@
-"""Create a redacted weekly review from already approved public content metadata."""
+"""Create a redacted weekly review: the full status checks plus public tag trends."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from collections import Counter
-from datetime import UTC, datetime
 from pathlib import Path
 
+try:
+    from create_status_report import create_report  # run as a script: python automation/weekly_review.py
+except ImportError:  # imported as automation.weekly_review (tests, tooling)
+    from automation.create_status_report import create_report
 
-def create_weekly_review(payload: dict[str, object], generated_at: datetime) -> dict[str, object]:
+
+def create_weekly_review(report: dict[str, object], payload: dict[str, object]) -> dict[str, object]:
+    """Extend a status report with tag trends from already approved public metadata."""
     notes = payload["notes"]
     tags = Counter(tag for note in notes if isinstance(note, dict) for tag in note.get("tags", []))
-    return {
-        "generated_at": generated_at.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "overall_status": "passed",
-        "approved_public_note_count": len(notes),
-        "checks": [],
-        "top_tags": [tag for tag, _ in tags.most_common(5)],
-    }
+    return {**report, "top_tags": [tag for tag, _ in tags.most_common(5)]}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -34,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, UnicodeError, ValueError) as error:
         print(f"FAIL: cannot read approved public content index: {error}")
         return 1
-    review = create_weekly_review(payload, datetime.now(UTC))
+    review = create_weekly_review(create_report(root), payload)
     rendered = json.dumps(review, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -42,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"PASS: wrote redacted weekly review to {args.output}")
     else:
         print(rendered, end="")
-    return 0
+    return 0 if review["overall_status"] == "passed" else 1
 
 
 if __name__ == "__main__":

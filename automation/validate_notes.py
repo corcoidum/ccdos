@@ -37,8 +37,15 @@ class ValidationIssue:
     message: str
 
 
+def parse_inline_list(key: str, value: str) -> list[str]:
+    items = [item.strip().strip("\"'") for item in value[1:-1].split(",")] if value[1:-1].strip() else []
+    if any(not item for item in items):
+        raise ValueError(f"empty list item for {key}")
+    return items
+
+
 def parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
-    """Parse scalar values and simple indented YAML lists from frontmatter."""
+    """Parse scalar values and simple YAML lists (indented or inline) from frontmatter."""
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("frontmatter must start with ---")
@@ -61,7 +68,10 @@ def parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
         if not key or key in metadata:
             raise ValueError(f"invalid or duplicate frontmatter field: {key}")
         if value:
-            metadata[key] = value.strip("\"'")
+            if value.startswith("[") and value.endswith("]"):
+                metadata[key] = parse_inline_list(key, value)
+            else:
+                metadata[key] = value.strip("\"'")
             index += 1
             continue
         items: list[str] = []
@@ -72,6 +82,8 @@ def parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
                 raise ValueError(f"empty list item for {key}")
             items.append(item.strip("\"'"))
             index += 1
+        if not items:
+            raise ValueError(f"frontmatter field {key} has no value")
         metadata[key] = items
     return metadata, "\n".join(lines[end_index + 1 :])
 
@@ -179,6 +191,24 @@ def validate_note(path: Path) -> list[ValidationIssue]:
     return issues
 
 
+def collect_duplicate_id_issues(files: list[Path]) -> list[ValidationIssue]:
+    """Reject reuse of a note id across files; ids must be unique to stay citable."""
+    paths_by_id: dict[str, list[Path]] = {}
+    for path in files:
+        try:
+            metadata, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError):
+            continue  # unreadable files are already reported by validate_note
+        note_id = metadata.get("id")
+        if isinstance(note_id, str) and note_id:
+            paths_by_id.setdefault(note_id, []).append(path)
+    return [
+        ValidationIssue(paths[0], f"duplicate note id '{note_id}' also used by: " + ", ".join(str(path) for path in paths[1:]))
+        for note_id, paths in sorted(paths_by_id.items())
+        if len(paths) > 1
+    ]
+
+
 def markdown_files(targets: list[Path]) -> list[Path]:
     files: list[Path] = []
     for target in targets:
@@ -199,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
         print("FAIL: no Markdown notes found")
         return 1
     issues = [issue for path in files for issue in validate_note(path)]
+    issues.extend(collect_duplicate_id_issues(files))
     if issues:
         for issue in issues:
             print(f"FAIL: {issue.path}: {issue.message}")

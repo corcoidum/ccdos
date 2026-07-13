@@ -12,11 +12,18 @@ from pathlib import Path
 
 def run_check(name: str, command: list[str], root: Path) -> dict[str, str]:
     result = subprocess.run(command, cwd=root, capture_output=True, text=True, check=False)
-    output = (result.stdout or result.stderr).strip().splitlines()
+    # Merge both streams so a crash reported on stderr is never hidden by
+    # earlier stdout; the last line of a traceback names the actual error.
+    lines = [
+        line
+        for stream in (result.stdout, result.stderr)
+        for line in stream.splitlines()
+        if line.strip()
+    ]
     return {
         "name": name,
         "status": "passed" if result.returncode == 0 else "failed",
-        "summary": output[-1] if output else "no output",
+        "summary": lines[-1] if lines else "no output",
     }
 
 

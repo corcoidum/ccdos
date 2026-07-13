@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from automation.validate_notes import parse_frontmatter, validate_note
+from automation.validate_notes import collect_duplicate_id_issues, parse_frontmatter, validate_note
 
 
 VALID_NOTE = """---
@@ -34,6 +34,29 @@ class ValidateNotesTests(unittest.TestCase):
         metadata, body = parse_frontmatter(VALID_NOTE)
         self.assertEqual(metadata["tags"], ["test"])
         self.assertIn("Safe body", body)
+
+    def test_parses_inline_list_frontmatter(self) -> None:
+        content = VALID_NOTE.replace("tags:\n  - test", 'tags: [test, "case-study"]')
+        metadata, _ = parse_frontmatter(content)
+        self.assertEqual(metadata["tags"], ["test", "case-study"])
+
+    def test_rejects_frontmatter_field_without_value(self) -> None:
+        content = VALID_NOTE.replace("title: Safe test note", "title:")
+        with self.assertRaises(ValueError):
+            parse_frontmatter(content)
+
+    def test_rejects_duplicate_note_ids_across_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir) / "CORCOIDUM-Public" / "00_Drafts"
+            directory.mkdir(parents=True)
+            first = directory / "first.md"
+            second = directory / "second.md"
+            first.write_text(VALID_NOTE, encoding="utf-8")
+            second.write_text(VALID_NOTE, encoding="utf-8")
+            issues = collect_duplicate_id_issues([first, second])
+        self.assertEqual(len(issues), 1)
+        self.assertIn("duplicate note id 'safe-test-note'", issues[0].message)
+        self.assertIn("second.md", issues[0].message)
 
     def test_accepts_valid_public_draft(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

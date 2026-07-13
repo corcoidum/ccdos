@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
-from datetime import UTC, datetime
 from pathlib import Path
 
-from automation.create_status_report import count_approved_notes
+from automation.create_status_report import count_approved_notes, run_check
 from automation.notify_discord import format_message, is_discord_webhook
 from automation.weekly_review import create_weekly_review
 
@@ -47,14 +47,30 @@ class AutomationReportTests(unittest.TestCase):
             self.assertEqual(note_count, 1)
             self.assertEqual(check["status"], "passed")
 
-    def test_weekly_review_uses_only_public_metadata(self) -> None:
+    def test_run_check_summary_keeps_stderr_failure_reason(self) -> None:
+        check = run_check(
+            "crashing",
+            [sys.executable, "-c", "print('partial stdout'); raise ValueError('boom')"],
+            Path.cwd(),
+        )
+        self.assertEqual(check["status"], "failed")
+        self.assertIn("boom", check["summary"])
+
+    def test_weekly_review_extends_report_with_public_metadata_only(self) -> None:
+        report = {
+            "generated_at": "2026-07-13T00:00:00Z",
+            "overall_status": "failed",
+            "approved_public_note_count": 2,
+            "checks": [{"status": "failed"}],
+        }
         payload = {
             "notes": [
                 {"tags": ["automation", "case-study"], "body": "do not expose"},
                 {"tags": ["automation"], "body": "do not expose"},
             ]
         }
-        review = create_weekly_review(payload, datetime(2026, 7, 10, tzinfo=UTC))
+        review = create_weekly_review(report, payload)
+        self.assertEqual(review["overall_status"], "failed")
         self.assertEqual(review["approved_public_note_count"], 2)
         self.assertEqual(review["top_tags"], ["automation", "case-study"])
         self.assertNotIn("body", review)
