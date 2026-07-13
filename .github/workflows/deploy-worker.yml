@@ -21,6 +21,10 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: site/package-lock.json
+      - name: Lint Python automation code
+        run: |
+          pip install "ruff==0.15.21"
+          ruff check
       - name: Verify architecture boundaries
         run: python scripts/verify_phase0.py
       - name: Validate public note metadata and privacy rules

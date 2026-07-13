@@ -6,7 +6,6 @@ from pathlib import Path
 
 from automation.validate_notes import collect_duplicate_id_issues, parse_frontmatter, validate_note
 
-
 VALID_NOTE = """---
 id: safe-test-note
 title: Safe test note

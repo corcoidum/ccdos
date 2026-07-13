@@ -6,7 +6,6 @@ import json
 import sys
 from pathlib import Path
 
-
 REQUIRED_COMPONENTS = {
     "clinicops_local",
     "corcoidum_core",

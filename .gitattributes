@@ -1,0 +1,10 @@
+# Normalize all text files to LF in the repository and on checkout so
+# Windows and CI never disagree about line endings.
+* text=auto eol=lf
+
+# Never touch binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary

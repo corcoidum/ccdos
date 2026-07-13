@@ -9,6 +9,7 @@ on:
       - "site/**"
       - "tests/**"
       - "vaults/CORCOIDUM-Public/**"
+      - "pyproject.toml"
       - ".github/workflows/public-content-gate.yml"
   push:
     branches: [main, master]
@@ -24,6 +25,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Lint Python automation code
+        run: |
+          pip install "ruff==0.15.21"
+          ruff check
       - name: Verify architecture boundaries
         run: python scripts/verify_phase0.py
       - name: Validate public note metadata and privacy rules

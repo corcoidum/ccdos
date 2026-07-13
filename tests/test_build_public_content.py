@@ -7,7 +7,6 @@ from pathlib import Path
 
 from automation.build_public_content import build_payload, main
 
-
 APPROVED_NOTE = """---
 id: approved-case-study
 title: Approved case study
