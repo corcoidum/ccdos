@@ -31,6 +31,22 @@ class SearchPublicWikiTests(unittest.TestCase):
         self.assertEqual([source["id"] for source in result["sources"]], ["approved-automation"])
         self.assertIn("근거", result["answer"])
 
+    def test_matches_korean_token_with_attached_particle(self) -> None:
+        payload = {
+            "notes": [
+                {
+                    "id": "discord-403",
+                    "title": "403은 항상 권한 문제가 아니다",
+                    "updated": "2026-07-13T00:00:00Z",
+                    "tags": ["debugging"],
+                    "state": "published",
+                    "body": "배포 단계가 계속 403으로 실패했다.",
+                }
+            ]
+        }
+        result = search_public_wiki(payload, "403")
+        self.assertEqual([source["id"] for source in result["sources"]], ["discord-403"])
+
     def test_survives_note_missing_optional_fields(self) -> None:
         payload = {"notes": [{"state": "approved", "body": "automation evidence"}]}
         result = search_public_wiki(payload, "automation")

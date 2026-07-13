@@ -27,12 +27,19 @@ def approved_notes(payload: dict[str, object]) -> list[dict[str, object]]:
     ]
 
 
+def prefix_count(counts: Counter, query_token: str) -> int:
+    """Prefix matching keeps Korean particles ("403은", "자동화를") searchable by stem."""
+    return sum(count for token, count in counts.items() if token.startswith(query_token))
+
+
 def score_note(note: dict[str, object], query_tokens: list[str]) -> int:
     title_counts = Counter(tokenize(str(note.get("title", ""))))
     tag_counts = Counter(tokenize(" ".join(str(tag) for tag in note.get("tags", []))))
     body_counts = Counter(tokenize(str(note.get("body", ""))))
     return sum(
-        4 * title_counts[token] + 3 * tag_counts[token] + body_counts[token]
+        4 * prefix_count(title_counts, token)
+        + 3 * prefix_count(tag_counts, token)
+        + prefix_count(body_counts, token)
         for token in query_tokens
     )
 

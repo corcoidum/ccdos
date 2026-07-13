@@ -778,6 +778,71 @@ img {
   line-height: 1.8;
 }
 
+.wiki-search-form {
+  display: flex;
+  gap: 14px;
+  max-width: 640px;
+  margin: 0 0 34px;
+}
+
+.wiki-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 12px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ivory);
+  font: inherit;
+  background: transparent;
+}
+
+.wiki-search-input::placeholder {
+  color: var(--muted);
+}
+
+.wiki-search-input:focus {
+  outline: none;
+  border-bottom-color: var(--coral-bright);
+}
+
+.wiki-search-results {
+  display: grid;
+  gap: 0;
+  max-width: 760px;
+}
+
+.wiki-search-result {
+  padding: 28px 0 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wiki-search-result h3 {
+  margin: 14px 0 12px;
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.wiki-search-excerpt {
+  margin: 0 0 14px;
+  color: var(--muted-strong);
+  line-height: 1.85;
+}
+
+.wiki-search-empty {
+  max-width: 640px;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--serif);
+  line-height: 1.8;
+}
+
+.wiki-search-results .text-link {
+  margin-top: 26px;
+  justify-self: start;
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

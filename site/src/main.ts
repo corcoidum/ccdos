@@ -161,6 +161,55 @@ function formatDate(timestamp: string): string {
   );
 }
 
+// Client-side twin of rag/search_public_wiki.py: same tokens, weights, and
+// excerpt shape, so the on-page demo behaves exactly like the CLI tool.
+const TOKEN_PATTERN = /[0-9A-Za-z가-힣_]+/g;
+
+function tokenize(text: string): string[] {
+  return (text.match(TOKEN_PATTERN) ?? []).map((token) => token.toLowerCase());
+}
+
+function countTokens(tokens: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) ?? 0) + 1);
+  }
+  return counts;
+}
+
+// Prefix matching so Korean particles ("403은", "자동화를") still match the
+// bare query token.
+function prefixCount(counts: Map<string, number>, queryToken: string): number {
+  let total = 0;
+  for (const [token, count] of counts) {
+    if (token.startsWith(queryToken)) {
+      total += count;
+    }
+  }
+  return total;
+}
+
+function scoreNote(note: PublicNote, queryTokens: string[]): number {
+  const title = countTokens(tokenize(note.title));
+  const tags = countTokens(tokenize(note.tags.join(" ")));
+  const body = countTokens(tokenize(note.body));
+  return queryTokens.reduce(
+    (score, token) =>
+      score + 4 * prefixCount(title, token) + 3 * prefixCount(tags, token) + prefixCount(body, token),
+    0,
+  );
+}
+
+function excerptOf(body: string, queryTokens: string[], limit = 180): string {
+  const normalized = body.split(/\s+/).join(" ");
+  const lower = normalized.toLowerCase();
+  const matchIndex =
+    queryTokens.map((token) => lower.indexOf(token)).find((position) => position >= 0) ?? 0;
+  const start = Math.max(matchIndex - 40, 0);
+  const end = Math.min(start + limit, normalized.length);
+  return `${start > 0 ? "…" : ""}${normalized.slice(start, end)}${end < normalized.length ? "…" : ""}`;
+}
+
 function createSectionHeading(eyebrow: string, title: string, description: string): HTMLElement {
   const heading = createElement("header", "section-heading");
   heading.append(
@@ -468,6 +517,81 @@ function renderGarden(): HTMLElement {
   return page;
 }
 
+function createWikiSearch(): HTMLElement {
+  const section = createElement("section", "content-section wiki-search-section");
+  section.id = "wiki-search";
+  section.tabIndex = -1;
+  section.append(
+    createSectionHeading(
+      "TRY THE LIVE EXPERIMENT",
+      "공개 위키 검색, 직접 써보세요",
+      "승인된 공개 기록만 검색하고, 근거가 없으면 없다고 답합니다. 검색은 브라우저 안에서만 실행되어 아무 데이터도 외부로 전송하지 않습니다.",
+    ),
+  );
+
+  const form = createElement("form", "wiki-search-form");
+  const input = createElement("input", "wiki-search-input");
+  input.type = "search";
+  input.placeholder = "예: 403, 자동화, 정원";
+  input.setAttribute("aria-label", "공개 기록 검색어");
+  const button = createElement("button", "action-link action-link--primary", "검색");
+  button.type = "submit";
+  form.append(input, button);
+
+  const results = createElement("div", "wiki-search-results");
+  results.setAttribute("aria-live", "polite");
+
+  const renderResults = (): void => {
+    const queryTokens = tokenize(input.value);
+    results.replaceChildren();
+    if (queryTokens.length === 0) {
+      return;
+    }
+    const ranked = publicContent.notes
+      .map((note) => ({ note, score: scoreNote(note, queryTokens) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score || b.note.updated.localeCompare(a.note.updated))
+      .slice(0, 5);
+    if (ranked.length === 0) {
+      results.append(
+        createElement(
+          "p",
+          "wiki-search-empty",
+          "일치하는 승인된 공개 출처가 없습니다. 이 검색은 추측하지 않고 근거만 보여 줍니다.",
+        ),
+      );
+      return;
+    }
+    for (const { note } of ranked) {
+      const item = createElement("article", "wiki-search-result");
+      const meta = createElement("p", "note-meta");
+      const time = createElement("time", undefined, formatDate(note.updated));
+      time.dateTime = note.updated;
+      meta.append(time, document.createTextNode(` · ${note.state}`));
+      item.append(
+        meta,
+        createElement("h3", undefined, note.title),
+        createElement("p", "wiki-search-excerpt", excerptOf(note.body, queryTokens)),
+      );
+      const tagList = createElement("div", "tag-list");
+      for (const tag of note.tags) {
+        tagList.append(createElement("span", "tag", `#${tag}`));
+      }
+      item.append(tagList);
+      results.append(item);
+    }
+    results.append(createRouteLink("/garden", "Garden에서 전체 기록 보기", "text-link"));
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    renderResults();
+  });
+  input.addEventListener("input", renderResults);
+  section.append(form, results);
+  return section;
+}
+
 function renderLab(): HTMLElement {
   const page = createElement("div", "page page--lab");
   page.append(
@@ -481,7 +605,7 @@ function renderLab(): HTMLElement {
       imageAlt: "실험 플라스크를 중심으로 코드, 가설, 배움의 별자리가 연결된 연구 지도",
       actions: [
         { label: "현재 실험 보기", href: "#experiments", style: "primary" },
-        { label: "Projects 보기", href: "/projects", style: "secondary" },
+        { label: "검색 직접 써보기", href: "#wiki-search", style: "secondary" },
       ],
       note: "실제 환자·직원 데이터 없이, 합성 예시와 공개 승인 데이터만 사용합니다.",
     }),
@@ -514,18 +638,18 @@ function renderLab(): HTMLElement {
       result: "비식별 상태 보고와 선택적 Discord 알림을 실제 workflow에서 검증했습니다.",
     },
     {
-      phase: "PHASE 7",
-      status: "MVP COMPLETE",
+      phase: "PHASE 7 · 8A",
+      status: "LIVE",
       title: "Public Wiki Retrieval",
       question: "승인된 공개 지식만 검색하고 출처를 함께 보여 줄 수 있는가?",
-      result: "외부 LLM 호출 없이 정적 public index를 검색하는 retrieval-only MVP를 구현했습니다.",
+      result: "외부 LLM 호출 없이 정적 public index를 검색하는 retrieval-only 검색을 이 페이지 아래에서 직접 쓸 수 있습니다.",
     },
     {
-      phase: "NEXT",
-      status: "DECISION PENDING",
+      phase: "PHASE 8B",
+      status: "DECIDED",
       title: "Grounded Answer Layer",
       question: "어떤 provider와 비용·외부 전송 경계가 이 세계관에 맞는가?",
-      result: "provider와 승인 흐름이 결정되기 전에는 답변 생성 계층을 성급히 연결하지 않습니다.",
+      result: "ADR-0002로 결정했습니다. 승인된 공개 근거와 질문만 전달하는 경계 안에서 Claude API를 연결하고, 비용·남용 방어를 코드로 강제한 뒤 도입합니다.",
     },
   ]) {
     const row = createElement("article", "experiment-row");
@@ -564,7 +688,7 @@ function renderLab(): HTMLElement {
     principleList.append(item);
   }
   principles.append(principleList);
-  page.append(experiments, principles);
+  page.append(experiments, createWikiSearch(), principles);
   return page;
 }
 
@@ -640,8 +764,8 @@ function renderProjects(): HTMLElement {
     ["3–4", "CI Gate & Publishing", "승인된 콘텐츠만 index와 build로 전달", "VALIDATED"],
     ["5", "Public OS UI", "OS·Garden·Lab·Projects 공개 화면", "LIVE"],
     ["6", "Automation & Discord", "비식별 상태 보고와 선택적 webhook", "VERIFIED"],
-    ["7", "Retrieval-only Public Wiki", "외부 LLM 없이 승인된 출처 검색", "MVP COMPLETE"],
-    ["NEXT", "Grounded Answer Layer", "provider·비용·외부 전송 경계 결정 후 진행", "DECISION PENDING"],
+    ["7", "Retrieval-only Public Wiki", "외부 LLM 없이 승인된 출처 검색 · Lab에서 체험 가능", "LIVE"],
+    ["8", "Grounded Answer Layer", "ADR-0002 결정: 경계 안에서 Claude API 연결", "IN PROGRESS"],
   ]) {
     const item = createElement("li", "phase-item");
     item.append(
@@ -729,6 +853,7 @@ const REVEAL_SELECTORS = [
   ".portal-row",
   ".lifecycle-list li",
   ".experiment-row",
+  ".wiki-search-form",
   ".principle-item",
   ".case-story-item",
   ".phase-item",
