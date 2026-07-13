@@ -180,7 +180,7 @@ function createHero(config: HeroConfig): HTMLElement {
       createElement(
         "p",
         "hero-credo",
-        "Where codes and hearts coexist. The future of Tech is human.",
+        "Where codes and hearts coexist, the future of tech is HUMAN.",
       ),
     );
   }
@@ -694,7 +694,7 @@ function createFooter(): HTMLElement {
   const identity = createElement("div", "footer-identity");
   identity.append(
     createElement("strong", undefined, "CORCOIDUM"),
-    createElement("p", undefined, "Where codes and hearts coexist. The future of Tech is human."),
+    createElement("p", undefined, "Where codes and hearts coexist, the future of tech is HUMAN."),
   );
   const links = createElement("div", "footer-links");
   links.append(
