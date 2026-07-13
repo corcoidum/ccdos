@@ -5,7 +5,14 @@ created: 2026-07-13T08:54:00Z
 updated: 2026-07-13T08:54:00Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: draft
+publish_state: approved
+review_requested_at: 2026-07-13T08:56:00Z
+privacy_reviewed_by: corcoidum
+privacy_reviewed_at: 2026-07-13T08:57:52Z
+privacy_review_result: passed
+reviewed_revision: 2026-07-13T08:54:00Z
+approved_by: corcoidum
+approved_at: 2026-07-13T08:57:52Z
 tags:
   - automation
   - debugging
