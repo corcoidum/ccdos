@@ -3,6 +3,16 @@ name: Deploy CCDOS Worker
 on:
   push:
     branches: [main]
+    # 배포 산출물이나 게이트 검증에 영향을 주는 경로에서만 배포한다. 문서성 변경은 public-content-gate만 통과하면 된다.
+    paths:
+      - "site/**"
+      - "content/**"
+      - "vaults/**"
+      - "automation/**"
+      - "scripts/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/deploy-worker.yml"
   workflow_dispatch:
 
 permissions:

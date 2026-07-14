@@ -14,7 +14,8 @@ export function boundedDailyLimit(value: string | undefined): number {
 
 export function hasValidCitations(answer: string, sources: Array<{ id: string }>): boolean {
   const allowedIds = new Set(sources.map(({ id }) => id));
-  const citations = Array.from(answer.matchAll(/\[([a-z0-9]+(?:-[a-z0-9]+)*)\]/g), (match) => match[1]);
+  // 모든 대괄호 인용을 검사한다 — 허용 ID 형식(소문자 ASCII) 밖의 한글·대문자 인용도 위조로 간주해 거부한다.
+  const citations = Array.from(answer.matchAll(/\[([^\][]*)\]/g), (match) => match[1]);
   return citations.length > 0 && citations.every((id) => allowedIds.has(id));
 }
 

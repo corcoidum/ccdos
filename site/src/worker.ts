@@ -244,8 +244,13 @@ export class DailyAnswerBudget extends DurableObject<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (new URL(request.url).pathname === "/api/answer") {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/api/answer") {
       return answerRequest(request, env);
+    }
+    if (pathname.startsWith("/api/")) {
+      // run_worker_first가 /api/*를 전부 이 worker로 보내므로, 미정의 경로가 SPA HTML로 새지 않게 한다.
+      return jsonResponse({ error: "not found" }, 404);
     }
     return env.ASSETS.fetch(request);
   },

@@ -920,8 +920,8 @@ function setupReveals(root: HTMLElement): void {
   }
 
   const scrollDriven = supportsScrollDrivenAnimations();
-  const pending = new Set<HTMLElement>();
   const groupCounts = new Map<HTMLElement | null, number>();
+  const targets: HTMLElement[] = [];
   root.querySelectorAll<HTMLElement>(REVEAL_SELECTORS).forEach((element) => {
     if (scrollDriven && element.classList.contains("phase-item")) {
       // The CSS scroll-driven roadmap animation owns this element's entrance.
@@ -932,40 +932,36 @@ function setupReveals(root: HTMLElement): void {
     groupCounts.set(parent, index + 1);
     element.classList.add("reveal");
     element.style.setProperty("--reveal-delay", `${Math.min(index * 70, 350)}ms`);
-    pending.add(element);
+    targets.push(element);
   });
 
-  const revealOnScreen = (): void => {
-    for (const element of pending) {
-      const rect = element.getBoundingClientRect();
-      if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
-        element.classList.add("is-visible");
-        pending.delete(element);
-      }
-    }
-    if (pending.size === 0) {
-      revealCleanup?.();
-      revealCleanup = null;
-    }
-  };
+  if (targets.length === 0 || typeof IntersectionObserver !== "function") {
+    // 관찰이 불가능한 환경에서는 콘텐츠가 숨겨진 채 남지 않도록 즉시 공개한다.
+    targets.forEach((element) => element.classList.add("is-visible"));
+    return;
+  }
 
-  // Scroll reacts immediately; the timer chain guarantees reveal even where
-  // scroll events are throttled, so content can never stay hidden.
-  let pollTimer = 0;
-  const poll = (): void => {
-    revealOnScreen();
-    if (pending.size > 0) {
-      pollTimer = window.setTimeout(poll, 400);
-    }
-  };
-  window.addEventListener("scroll", revealOnScreen, { passive: true });
-  window.addEventListener("resize", revealOnScreen);
-  revealCleanup = () => {
-    window.removeEventListener("scroll", revealOnScreen);
-    window.removeEventListener("resize", revealOnScreen);
-    window.clearTimeout(pollTimer);
-  };
-  pollTimer = window.setTimeout(poll, 40);
+  let remaining = targets.length;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          continue;
+        }
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+        remaining -= 1;
+      }
+      if (remaining === 0) {
+        revealCleanup?.();
+        revealCleanup = null;
+      }
+    },
+    // 이전 폴링 구현의 "viewport 상단 92% 안에 들어오면 공개" 기준을 rootMargin으로 유지한다.
+    { rootMargin: "0px 0px -8% 0px" },
+  );
+  targets.forEach((element) => observer.observe(element));
+  revealCleanup = () => observer.disconnect();
 }
 
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
