@@ -39,7 +39,18 @@ python automation/import_discord_ideas.py
 
 - 마지막으로 가져온 메시지 ID를 인박스의 `.discord-ideas-state.json`에 기억하므로, 다시 실행하면 새 메시지만 가져온다.
 - 봇 메시지와 빈 메시지는 건너뛴다.
-- 원하면 Windows 작업 스케줄러에 하루 1회 등록해도 되고, 글 쓰러 앉을 때 수동으로 돌려도 충분하다.
+
+## 자동 실행 (작업 스케줄러)
+
+수동 실행 대신 1시간마다 자동으로 가져오게 예약할 수 있다. `scripts/import_ideas_task.vbs`가 창 없이 조용히 `scripts/import_ideas_task.ps1`을 실행하고, 결과 한 줄을 인박스의 `import.log`에 쌓는다.
+
+```powershell
+schtasks /create /tn "CCDOS Idea Inbox Import" /sc hourly /tr 'wscript.exe "E:\openkiki\codex_root\corcoidum-os\scripts\import_ideas_task.vbs"' /f
+```
+
+- 환경변수 3개가 User 범위로 저장되어 있어야 한다(위 1회 설정 참조). 없으면 래퍼가 아무것도 하지 않고 종료한다.
+- 확인: `Get-Content <인박스>\import.log -Tail 5` 또는 작업 스케줄러의 마지막 실행 결과.
+- 해제: `schtasks /delete /tn "CCDOS Idea Inbox Import" /f`
 
 ## 경계 규칙
 
