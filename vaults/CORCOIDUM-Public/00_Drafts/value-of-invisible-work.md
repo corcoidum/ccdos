@@ -2,19 +2,19 @@
 id: value-of-invisible-work
 title: 화면에 보이지 않는 작업의 가치
 created: 2026-07-13T08:54:00Z
-updated: 2026-07-13T08:54:00Z
+updated: 2026-07-14T09:12:12Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: published
-review_requested_at: 2026-07-13T08:56:00Z
+publish_state: approved
+review_requested_at: 2026-07-14T09:12:12Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-13T08:57:52Z
+privacy_reviewed_at: 2026-07-14T09:12:12Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-13T08:54:00Z
+reviewed_revision: 2026-07-14T09:12:12Z
 approved_by: corcoidum
-approved_at: 2026-07-13T08:57:52Z
-published_at: 2026-07-13T08:59:28Z
+approved_at: 2026-07-14T09:12:12Z
 tags:
+  - mercy
   - ci
   - case-study
 ---
