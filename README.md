@@ -6,6 +6,8 @@ CORCOIDUM OS는 의료 현장에서 얻은 **비식별 운영 인사이트**와 
 
 현재 저장소는 **Phase 8b — Grounded Answer Layer**까지 구현했습니다. 승인된 공개 기록만 검색·인용하고, 생성 계층이 사용할 수 없으면 retrieval-only로 안전하게 폴백합니다.
 
+지금은 **Phase 9 — Living Values**를 진행 중입니다. 네 가지 약속(H.O.P.E · T.R.U.S.T · M.E.R.C.Y · L.O.V.E)에 맞춘 공개 기록을 쌓아 갑니다. 계획은 [phase-9-plan.md](docs/architecture/phase-9-plan.md)에 있습니다.
+
 ## 원칙
 
 - `ClinicOps-Local`은 로컬 전용이며 GitHub, Discord, 클라우드 동기화·LLM으로 절대 전송하지 않습니다.

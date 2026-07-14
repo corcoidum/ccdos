@@ -1,7 +1,7 @@
 # CORCOIDUM OS Architecture Charter
 
-**상태:** Phase 7 retrieval-only MVP 완료 (외부 CI·Discord·LLM provider 검증 대기)
-**갱신일:** 2026-07-10
+**상태:** Phase 8 Grounded Answer Layer 완료 · Phase 9 Living Values 진행 중 ([계획](phase-9-plan.md))
+**갱신일:** 2026-07-14
 **적용 범위:** 개인 지식 관리, 개발, 자동화, 공개 포트폴리오
 
 ## 1. 목적과 설계 원칙

@@ -813,6 +813,7 @@ function renderProjects(): HTMLElement {
     ["6", "Automation & Discord", "비식별 상태 보고와 선택적 webhook", "VERIFIED"],
     ["7", "Retrieval-only Public Wiki", "외부 LLM 없이 승인된 출처 검색 · Lab에서 체험 가능", "LIVE"],
     ["8", "Grounded Answer Layer", "ADR-0003 결정: 경계 안에서 OpenAI Responses API 연결", "LIVE"],
+    ["9", "Living Values", "H.O.P.E · T.R.U.S.T · M.E.R.C.Y · L.O.V.E 가치별 공개 기록 축적", "GROWING"],
   ]) {
     const item = createElement("li", "phase-item");
     item.append(
@@ -841,6 +842,7 @@ function createPhaseLegend(): HTMLElement {
   );
   const list = createElement("dl", "phase-legend-grid");
   for (const [label, depth, description] of [
+    ["GROWING", 0, "지금 진행 중입니다. 검증은 기록이 쌓인 뒤에 옵니다."],
     ["PASSED", 1, "규칙과 문서가 검사를 통과했습니다."],
     ["VALIDATED", 2, "자동화가 그 규칙을 강제하는지 테스트로 확인했습니다."],
     ["VERIFIED", 3, "실제 운영 환경에서 동작을 확인했습니다."],

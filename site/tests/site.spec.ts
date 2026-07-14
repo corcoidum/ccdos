@@ -100,11 +100,17 @@ test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다",
   await page.goto("/projects");
   const legend = page.locator(".phase-legend");
   await expect(legend).toBeVisible();
-  await expect(legend.locator(".legend-label")).toHaveText(["PASSED", "VALIDATED", "VERIFIED", "LIVE"]);
-  await expect(legend.locator(".phase-legend-item dd")).toHaveCount(4);
+  await expect(legend.locator(".legend-label")).toHaveText([
+    "GROWING",
+    "PASSED",
+    "VALIDATED",
+    "VERIFIED",
+    "LIVE",
+  ]);
+  await expect(legend.locator(".phase-legend-item dd")).toHaveCount(5);
   // 검증 깊이 게이지는 단계마다 한 칸씩 더 차오른다.
   const filled = legend.locator(".phase-legend-item");
-  for (const [index, expected] of [1, 2, 3, 4].entries()) {
+  for (const [index, expected] of [0, 1, 2, 3, 4].entries()) {
     await expect(filled.nth(index).locator(".depth-step.is-filled")).toHaveCount(expected);
   }
 });
