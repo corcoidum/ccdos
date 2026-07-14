@@ -7,7 +7,7 @@ import {
   hasValidCitations,
   type OpenAIResponsePayload,
 } from "./answer-policy";
-import { type PublicContent, searchPublicNotes } from "./search";
+import { excerptOf, type PublicContent, type RankedNote, searchPublicNotes, tokenize } from "./search";
 
 type RateLimitBinding = {
   limit(options: { key: string }): Promise<{ success: boolean }>;
@@ -33,6 +33,7 @@ type AnswerSource = {
 
 type FallbackReason =
   | "budget_exhausted"
+  | "empty_answer"
   | "invalid_citations"
   | "not_configured"
   | "provider_error"
@@ -48,6 +49,8 @@ const DEFAULT_MODEL = "gpt-5.4-mini";
 const MAX_QUERY_LENGTH = 200;
 const MAX_REQUEST_BYTES = 4096;
 const MAX_ANSWER_LENGTH = 4000;
+// 사용자 응답에는 짧은 발췌를 유지하되, 모델에는 ADR-0003 경계(승인 공개 발췌 최대 3개) 안에서 더 긴 근거를 준다.
+const MODEL_EXCERPT_LENGTH = 1500;
 
 function jsonResponse(payload: object, status = 200, headers: HeadersInit = {}): Response {
   return Response.json(payload, {
@@ -60,13 +63,24 @@ function jsonResponse(payload: object, status = 200, headers: HeadersInit = {}):
   });
 }
 
-function toSources(query: string): AnswerSource[] {
-  return searchPublicNotes(publicContent, query, 3).map(({ note, excerpt }) => ({
+function toSources(ranked: RankedNote[]): AnswerSource[] {
+  return ranked.map(({ note, excerpt }) => ({
     id: note.id,
     title: note.title,
     updated: note.published_at ?? note.updated,
     tags: note.tags,
     excerpt,
+  }));
+}
+
+function toModelSources(ranked: RankedNote[], query: string): AnswerSource[] {
+  const queryTokens = tokenize(query);
+  return ranked.map(({ note }) => ({
+    id: note.id,
+    title: note.title,
+    updated: note.published_at ?? note.updated,
+    tags: note.tags,
+    excerpt: excerptOf(note.body, queryTokens, MODEL_EXCERPT_LENGTH),
   }));
 }
 
@@ -85,6 +99,16 @@ async function reserveDailyBudget(env: Env): Promise<boolean> {
   return response.ok;
 }
 
+// Provider 실패는 답변 없이 예산만 태우므로 예약을 되돌린다. 환불 실패가 폴백 응답을 막아서는 안 된다.
+async function refundDailyBudget(env: Env): Promise<void> {
+  try {
+    const stub = env.DAILY_ANSWER_BUDGET.getByName("global");
+    await stub.fetch("https://budget.internal/refund", { method: "POST" });
+  } catch {
+    // ignore: 환불 불가 시 그대로 fail-closed 상태를 유지한다.
+  }
+}
+
 async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Promise<string> {
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -96,6 +120,8 @@ async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Pro
     body: JSON.stringify({
       model,
       max_output_tokens: 500,
+      // reasoning 토큰이 output 예산을 다 소모해 빈 답변이 되는 것을 막는다.
+      reasoning: { effort: "low" },
       store: false,
       instructions:
         "당신은 승인된 공개 기록만 요약하는 CORCOIDUM OS의 grounded answer layer입니다. " +
@@ -145,7 +171,8 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ error: `query must be between 1 and ${MAX_QUERY_LENGTH} characters` }, 400);
   }
 
-  const sources = toSources(query);
+  const ranked = searchPublicNotes(publicContent, query, 3);
+  const sources = toSources(ranked);
   if (sources.length === 0) {
     return jsonResponse({
       mode: "retrieval",
@@ -171,8 +198,11 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
   }
 
   try {
-    const answer = await callOpenAI(env, query, sources);
-    if (!answer || answer.length > MAX_ANSWER_LENGTH || !hasValidCitations(answer, sources)) {
+    const answer = await callOpenAI(env, query, toModelSources(ranked, query));
+    if (!answer) {
+      return retrievalFallback(sources, "empty_answer");
+    }
+    if (answer.length > MAX_ANSWER_LENGTH || !hasValidCitations(answer, sources)) {
       return retrievalFallback(sources, "invalid_citations");
     }
     return jsonResponse({
@@ -183,6 +213,7 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
     });
   } catch {
     // 질문·IP·출처 본문은 로그에 남기지 않고 retrieval-only로 안전하게 폴백한다.
+    await refundDailyBudget(env);
     return retrievalFallback(sources, "provider_error");
   }
 }
@@ -192,10 +223,16 @@ export class DailyAnswerBudget extends DurableObject<Env> {
     if (request.method !== "POST") {
       return new Response("Method Not Allowed", { status: 405 });
     }
+    const action = new URL(request.url).pathname;
     const today = new Date().toISOString().slice(0, 10);
     const limit = boundedDailyLimit(this.env.DAILY_ANSWER_LIMIT);
     const stored = await this.ctx.storage.get<StoredBudget>("budget");
     const budget = stored?.date === today ? stored : { date: today, count: 0 };
+    if (action === "/refund") {
+      budget.count = Math.max(budget.count - 1, 0);
+      await this.ctx.storage.put("budget", budget);
+      return jsonResponse({ success: true, remaining: limit - budget.count });
+    }
     if (budget.count >= limit) {
       return jsonResponse({ success: false, remaining: 0 }, 429);
     }

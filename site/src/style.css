@@ -822,6 +822,14 @@ img {
   font-weight: 600;
 }
 
+.note-entry h3 .note-number {
+  margin-right: 0.55em;
+  color: var(--coral-bright);
+  font-size: 0.72em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .note-entry > p:not(.note-meta) {
   color: var(--muted-strong);
   line-height: 1.8;

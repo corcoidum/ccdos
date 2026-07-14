@@ -370,14 +370,19 @@ function createLifecycle(): HTMLElement {
   return section;
 }
 
-function createNoteCard(note: PublicNote): HTMLElement {
+function createNoteCard(note: PublicNote, recordNumber: number): HTMLElement {
   const article = createElement("article", "note-entry");
   const meta = createElement("p", "note-meta");
   const displayDate = note.published_at ?? note.updated;
   const time = createElement("time", undefined, formatDate(displayDate));
   time.dateTime = displayDate;
   meta.append(time, document.createTextNode(` · ${note.state}`));
-  article.append(meta, createElement("h3", undefined, note.title));
+  const title = createElement("h3");
+  title.append(
+    createElement("span", "note-number", String(recordNumber).padStart(2, "0")),
+    document.createTextNode(note.title),
+  );
+  article.append(meta, title);
 
   const tags = createElement("div", "tag-list");
   for (const tag of note.tags) {
@@ -423,6 +428,10 @@ function createPublicArchive(): HTMLElement {
     return section;
   }
 
+  // 기록이 늘어나거나 태그 필터를 걸어도 번호가 바뀌지 않도록, 가장 오래된 기록을 01번으로 고정한다.
+  const recordNumbers = new Map(
+    publicContent.notes.map((note, index) => [note.id, publicContent.notes.length - index]),
+  );
   const tags = Array.from(new Set(publicContent.notes.flatMap((note) => note.tags))).sort();
   const filters = createElement("div", "archive-filters");
   filters.setAttribute("role", "group");
@@ -442,7 +451,9 @@ function createPublicArchive(): HTMLElement {
         ? publicContent.notes
         : publicContent.notes.filter((note) => note.tags.includes(activeTag));
     const visibleNotes = expanded ? filteredNotes : filteredNotes.slice(0, initialLimit);
-    results.replaceChildren(...visibleNotes.map(createNoteCard));
+    results.replaceChildren(
+      ...visibleNotes.map((note) => createNoteCard(note, recordNumbers.get(note.id) ?? 0)),
+    );
     const remaining = Math.max(filteredNotes.length - initialLimit, 0);
     toggle.hidden = remaining === 0;
     toggle.setAttribute("aria-expanded", String(expanded));

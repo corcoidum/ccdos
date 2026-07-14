@@ -56,7 +56,7 @@ function scoreNote(note: PublicNote, queryTokens: string[]): number {
   );
 }
 
-function excerptOf(body: string, queryTokens: string[], limit = 180): string {
+export function excerptOf(body: string, queryTokens: string[], limit = 180): string {
   const normalized = body.split(/\s+/).join(" ");
   const lower = normalized.toLowerCase();
   const matchIndex =
