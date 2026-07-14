@@ -96,6 +96,19 @@ test("touch swipe와 trackpad wheel이 인접 route로 한 번만 이동한다",
   await expect(page).toHaveURL(/\/lab$/);
 });
 
+test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다", async ({ page }) => {
+  await page.goto("/projects");
+  const legend = page.locator(".phase-legend");
+  await expect(legend).toBeVisible();
+  await expect(legend.locator(".legend-label")).toHaveText(["PASSED", "VALIDATED", "VERIFIED", "LIVE"]);
+  await expect(legend.locator(".phase-legend-item dd")).toHaveCount(4);
+  // 검증 깊이 게이지는 단계마다 한 칸씩 더 차오른다.
+  const filled = legend.locator(".phase-legend-item");
+  for (const [index, expected] of [1, 2, 3, 4].entries()) {
+    await expect(filled.nth(index).locator(".depth-step.is-filled")).toHaveCount(expected);
+  }
+});
+
 test("모든 route가 모바일 viewport에서 전역 수평 overflow를 만들지 않는다", async ({ page }) => {
   for (const route of ["os", "garden", "lab", "projects"]) {
     await page.goto(`/${route}`);

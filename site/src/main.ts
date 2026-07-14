@@ -823,9 +823,42 @@ function renderProjects(): HTMLElement {
     );
     timeline.append(item);
   }
-  roadmap.append(timeline);
+  roadmap.append(timeline, createPhaseLegend());
   page.append(caseStudy, roadmap);
   return page;
+}
+
+function createPhaseLegend(): HTMLElement {
+  const legend = createElement("aside", "phase-legend");
+  legend.setAttribute("aria-label", "Phase 상태 범례");
+  legend.append(
+    createElement("p", "phase-legend-title", "STATUS LEGEND · 검증의 깊이"),
+    createElement(
+      "p",
+      "phase-legend-intro",
+      "상태는 완료 여부가 아니라 어디까지 확인했는지를 보여 줍니다. 오른쪽으로 갈수록 검증이 깊어집니다.",
+    ),
+  );
+  const list = createElement("dl", "phase-legend-grid");
+  for (const [label, depth, description] of [
+    ["PASSED", 1, "규칙과 문서가 검사를 통과했습니다."],
+    ["VALIDATED", 2, "자동화가 그 규칙을 강제하는지 테스트로 확인했습니다."],
+    ["VERIFIED", 3, "실제 운영 환경에서 동작을 확인했습니다."],
+    ["LIVE", 4, "지금도 서비스로 운영되고 있습니다."],
+  ] as const) {
+    const item = createElement("div", "phase-legend-item");
+    const term = createElement("dt");
+    const meter = createElement("span", "legend-depth");
+    meter.setAttribute("aria-hidden", "true");
+    for (let step = 1; step <= 4; step += 1) {
+      meter.append(createElement("span", step <= depth ? "depth-step is-filled" : "depth-step"));
+    }
+    term.append(meter, createElement("span", "legend-label", label));
+    item.append(term, createElement("dd", undefined, description));
+    list.append(item);
+  }
+  legend.append(list);
+  return legend;
 }
 
 function pageFor(route: Route): HTMLElement {
@@ -904,6 +937,7 @@ const REVEAL_SELECTORS = [
   ".principle-item",
   ".case-story-item",
   ".phase-item",
+  ".phase-legend",
   ".note-entry",
   ".seed-state",
   ".evidence-links",

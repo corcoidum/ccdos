@@ -1184,6 +1184,84 @@ img {
   margin-top: 28px;
 }
 
+.phase-legend {
+  margin-top: 52px;
+  padding: 30px clamp(24px, 4vw, 40px) 34px;
+  border: 1px solid var(--line-strong);
+}
+
+.phase-legend-title {
+  margin: 0;
+  color: var(--coral-bright);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.phase-legend-intro {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.phase-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 30px;
+  margin: 28px 0 0;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+}
+
+.phase-legend-item dt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legend-depth {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.depth-step {
+  width: 9px;
+  height: 4px;
+  background: var(--line-strong);
+}
+
+.depth-step.is-filled {
+  background: var(--moss);
+}
+
+.legend-label {
+  color: var(--moss);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.phase-legend-item dd {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .phase-legend-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .phase-legend-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+}
+
 .site-footer {
   padding: 64px max(32px, calc((100vw - var(--content)) / 2)) 30px;
   border-top: 1px solid var(--line-strong);
