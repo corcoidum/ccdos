@@ -370,6 +370,139 @@ function createLifecycle(): HTMLElement {
   return section;
 }
 
+function noteParagraphs(body: string): string[] {
+  return body
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/^#+\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function appendNoteBody(container: HTMLElement, note: PublicNote): void {
+  for (const paragraph of noteParagraphs(note.body)) {
+    container.append(createElement("p", undefined, paragraph));
+  }
+}
+
+function noteExcerpt(note: PublicNote, limit = 180): string {
+  const first = noteParagraphs(note.body)[0] ?? "";
+  const normalized = first.split(/\s+/).join(" ");
+  return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
+}
+
+let closeActiveNoteModal: (() => void) | null = null;
+
+// Lab 검색 결과와 Garden 카드가 함께 쓰는 전문 읽기 모달. 데이터는 이미 클라이언트에 있어 추가 요청이 없다.
+function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
+  closeActiveNoteModal?.();
+  const previousFocus = trigger ?? (document.activeElement as HTMLElement | null);
+
+  const overlay = createElement("div", "note-modal-overlay");
+  overlay.dataset.swipeIgnore = "";
+  const dialog = createElement("div", "note-modal");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  const titleId = `note-modal-title-${note.id}`;
+  dialog.setAttribute("aria-labelledby", titleId);
+
+  const closeButton = createElement("button", "note-modal-close", "✕");
+  closeButton.type = "button";
+  closeButton.setAttribute("aria-label", "닫기");
+
+  const scroll = createElement("div", "note-modal-scroll");
+  const meta = createElement("p", "note-meta");
+  const displayDate = note.published_at ?? note.updated;
+  const time = createElement("time", undefined, formatDate(displayDate));
+  time.dateTime = displayDate;
+  meta.append(time, document.createTextNode(` · ${note.state}`));
+  const heading = createElement("h2", "note-modal-title", note.title);
+  heading.id = titleId;
+  const tags = createElement("div", "tag-list");
+  for (const tag of note.tags) {
+    tags.append(createElement("span", "tag", `#${tag}`));
+  }
+  const body = createElement("div", "note-modal-body");
+  appendNoteBody(body, note);
+  scroll.append(meta, heading, tags, body);
+  dialog.append(closeButton, scroll);
+  overlay.append(dialog);
+  document.body.append(overlay);
+
+  const scrollLock = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+  appRoot.setAttribute("aria-hidden", "true");
+  appRoot.inert = true;
+
+  const close = (): void => {
+    if (closeActiveNoteModal !== close) {
+      return;
+    }
+    closeActiveNoteModal = null;
+    document.removeEventListener("keydown", onKeydown, true);
+    overlay.remove();
+    document.body.style.overflow = scrollLock;
+    appRoot.removeAttribute("aria-hidden");
+    appRoot.inert = false;
+    previousFocus?.focus?.({ preventScroll: true });
+  };
+
+  const focusable = (): HTMLElement[] =>
+    Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      close();
+      return;
+    }
+    if (event.key !== "Tab") {
+      return;
+    }
+    const items = focusable();
+    if (items.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  closeButton.addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      close();
+    }
+  });
+  document.addEventListener("keydown", onKeydown, true);
+  closeActiveNoteModal = close;
+  window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));
+}
+
+function attachNoteOpener(card: HTMLElement, note: PublicNote): HTMLButtonElement {
+  const openButton = createElement("button", "note-open-button", note.title);
+  openButton.type = "button";
+  openButton.setAttribute("aria-haspopup", "dialog");
+  openButton.addEventListener("click", () => openNoteModal(note, openButton));
+  // 카드 어디를 눌러도 열리게 하되, 태그·링크 등 다른 인터랙션은 방해하지 않는다.
+  card.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest("button, a")) {
+      return;
+    }
+    openNoteModal(note, openButton);
+  });
+  return openButton;
+}
+
 function createNoteCard(note: PublicNote, recordNumber: number): HTMLElement {
   const article = createElement("article", "note-entry");
   const meta = createElement("p", "note-meta");
@@ -378,20 +511,15 @@ function createNoteCard(note: PublicNote, recordNumber: number): HTMLElement {
   time.dateTime = displayDate;
   meta.append(time, document.createTextNode(` · ${note.state}`));
   const title = createElement("h3");
-  title.append(
-    createElement("span", "note-number", String(recordNumber).padStart(2, "0")),
-    document.createTextNode(note.title),
-  );
+  const openButton = attachNoteOpener(article, note);
+  title.append(createElement("span", "note-number", String(recordNumber).padStart(2, "0")), openButton);
   article.append(meta, title);
 
   const tags = createElement("div", "tag-list");
   for (const tag of note.tags) {
     tags.append(createElement("span", "tag", `#${tag}`));
   }
-  article.append(tags);
-  for (const paragraph of note.body.split(/\n\s*\n/).filter(Boolean)) {
-    article.append(createElement("p", undefined, paragraph.replace(/^#+\s*/, "")));
-  }
+  article.append(tags, createElement("p", "note-excerpt", noteExcerpt(note)));
   return article;
 }
 
@@ -566,11 +694,9 @@ function createWikiSearch(): HTMLElement {
       const time = createElement("time", undefined, formatDate(displayDate));
       time.dateTime = displayDate;
       meta.append(time, document.createTextNode(` · ${note.state}`));
-      item.append(
-        meta,
-        createElement("h3", undefined, note.title),
-        createElement("p", "wiki-search-excerpt", excerpt),
-      );
+      const title = createElement("h3");
+      title.append(attachNoteOpener(item, note));
+      item.append(meta, title, createElement("p", "wiki-search-excerpt", excerpt));
       const tagList = createElement("div", "tag-list");
       for (const tag of note.tags) {
         tagList.append(createElement("span", "tag", `#${tag}`));
@@ -1001,6 +1127,7 @@ function setupReveals(root: HTMLElement): void {
 }
 
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
+  closeActiveNoteModal?.();
   const route = currentRoute();
   if (window.location.pathname !== route) {
     window.history.replaceState({}, "", route);
