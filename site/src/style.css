@@ -19,6 +19,8 @@
   --line: rgba(201, 178, 116, 0.25);
   --line-strong: rgba(201, 178, 116, 0.48);
   --content: 1360px;
+  --page-gutter: clamp(20px, 3vw, 48px);
+  --shell-width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content));
   --serif: "Noto Serif KR", "NanumMyeongjo", Batang, "AppleMyungjo", Georgia, serif;
 }
 
@@ -103,6 +105,7 @@ a {
 #public-notes,
 #experiments,
 #case-study,
+#wiki-search,
 #roadmap {
   scroll-margin-top: 84px;
 }
@@ -167,7 +170,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(100% - 64px, var(--content));
+  width: var(--shell-width);
   min-height: 64px;
   margin: 0 auto;
   gap: 40px;
@@ -237,22 +240,30 @@ img {
 }
 
 .page {
-  overflow: hidden;
+  overflow: clip;
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: minmax(620px, 0.95fr) minmax(620px, 1.05fr);
-  min-height: 620px;
   border-bottom: 1px solid var(--line);
   background: var(--night-deep);
+}
+
+.hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  width: var(--shell-width);
+  min-height: clamp(520px, 36vw, 580px);
+  margin: 0 auto;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 
 .hero-copy {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 54px clamp(48px, 4.2vw, 68px);
+  min-width: 0;
+  padding: 54px clamp(36px, 4vw, 64px);
 }
 
 .eyebrow {
@@ -369,7 +380,7 @@ img {
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 620px;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
   border-left: 1px solid var(--line);
@@ -496,7 +507,7 @@ img {
 }
 
 .content-section {
-  width: min(100% - 64px, var(--content));
+  width: var(--shell-width);
   margin: 0 auto;
   padding: clamp(88px, 10vw, 144px) 0;
 }
@@ -543,12 +554,11 @@ img {
   grid-template-columns: minmax(270px, 0.34fr) minmax(0, 1fr);
   align-items: start;
   gap: clamp(36px, 5vw, 72px);
-  width: 100%;
   padding-top: 48px;
   padding-bottom: 48px;
-  padding-right: max(32px, calc((100vw - var(--content)) / 2));
-  padding-left: max(32px, calc((100vw - var(--content)) / 2));
   background: var(--night-raised);
+  box-shadow: 0 0 0 100vmax var(--night-raised);
+  clip-path: inset(0 -100vmax);
 }
 
 .journey-section .section-heading {
@@ -1402,7 +1412,7 @@ img {
 }
 
 .site-footer {
-  padding: 64px max(32px, calc((100vw - var(--content)) / 2)) 30px;
+  padding: 64px 0 30px;
   border-top: 1px solid var(--line-strong);
   color: var(--muted);
   background: var(--night-deep);
@@ -1412,6 +1422,8 @@ img {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  width: var(--shell-width);
+  margin: 0 auto;
   gap: 48px;
 }
 
@@ -1456,7 +1468,8 @@ img {
 }
 
 .footer-note {
-  margin: 46px 0 0;
+  width: var(--shell-width);
+  margin: 46px auto 0;
   padding-top: 24px;
   border-top: 1px solid var(--line);
   color: #958b70;
@@ -1464,16 +1477,6 @@ img {
 }
 
 @media (max-width: 1280px) {
-  .header-inner,
-  .content-section {
-    width: min(100% - 48px, var(--content));
-  }
-
-  .hero {
-    grid-template-columns: minmax(360px, 0.95fr) minmax(430px, 1.05fr);
-    min-height: 660px;
-  }
-
   .hero-copy {
     padding-right: 44px;
     padding-left: 44px;
@@ -1485,8 +1488,6 @@ img {
 
   .journey-section {
     display: block;
-    padding-right: 24px;
-    padding-left: 24px;
   }
 
   .journey-section .section-heading {
@@ -1538,8 +1539,8 @@ img {
   }
 }
 
-@media (max-width: 860px) {
-  .hero {
+@media (max-width: 1100px) {
+  .hero-inner {
     grid-template-columns: 1fr;
     min-height: auto;
   }
@@ -1637,7 +1638,6 @@ img {
   .header-inner {
     align-items: flex-start;
     flex-direction: column;
-    width: min(100% - 36px, var(--content));
     min-height: 0;
     padding: 8px 0 6px;
     gap: 2px;
@@ -1647,6 +1647,7 @@ img {
   #public-notes,
   #experiments,
   #case-study,
+  #wiki-search,
   #roadmap {
     scroll-margin-top: 108px;
   }
@@ -1715,14 +1716,11 @@ img {
   }
 
   .content-section {
-    width: min(100% - 40px, var(--content));
     padding: 82px 0;
   }
 
   .journey-section {
-    width: 100%;
-    padding-right: 20px;
-    padding-left: 20px;
+    width: var(--shell-width);
   }
 
   .section-heading {
