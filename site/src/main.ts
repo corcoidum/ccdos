@@ -205,6 +205,8 @@ function createHero(config: HeroConfig): HTMLElement {
   copy.append(actions, createElement("p", "hero-note", config.note));
 
   const visual = createElement("figure", "hero-visual");
+  // 이미지를 원본 3:2 비율 프레임으로 감싸 cover 크롭을 없애고, 별자리 라벨이 그 프레임 기준으로 정렬되게 한다.
+  const frame = createElement("div", "hero-frame");
   const image = createElement("img");
   image.src = config.image;
   image.alt = config.imageAlt;
@@ -213,7 +215,7 @@ function createHero(config: HeroConfig): HTMLElement {
   image.decoding = "async";
   image.loading = "eager";
   image.setAttribute("fetchpriority", "high");
-  visual.append(image);
+  frame.append(image);
   if (config.routeName === "os") {
     const constellationNav = createElement("nav", "constellation-nav");
     constellationNav.setAttribute("aria-label", "별자리 공간 바로가기");
@@ -226,8 +228,9 @@ function createHero(config: HeroConfig): HTMLElement {
       const node = createRouteLink(route, label, `constellation-node constellation-node--${modifier}`);
       constellationNav.append(node);
     }
-    visual.append(constellationNav);
+    frame.append(constellationNav);
   }
+  visual.append(frame);
 
   hero.append(copy, visual);
   return hero;
