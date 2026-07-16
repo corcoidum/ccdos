@@ -5,7 +5,7 @@ created: 2026-07-16T06:16:00Z
 updated: 2026-07-16T06:16:00Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
+publish_state: published
 review_requested_at: 2026-07-16T06:17:00Z
 privacy_reviewed_by: corcoidum
 privacy_reviewed_at: 2026-07-16T06:18:23Z
@@ -13,6 +13,7 @@ privacy_review_result: passed
 reviewed_revision: 2026-07-16T06:16:00Z
 approved_by: corcoidum
 approved_at: 2026-07-16T06:18:23Z
+published_at: 2026-07-16T06:21:56Z
 tags:
   - love
   - music
