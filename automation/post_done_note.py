@@ -1,10 +1,10 @@
-"""Compose a release summary and optionally post it to a Discord release channel.
+"""Compose a short "done" note and optionally post it to a Discord #DONE channel.
 
 Reuses the redacted Discord sender (with the 403-avoiding User-Agent) from
 notify_discord.py. Discord is an external service, so the message is checked
 against the same high-confidence sensitive patterns before sending, and posting
-is gated behind --send. Content is drawn from a human-written summary file or
-auto-drafted from git commit subjects for review.
+is gated behind --send. Content comes from a one-line --message, a --summary-file,
+or an auto-draft of git commit subjects for review.
 """
 
 from __future__ import annotations
@@ -18,10 +18,11 @@ from pathlib import Path
 try:
     from automation.notify_discord import is_discord_webhook, send_message
     from automation.validate_notes import SENSITIVE_PATTERNS
-except ModuleNotFoundError:  # Direct execution: python automation/post_release_note.py
+except ModuleNotFoundError:  # Direct execution: python automation/post_done_note.py
     from notify_discord import is_discord_webhook, send_message
     from validate_notes import SENSITIVE_PATTERNS
 
+WEBHOOK_ENV = "DISCORD_DONE_WEBHOOK_URL"
 DISCORD_CONTENT_LIMIT = 2000
 
 
@@ -68,23 +69,26 @@ def default_range(root: Path) -> str:
 
 
 def build_message(args: argparse.Namespace, root: Path) -> str:
+    header = f"**{args.title.strip()}**\n" if args.title and args.title.strip() else ""
+    if args.message:
+        return (header + args.message.strip()).strip()
     if args.summary_file:
         text = Path(args.summary_file).read_text(encoding="utf-8").strip()
-        header = f"**{args.title.strip()}**\n" if args.title and args.title.strip() else ""
         return (header + text).strip()
     range_spec = f"{args.since}..HEAD" if args.since else default_range(root)
     subjects = git_commit_subjects(range_spec)
     if not subjects:
         raise ValueError(f"no commits found in range {range_spec}")
-    return compose_message(args.title or "Release notes", subjects)
+    return compose_message(args.title, subjects)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Post a redacted release summary to a Discord release channel.")
-    parser.add_argument("--summary-file", type=Path, help="human-written summary; overrides git-log drafting")
+    parser = argparse.ArgumentParser(description="Post a short redacted done-note to a Discord #DONE channel.")
+    parser.add_argument("--message", help="one-line note to post directly; the shortest path")
+    parser.add_argument("--summary-file", type=Path, help="human-written note; used when --message is absent")
     parser.add_argument("--since", help="git ref (tag/commit) to draft from; defaults to last tag or last 10 commits")
     parser.add_argument("--title", help="optional bold header line")
-    parser.add_argument("--send", action="store_true", help="actually post; requires DISCORD_RELEASE_WEBHOOK_URL")
+    parser.add_argument("--send", action="store_true", help=f"actually post; requires {WEBHOOK_ENV}")
     args = parser.parse_args(argv)
     # Windows 콘솔(cp949)에서도 불릿·한글 미리보기가 깨지지 않게 UTF-8로 출력한다.
     if hasattr(sys.stdout, "reconfigure"):
@@ -97,15 +101,15 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError(f"message matches '{sensitive}'; refusing to send")
         if not args.send:
             print(message)
-            print("\n(dry-run: pass --send with DISCORD_RELEASE_WEBHOOK_URL set to post)")
+            print(f"\n(dry-run: pass --send with {WEBHOOK_ENV} set to post)")
             return 0
-        webhook_url = os.environ.get("DISCORD_RELEASE_WEBHOOK_URL", "")
+        webhook_url = os.environ.get(WEBHOOK_ENV, "")
         if not webhook_url:
-            raise ValueError("DISCORD_RELEASE_WEBHOOK_URL is required with --send")
+            raise ValueError(f"{WEBHOOK_ENV} is required with --send")
         if not is_discord_webhook(webhook_url):
-            raise ValueError("DISCORD_RELEASE_WEBHOOK_URL must be an HTTPS Discord webhook URL")
+            raise ValueError(f"{WEBHOOK_ENV} must be an HTTPS Discord webhook URL")
         send_message(webhook_url, message)
-        print("PASS: posted release note to the Discord release channel")
+        print("PASS: posted done-note to the Discord #DONE channel")
     except (OSError, UnicodeError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"FAIL: {error}")
         return 1
