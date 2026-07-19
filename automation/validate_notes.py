@@ -13,6 +13,8 @@ REQUIRED_FIELDS = {"id", "title", "created", "updated", "classification", "visib
 CLASSIFICATIONS = {"S0_PUBLIC", "S1_PRIVATE", "S2_INTERNAL_DEIDENTIFIED"}
 VISIBILITIES = {"local", "private", "public"}
 PUBLISH_STATES = {"draft", "review", "approved", "published", "archived"}
+PUBLISHABLE_STATES = {"approved", "published"}
+RELATION_TYPES = {"related_to", "builds_on", "supports", "demonstrates", "implemented_by", "uses"}
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 ISO_UTC_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 PUBLIC_REVIEW_FIELDS = {"review_requested_at", "privacy_reviewed_by", "privacy_reviewed_at", "privacy_review_result", "reviewed_revision"}
@@ -35,6 +37,15 @@ VAULT_RULES = {
 class ValidationIssue:
     path: Path
     message: str
+    include_path: bool = True
+
+
+@dataclass(frozen=True)
+class ParsedNote:
+    path: Path
+    metadata: dict[str, object]
+    body: str
+    text: str
 
 
 def parse_inline_list(key: str, value: str) -> list[str]:
@@ -44,8 +55,41 @@ def parse_inline_list(key: str, value: str) -> list[str]:
     return items
 
 
+def parse_relation_list(lines: list[str], index: int, end_index: int) -> tuple[list[dict[str, str]], int]:
+    """Parse the documented one-level YAML list of relation objects."""
+    relations: list[dict[str, str]] = []
+    while index < end_index and lines[index].startswith("  - "):
+        first_field = lines[index][4:].strip()
+        if not first_field or ":" not in first_field:
+            raise ValueError("relations items must be objects with target and type")
+
+        relation: dict[str, str] = {}
+        field, raw_value = first_field.split(":", 1)
+        field = field.strip()
+        if not field:
+            raise ValueError("relations item has an invalid field")
+        relation[field] = raw_value.strip().strip("\"'")
+        index += 1
+
+        while index < end_index and lines[index].startswith("    "):
+            nested_line = lines[index].strip()
+            if not nested_line or nested_line.startswith("#"):
+                index += 1
+                continue
+            if ":" not in nested_line:
+                raise ValueError(f"unsupported relations line: {lines[index]}")
+            field, raw_value = nested_line.split(":", 1)
+            field = field.strip()
+            if not field or field in relation:
+                raise ValueError(f"invalid or duplicate relations field: {field}")
+            relation[field] = raw_value.strip().strip("\"'")
+            index += 1
+        relations.append(relation)
+    return relations, index
+
+
 def parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
-    """Parse scalar values and simple YAML lists (indented or inline) from frontmatter."""
+    """Parse scalars, simple lists, and the documented relation objects."""
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("frontmatter must start with ---")
@@ -74,8 +118,15 @@ def parse_frontmatter(text: str) -> tuple[dict[str, object], str]:
                 metadata[key] = value.strip("\"'")
             index += 1
             continue
-        items: list[str] = []
         index += 1
+        if key == "relations":
+            relations, index = parse_relation_list(lines, index, end_index)
+            if not relations:
+                raise ValueError("frontmatter field relations has no value")
+            metadata[key] = relations
+            continue
+
+        items: list[str] = []
         while index < end_index and lines[index].startswith("  - "):
             item = lines[index][4:].strip()
             if not item:
@@ -108,12 +159,63 @@ def vault_name(path: Path) -> str | None:
     return next((part for part in path.parts if part in VAULT_RULES), None)
 
 
-def validate_note(path: Path) -> list[ValidationIssue]:
-    try:
-        text = path.read_text(encoding="utf-8")
-        metadata, body = parse_frontmatter(text)
-    except (OSError, UnicodeError, ValueError) as error:
-        return [ValidationIssue(path, str(error))]
+def relation_issue(note: ParsedNote, index: int, target: object, rule: str) -> ValidationIssue:
+    note_id = note.metadata.get("id")
+    safe_note_id = note_id if isinstance(note_id, str) and note_id else "<unknown>"
+    if target is None:
+        safe_target = "<missing>"
+    elif not isinstance(target, str) or not target.strip():
+        safe_target = "<empty>"
+    else:
+        safe_target = target.strip()
+    return ValidationIssue(
+        note.path,
+        f"note id={safe_note_id} relation[{index}] target={safe_target} rule={rule}",
+        include_path=False,
+    )
+
+
+def validate_relations(note: ParsedNote) -> list[ValidationIssue]:
+    relations = note.metadata.get("relations")
+    if relations is None:
+        return []
+    if not isinstance(relations, list):
+        return [relation_issue(note, 0, None, "relations_must_be_a_list")]
+
+    issues: list[ValidationIssue] = []
+    seen: set[tuple[str, str]] = set()
+    source_id = note.metadata.get("id")
+    for index, relation in enumerate(relations):
+        if not isinstance(relation, dict):
+            issues.append(relation_issue(note, index, None, "relation_must_be_an_object"))
+            continue
+        target = relation.get("target")
+        relation_type = relation.get("type")
+        if "target" not in relation:
+            issues.append(relation_issue(note, index, None, "target_is_required"))
+        elif not isinstance(target, str) or not target.strip():
+            issues.append(relation_issue(note, index, target, "target_must_not_be_empty"))
+        elif not ID_PATTERN.fullmatch(target):
+            issues.append(relation_issue(note, index, target, "target_id_must_be_lowercase_kebab_case"))
+        if "type" not in relation:
+            issues.append(relation_issue(note, index, target, "type_is_required"))
+        elif relation_type not in RELATION_TYPES:
+            issues.append(relation_issue(note, index, target, f"relation_type_not_allowed:{relation_type}"))
+        extra_fields = sorted(set(relation) - {"target", "type"})
+        if extra_fields:
+            issues.append(relation_issue(note, index, target, "unexpected_fields:" + ",".join(extra_fields)))
+        if isinstance(target, str) and target and target == source_id:
+            issues.append(relation_issue(note, index, target, "self_relation_not_allowed"))
+        if isinstance(target, str) and target and isinstance(relation_type, str) and relation_type in RELATION_TYPES:
+            edge_key = (target, relation_type)
+            if edge_key in seen:
+                issues.append(relation_issue(note, index, target, "duplicate_source_target_type"))
+            seen.add(edge_key)
+    return issues
+
+
+def validate_parsed_note(note: ParsedNote) -> list[ValidationIssue]:
+    path, metadata, body, text = note.path, note.metadata, note.body, note.text
 
     issues: list[ValidationIssue] = []
     missing = REQUIRED_FIELDS - metadata.keys()
@@ -193,25 +295,99 @@ def validate_note(path: Path) -> list[ValidationIssue]:
             issues.append(ValidationIssue(path, f"possible sensitive data found: {label}"))
     if metadata.get("classification") == "S3_RESTRICTED" or "S3_RESTRICTED" in body:
         issues.append(ValidationIssue(path, "S3_RESTRICTED material must not be stored in this repository"))
+    issues.extend(validate_relations(note))
     return issues
 
 
-def collect_duplicate_id_issues(files: list[Path]) -> list[ValidationIssue]:
-    """Reject reuse of a note id across files; ids must be unique to stay citable."""
+def read_note(path: Path) -> ParsedNote:
+    text = path.read_text(encoding="utf-8")
+    metadata, body = parse_frontmatter(text)
+    return ParsedNote(path=path, metadata=metadata, body=body, text=text)
+
+
+def validate_note(path: Path) -> list[ValidationIssue]:
+    try:
+        note = read_note(path)
+    except (OSError, UnicodeError, ValueError) as error:
+        return [ValidationIssue(path, str(error))]
+    return validate_parsed_note(note)
+
+
+def collect_duplicate_id_issues_from_notes(notes: list[ParsedNote]) -> list[ValidationIssue]:
     paths_by_id: dict[str, list[Path]] = {}
-    for path in files:
-        try:
-            metadata, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, ValueError):
-            continue  # unreadable files are already reported by validate_note
-        note_id = metadata.get("id")
+    for note in notes:
+        note_id = note.metadata.get("id")
         if isinstance(note_id, str) and note_id:
-            paths_by_id.setdefault(note_id, []).append(path)
+            paths_by_id.setdefault(note_id, []).append(note.path)
     return [
         ValidationIssue(paths[0], f"duplicate note id '{note_id}' also used by: " + ", ".join(str(path) for path in paths[1:]))
         for note_id, paths in sorted(paths_by_id.items())
         if len(paths) > 1
     ]
+
+
+def collect_duplicate_id_issues(files: list[Path]) -> list[ValidationIssue]:
+    """Reject reuse of a note id across files; ids must be unique to stay citable."""
+    notes: list[ParsedNote] = []
+    for path in files:
+        try:
+            notes.append(read_note(path))
+        except (OSError, UnicodeError, ValueError):
+            continue  # unreadable files are already reported by validate_note
+    return collect_duplicate_id_issues_from_notes(notes)
+
+
+def collect_relation_target_issues(notes: list[ParsedNote]) -> list[ValidationIssue]:
+    """Resolve public relations only against approved notes in the Public Vault."""
+    all_notes_by_id = {
+        note.metadata["id"]: note
+        for note in notes
+        if isinstance(note.metadata.get("id"), str) and note.metadata["id"]
+    }
+    public_notes_by_id = {
+        note_id: note for note_id, note in all_notes_by_id.items() if vault_name(note.path) == "CORCOIDUM-Public"
+    }
+    issues: list[ValidationIssue] = []
+    for note in public_notes_by_id.values():
+        if note.metadata.get("publish_state") not in PUBLISHABLE_STATES:
+            continue
+        relations = note.metadata.get("relations", [])
+        if not isinstance(relations, list):
+            continue
+        for index, relation in enumerate(relations):
+            if not isinstance(relation, dict):
+                continue
+            target = relation.get("target")
+            if not isinstance(target, str) or not ID_PATTERN.fullmatch(target):
+                continue
+            target_note = public_notes_by_id.get(target)
+            if target_note is None:
+                rule = "private_or_local_target_not_allowed" if target in all_notes_by_id else "target_not_found"
+                issues.append(relation_issue(note, index, target, rule))
+            elif target_note.metadata.get("publish_state") not in PUBLISHABLE_STATES:
+                issues.append(relation_issue(note, index, target, "target_must_be_approved_or_published"))
+    return issues
+
+
+def load_and_validate_notes(files: list[Path]) -> tuple[list[ParsedNote], list[ValidationIssue]]:
+    """Read every note once, then run file-level and cross-note validation."""
+    notes: list[ParsedNote] = []
+    issues: list[ValidationIssue] = []
+    for path in files:
+        try:
+            note = read_note(path)
+        except (OSError, UnicodeError, ValueError) as error:
+            issues.append(ValidationIssue(path, str(error)))
+            continue
+        notes.append(note)
+        issues.extend(validate_parsed_note(note))
+    issues.extend(collect_duplicate_id_issues_from_notes(notes))
+    issues.extend(collect_relation_target_issues(notes))
+    return notes, issues
+
+
+def format_issue(issue: ValidationIssue) -> str:
+    return f"{issue.path}: {issue.message}" if issue.include_path else issue.message
 
 
 def markdown_files(targets: list[Path]) -> list[Path]:
@@ -233,11 +409,10 @@ def main(argv: list[str] | None = None) -> int:
     if not files:
         print("FAIL: no Markdown notes found")
         return 1
-    issues = [issue for path in files for issue in validate_note(path)]
-    issues.extend(collect_duplicate_id_issues(files))
+    _, issues = load_and_validate_notes(files)
     if issues:
         for issue in issues:
-            print(f"FAIL: {issue.path}: {issue.message}")
+            print(f"FAIL: {format_issue(issue)}")
         return 1
     print(f"PASS: validated {len(files)} Markdown note(s) with metadata and privacy rules.")
     return 0

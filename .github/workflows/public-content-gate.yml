@@ -33,12 +33,15 @@ jobs:
         run: python scripts/verify_phase0.py
       - name: Validate public note metadata and privacy rules
         run: python automation/validate_notes.py vaults/CORCOIDUM-Public
-      - name: Run automation tests
-        run: python -m unittest discover -s tests -v
       - name: Require current approved-content index
         run: python automation/build_public_content.py --check
+      - name: Require current approved public graph
+        run: python automation/build_public_graph.py --check
+      - name: Run automation tests
+        run: python -m unittest discover -s tests -v
 
   build-site:
+    needs: validate-public-content
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

@@ -64,6 +64,17 @@ python automation/build_public_content.py
 python automation/build_public_content.py --check
 ```
 
+## Knowledge Graph Foundation 검증
+
+승인된 Public 노트의 사람이 선언한 관계만 결정론적 `content/public/graph.json`으로 생성합니다. 이 artifact는 `index.json` gate가 통과해야 만들 수 있으며, 현재 단계에서는 note-to-note 관계와 그 edge에서 계산한 backlinks·Related Notes만 포함합니다.
+
+```powershell
+python automation/build_public_graph.py
+python automation/build_public_graph.py --check
+```
+
+관계 계약과 검토 규칙은 [Public Knowledge Graph 정책](docs/governance/public-knowledge-graph.md)을 따릅니다.
+
 ## Phase 5 실행
 
 ```powershell

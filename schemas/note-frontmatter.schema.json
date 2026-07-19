@@ -13,6 +13,20 @@
     "visibility": {"enum": ["local", "private", "public"]},
     "publish_state": {"enum": ["draft", "review", "approved", "published", "archived"]},
     "tags": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "type"],
+        "properties": {
+          "target": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "type": {
+            "enum": ["related_to", "builds_on", "supports", "demonstrates", "implemented_by", "uses"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "approved_by": {"type": "string", "minLength": 1},
     "approved_at": {"type": "string", "format": "date-time"},
     "review_requested_at": {"type": "string", "format": "date-time"},

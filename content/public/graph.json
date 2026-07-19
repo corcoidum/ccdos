@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "id": "discord-webhook-403-lesson",
+      "type": "note",
+      "label": "403은 항상 권한 문제가 아니다",
+      "url": "/garden",
+      "tags": [
+        "automation",
+        "debugging",
+        "trust"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "doubt-into-a-ladder",
+      "type": "note",
+      "label": "의심을 계단으로 바꾸는 법",
+      "url": "/garden",
+      "tags": [
+        "graphrag",
+        "hope",
+        "learning"
+      ],
+      "state": "published",
+      "updated": "2026-07-16T07:01:55Z",
+      "published_at": "2026-07-16T07:10:56Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "empty-garden-is-a-promise",
+      "type": "note",
+      "label": "빈 정원은 실패가 아니라 약속이다",
+      "url": "/garden",
+      "tags": [
+        "case-study",
+        "governance",
+        "trust"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "from-working-site-to-trustworthy-system",
+      "type": "note",
+      "label": "작동하는 사이트에서 신뢰할 수 있는 시스템으로",
+      "url": "/garden",
+      "tags": [
+        "automation",
+        "case-study",
+        "openai",
+        "reliability",
+        "trust"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "late-restart-operating-system",
+      "type": "note",
+      "label": "늦게 다시 시작한 사람의 운영체제",
+      "url": "/garden",
+      "tags": [
+        "hope",
+        "learning",
+        "restart"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T04:48:00Z",
+      "published_at": "2026-07-14T04:52:42Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "moonlight-and-the-name-claude",
+      "type": "note",
+      "label": "달빛처럼, 압도하지 않는 기술",
+      "url": "/garden",
+      "tags": [
+        "art",
+        "love",
+        "music"
+      ],
+      "state": "published",
+      "updated": "2026-07-16T06:16:00Z",
+      "published_at": "2026-07-16T06:21:56Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "night-comfort-with-my-son",
+      "type": "note",
+      "label": "아들과 함께 듣는 밤의 위로",
+      "url": "/garden",
+      "tags": [
+        "family",
+        "love",
+        "music"
+      ],
+      "state": "published",
+      "updated": "2026-07-16T06:16:00Z",
+      "published_at": "2026-07-16T06:21:56Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "safe-automation-case-study",
+      "type": "note",
+      "label": "안전한 운영 자동화의 작은 시작",
+      "url": "/garden",
+      "tags": [
+        "automation",
+        "case-study",
+        "mercy"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "search-that-does-not-guess",
+      "type": "note",
+      "label": "추측하지 않는 검색",
+      "url": "/garden",
+      "tags": [
+        "automation",
+        "retrieval",
+        "trust"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "value-of-invisible-work",
+      "type": "note",
+      "label": "화면에 보이지 않는 작업의 가치",
+      "url": "/garden",
+      "tags": [
+        "case-study",
+        "ci",
+        "mercy"
+      ],
+      "state": "published",
+      "updated": "2026-07-14T09:12:12Z",
+      "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [],
+      "related_notes": []
+    }
+  ],
+  "edges": []
+}

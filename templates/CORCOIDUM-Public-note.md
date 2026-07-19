@@ -8,6 +8,10 @@ visibility: public
 publish_state: draft
 tags:
   - case-study
+# 선택 사항: 승인된 Public 노트 ID만 target으로 선언합니다.
+# relations:
+#   - target: another-approved-public-note
+#     type: related_to
 # review 이상 상태로 올릴 때 아래 필드를 채웁니다.
 # review_requested_at: 2026-07-10T00:00:00Z
 # privacy_reviewed_by: reviewer-id

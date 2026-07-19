@@ -39,6 +39,18 @@ class ValidateNotesTests(unittest.TestCase):
         metadata, _ = parse_frontmatter(content)
         self.assertEqual(metadata["tags"], ["test", "case-study"])
 
+    def test_parses_relation_objects(self) -> None:
+        content = VALID_NOTE.replace(
+            "tags:\n  - test",
+            """tags:
+  - test
+relations:
+  - target: another-public-note
+    type: related_to""",
+        )
+        metadata, _ = parse_frontmatter(content)
+        self.assertEqual(metadata["relations"], [{"target": "another-public-note", "type": "related_to"}])
+
     def test_rejects_frontmatter_field_without_value(self) -> None:
         content = VALID_NOTE.replace("title: Safe test note", "title:")
         with self.assertRaises(ValueError):

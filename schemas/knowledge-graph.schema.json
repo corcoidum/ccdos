@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CORCOIDUM OS public knowledge graph",
+  "description": "Deterministic derived artifact built only from approved CORCOIDUM-Public notes.",
+  "type": "object",
+  "required": ["version", "nodes", "edges"],
+  "properties": {
+    "version": {"const": 2},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "label",
+          "url",
+          "tags",
+          "state",
+          "updated",
+          "published_at",
+          "backlinks",
+          "related_notes"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "type": {"const": "note"},
+          "label": {"type": "string", "minLength": 1},
+          "url": {"const": "/garden"},
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "state": {"enum": ["approved", "published"]},
+          "updated": {"type": "string", "format": "date-time"},
+          "published_at": {"type": ["string", "null"], "format": "date-time"},
+          "backlinks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["source", "type"],
+              "properties": {
+                "source": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+                "type": {
+                  "enum": ["related_to", "builds_on", "supports", "demonstrates", "implemented_by", "uses"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "related_notes": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "type"],
+        "properties": {
+          "source": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "target": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "type": {
+            "enum": ["related_to", "builds_on", "supports", "demonstrates", "implemented_by", "uses"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

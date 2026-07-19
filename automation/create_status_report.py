@@ -44,6 +44,7 @@ def create_report(root: Path, deployment_status: str | None = None) -> dict[str,
         run_check("architecture", [sys.executable, "scripts/verify_phase0.py"], root),
         run_check("public_notes", [sys.executable, "automation/validate_notes.py", "vaults/CORCOIDUM-Public"], root),
         run_check("public_content_index", [sys.executable, "automation/build_public_content.py", "--check"], root),
+        run_check("public_graph", [sys.executable, "automation/build_public_graph.py", "--check"], root),
     ]
     note_count, index_check = count_approved_notes(root)
     checks.append(index_check)
