@@ -27,7 +27,7 @@
 ## 변경 이력 규칙
 
 - `reviewed_revision`은 검토한 문서 버전을 나타내며, 정확히 현재 `updated` 값과 일치해야 한다.
-- 승인 또는 발행 뒤 제목·frontmatter·본문·링크를 수정하면 `updated`를 변경하고 `publish_state: draft`로 되돌린다. 이전 review·approval 증적은 재사용하지 않는다.
+- 승인 또는 발행 뒤 제목·frontmatter·본문·링크를 수정하면 `updated`를 변경하고 `publish_state: draft`로 되돌린다. `relations` 추가·수정·삭제도 frontmatter 변경이므로 같은 규칙을 적용하며, 이전 review·approval 증적은 재사용하지 않는다.
 - 의미 있는 수정에는 Pull Request 설명 또는 커밋 메시지에 공개 대상 변경 이유를 한 문장으로 남긴다. 식별 가능 원문이나 민감 세부사항은 변경 이력에 쓰지 않는다.
 - 검토자와 승인자는 서로 다른 사람이 이상적이지만, 1인 운영에서는 동일 인물이 수행할 수 있다. 이 경우에도 두 시각과 검토 체크리스트를 남긴다.
 

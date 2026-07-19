@@ -18,6 +18,8 @@ jobs:
           python-version: "3.12"
       - name: Validate approved public content
         run: python automation/build_public_content.py --check
+      - name: Validate approved public graph
+        run: python automation/build_public_graph.py --check
       - name: Create redacted weekly review
         run: python automation/weekly_review.py --output "$RUNNER_TEMP/ccdos-weekly-review.json"
       - name: Send optional Discord review summary

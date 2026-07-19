@@ -8,31 +8,21 @@ import sys
 from pathlib import Path
 
 try:
-    from automation.validate_notes import collect_duplicate_id_issues, markdown_files, parse_frontmatter, validate_note
+    from automation.public_content import ParsedNote, load_public_notes, publishable_notes
 except ModuleNotFoundError:  # Direct execution: python automation/build_public_content.py
-    from validate_notes import collect_duplicate_id_issues, markdown_files, parse_frontmatter, validate_note
-
-PUBLISHABLE_STATES = {"approved", "published"}
+    from public_content import ParsedNote, load_public_notes, publishable_notes
 
 
 def build_payload(source: Path) -> dict[str, object]:
     """Return only validated, explicitly approved Public Vault notes."""
-    files = markdown_files([source])
-    if not files:
-        raise ValueError(f"no Markdown notes found in {source}")
+    return build_payload_from_notes(load_public_notes(source))
 
-    issues = [issue for path in files for issue in validate_note(path)]
-    # 단독 build 실행에서도 인용 ID의 유일성을 보장한다.
-    issues.extend(collect_duplicate_id_issues(files))
-    if issues:
-        messages = "\n".join(f"{issue.path}: {issue.message}" for issue in issues)
-        raise ValueError(f"public content validation failed:\n{messages}")
 
+def build_payload_from_notes(parsed_notes: list[ParsedNote]) -> dict[str, object]:
+    """Preserve the version 1 index contract while reusing parsed notes."""
     notes: list[dict[str, object]] = []
-    for path in files:
-        metadata, body = parse_frontmatter(path.read_text(encoding="utf-8"))
-        if metadata["publish_state"] not in PUBLISHABLE_STATES:
-            continue
+    for note in publishable_notes(parsed_notes):
+        metadata, body = note.metadata, note.body
         notes.append(
             {
                 "id": metadata["id"],
