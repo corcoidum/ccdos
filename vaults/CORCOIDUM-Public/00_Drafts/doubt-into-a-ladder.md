@@ -2,22 +2,25 @@
 id: doubt-into-a-ladder
 title: 의심을 계단으로 바꾸는 법
 created: 2026-07-16T07:01:55Z
-updated: 2026-07-16T07:01:55Z
+updated: 2026-07-20T02:24:51Z
 classification: S0_PUBLIC
 visibility: public
 publish_state: published
-review_requested_at: 2026-07-16T07:08:00Z
+review_requested_at: 2026-07-20T02:24:52Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-16T07:09:22Z
+privacy_reviewed_at: 2026-07-20T02:24:53Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-16T07:01:55Z
+reviewed_revision: 2026-07-20T02:24:51Z
 approved_by: corcoidum
-approved_at: 2026-07-16T07:09:22Z
-published_at: 2026-07-16T07:10:56Z
+approved_at: 2026-07-20T02:24:54Z
+published_at: 2026-07-20T02:24:55Z
 tags:
   - hope
   - learning
   - graphrag
+relations:
+  - target: late-restart-operating-system
+    type: builds_on
 ---
 
 예전에 의원의 흩어진 행정 데이터를 GraphRAG로 연결하는 글을 쓴 적이 있다. 노드와 관계, 기술 스택과 단계별 로드맵까지 그럴듯하게 정리했다. 그런데 그 글을 다시 열어 본 오늘, 가장 크게 들린 것은 기술 용어가 아니라 내 안의 질문이었다. 우리 의원에서도 가능할까. 내가 과연 구축할 수 있을까.

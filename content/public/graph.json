@@ -12,10 +12,12 @@
         "trust"
       ],
       "state": "published",
-      "updated": "2026-07-14T09:12:12Z",
-      "published_at": "2026-07-14T09:14:52Z",
+      "updated": "2026-07-20T02:24:51Z",
+      "published_at": "2026-07-20T02:24:55Z",
       "backlinks": [],
-      "related_notes": []
+      "related_notes": [
+        "safe-automation-case-study"
+      ]
     },
     {
       "id": "doubt-into-a-ladder",
@@ -28,8 +30,8 @@
         "learning"
       ],
       "state": "published",
-      "updated": "2026-07-16T07:01:55Z",
-      "published_at": "2026-07-16T07:10:56Z",
+      "updated": "2026-07-20T02:24:51Z",
+      "published_at": "2026-07-20T02:24:55Z",
       "backlinks": [],
       "related_notes": []
     },
@@ -46,7 +48,12 @@
       "state": "published",
       "updated": "2026-07-14T09:12:12Z",
       "published_at": "2026-07-14T09:14:52Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "safe-automation-case-study",
+          "type": "supports"
+        }
+      ],
       "related_notes": []
     },
     {
@@ -62,8 +69,8 @@
         "trust"
       ],
       "state": "published",
-      "updated": "2026-07-14T09:12:12Z",
-      "published_at": "2026-07-14T09:14:52Z",
+      "updated": "2026-07-20T02:24:51Z",
+      "published_at": "2026-07-20T02:24:55Z",
       "backlinks": [],
       "related_notes": []
     },
@@ -80,7 +87,12 @@
       "state": "published",
       "updated": "2026-07-14T04:48:00Z",
       "published_at": "2026-07-14T04:52:42Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "doubt-into-a-ladder",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": []
     },
     {
@@ -126,10 +138,17 @@
         "mercy"
       ],
       "state": "published",
-      "updated": "2026-07-14T09:12:12Z",
-      "published_at": "2026-07-14T09:14:52Z",
-      "backlinks": [],
-      "related_notes": []
+      "updated": "2026-07-20T02:24:51Z",
+      "published_at": "2026-07-20T02:24:55Z",
+      "backlinks": [
+        {
+          "source": "discord-webhook-403-lesson",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "discord-webhook-403-lesson"
+      ]
     },
     {
       "id": "search-that-does-not-guess",
@@ -144,7 +163,12 @@
       "state": "published",
       "updated": "2026-07-14T09:12:12Z",
       "published_at": "2026-07-14T09:14:52Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "from-working-site-to-trustworthy-system",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": []
     },
     {
@@ -164,5 +188,26 @@
       "related_notes": []
     }
   ],
-  "edges": []
+  "edges": [
+    {
+      "source": "discord-webhook-403-lesson",
+      "target": "safe-automation-case-study",
+      "type": "related_to"
+    },
+    {
+      "source": "doubt-into-a-ladder",
+      "target": "late-restart-operating-system",
+      "type": "builds_on"
+    },
+    {
+      "source": "from-working-site-to-trustworthy-system",
+      "target": "search-that-does-not-guess",
+      "type": "builds_on"
+    },
+    {
+      "source": "safe-automation-case-study",
+      "target": "empty-garden-is-a-promise",
+      "type": "supports"
+    }
+  ]
 }

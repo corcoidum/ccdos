@@ -2,22 +2,25 @@
 id: discord-webhook-403-lesson
 title: 403은 항상 권한 문제가 아니다
 created: 2026-07-13T08:54:00Z
-updated: 2026-07-14T09:12:12Z
+updated: 2026-07-20T02:24:51Z
 classification: S0_PUBLIC
 visibility: public
 publish_state: published
-review_requested_at: 2026-07-14T09:12:12Z
+review_requested_at: 2026-07-20T02:24:52Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-14T09:12:12Z
+privacy_reviewed_at: 2026-07-20T02:24:53Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-14T09:12:12Z
+reviewed_revision: 2026-07-20T02:24:51Z
 approved_by: corcoidum
-approved_at: 2026-07-14T09:12:12Z
-published_at: 2026-07-14T09:14:52Z
+approved_at: 2026-07-20T02:24:54Z
+published_at: 2026-07-20T02:24:55Z
 tags:
   - trust
   - automation
   - debugging
+relations:
+  - target: safe-automation-case-study
+    type: related_to
 ---
 
 배포 알림을 Discord webhook으로 보내는 단계가 계속 403으로 실패했다. 첫 번째 의심은 당연히 webhook 주소가 잘못 등록되었다는 것이었고, 값을 다시 발급해 등록해도 결과는 같았다.
