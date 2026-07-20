@@ -389,10 +389,24 @@ img {
   background: var(--night-deep);
 }
 
+.hero-visual::before {
+  position: absolute;
+  inset: -24px;
+  background:
+    linear-gradient(rgb(2 18 17 / 42%), rgb(2 18 17 / 58%)),
+    var(--hero-image) center / cover no-repeat;
+  content: "";
+  filter: blur(18px) saturate(0.78);
+  opacity: 0.82;
+  pointer-events: none;
+  transform: scale(1.06);
+}
+
 .hero-frame {
   position: relative;
+  z-index: 1;
   width: 100%;
-  /* 단일 열 fallback의 원본 비율. 데스크톱에서는 아래 media query가 visual 전체로 확장한다. */
+  flex: 0 0 auto;
   aspect-ratio: 3 / 2;
 }
 
@@ -400,19 +414,8 @@ img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  animation: hero-breathe 36s ease-in-out infinite alternate;
-}
-
-@keyframes hero-breathe {
-  from {
-    transform: scale(1);
-  }
-
-  to {
-    transform: scale(1.05);
-  }
 }
 
 .constellation-nav {
@@ -486,15 +489,6 @@ img {
 
 .hero--projects .hero-visual img {
   object-position: 62% center;
-}
-
-@media (min-width: 1101px) {
-  .hero-frame {
-    position: absolute;
-    inset: 0;
-    width: auto;
-    aspect-ratio: auto;
-  }
 }
 
 .reveal {
@@ -1714,6 +1708,10 @@ img {
     min-height: 0;
     border-top: 1px solid var(--line);
     border-left: 0;
+  }
+
+  .hero-visual::before {
+    display: none;
   }
 
   .hero-frame {

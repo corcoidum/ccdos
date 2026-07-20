@@ -408,9 +408,10 @@ test("Hero와 본문은 모든 대표 viewport에서 같은 fluid shell을 사�
   }
 });
 
-test("별자리 이미지는 데스크톱 hero를 채우고 단일 열에서는 원본 비율을 유지한다", async ({ page }) => {
+test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop만 hero를 채운다", async ({ page }) => {
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 1306, height: 810 },
     { width: 1280, height: 800 },
     { width: 1120, height: 800 },
   ]) {
@@ -435,25 +436,63 @@ test("별자리 이미지는 데스크톱 hero를 채우고 단일 열에서는 
         visual: rect(".hero-visual"),
         frame: rect(".hero-frame"),
         image: rect(".hero-visual img"),
+        naturalRatio: (() => {
+          const image = document.querySelector<HTMLImageElement>(".hero-visual img")!;
+          return image.naturalWidth / image.naturalHeight;
+        })(),
+        nodeFrames: [...document.querySelectorAll<HTMLElement>(".constellation-node")].map(
+          (node) => {
+            const bounds = node.getBoundingClientRect();
+            return {
+              top: bounds.top,
+              right: bounds.right,
+              bottom: bounds.bottom,
+              left: bounds.left,
+            };
+          },
+        ),
+        backdrop: getComputedStyle(document.querySelector<HTMLElement>(".hero-visual")!, "::before")
+          .backgroundImage,
         objectFit: getComputedStyle(document.querySelector<HTMLImageElement>(".hero-visual img")!)
           .objectFit,
       };
     });
 
-    for (const edge of ["top", "right", "bottom", "left"] as const) {
+    for (const edge of ["right", "left"] as const) {
       expect(Math.abs(geometry.frame[edge] - geometry.visual[edge])).toBeLessThanOrEqual(1);
-      expect(Math.abs(geometry.image[edge] - geometry.visual[edge])).toBeLessThanOrEqual(1);
     }
-    expect(geometry.objectFit).toBe("cover");
+    for (const edge of ["top", "right", "bottom", "left"] as const) {
+      expect(Math.abs(geometry.image[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
+    }
+    expect(geometry.frame.top).toBeGreaterThanOrEqual(geometry.visual.top - 1);
+    expect(geometry.frame.bottom).toBeLessThanOrEqual(geometry.visual.bottom + 1);
+    expect(geometry.frame.width / geometry.frame.height).toBeCloseTo(geometry.naturalRatio, 2);
+    expect(geometry.naturalRatio).toBeCloseTo(1.5, 2);
+    expect(geometry.objectFit).toBe("contain");
+    expect(geometry.backdrop).not.toBe("none");
+    for (const node of geometry.nodeFrames) {
+      expect(node.left).toBeGreaterThanOrEqual(geometry.frame.left - 1);
+      expect(node.right).toBeLessThanOrEqual(geometry.frame.right + 1);
+      expect(node.top).toBeGreaterThanOrEqual(geometry.frame.top - 1);
+      expect(node.bottom).toBeLessThanOrEqual(geometry.frame.bottom + 1);
+    }
   }
 
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/os");
   const stacked = await page.locator(".hero-visual img").evaluate((element) => {
     const bounds = element.getBoundingClientRect();
-    return { width: bounds.width, height: bounds.height };
+    const visual = element.closest<HTMLElement>(".hero-visual")!;
+    return {
+      width: bounds.width,
+      height: bounds.height,
+      objectFit: getComputedStyle(element).objectFit,
+      backdropDisplay: getComputedStyle(visual, "::before").display,
+    };
   });
   expect(stacked.width / stacked.height).toBeCloseTo(1.5, 2);
+  expect(stacked.objectFit).toBe("contain");
+  expect(stacked.backdropDisplay).toBe("none");
 });
 
 test("근거 답변 API는 Secret이 없을 때 retrieval-only로 폴백한다", async ({ request }) => {
