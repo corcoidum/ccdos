@@ -154,6 +154,23 @@ function createActionLink(action: HeroAction): HTMLAnchorElement {
       event.preventDefault();
       navigate(action.href as Route);
     });
+  } else if (action.href.startsWith("#")) {
+    link.addEventListener("click", (event) => {
+      if (!isPlainLeftClick(event)) {
+        return;
+      }
+      const target = document.querySelector<HTMLElement>(action.href);
+      if (!target) {
+        return;
+      }
+      event.preventDefault();
+      window.history.pushState({}, "", `${window.location.pathname}${action.href}`);
+      target.scrollIntoView({
+        block: "start",
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+      target.focus({ preventScroll: true });
+    });
   }
   return link;
 }
@@ -184,6 +201,7 @@ function createSectionHeading(eyebrow: string, title: string, description: strin
 
 function createHero(config: HeroConfig): HTMLElement {
   const hero = createElement("section", `hero hero--${config.routeName}`);
+  const inner = createElement("div", "hero-inner");
   const copy = createElement("div", "hero-copy");
   copy.append(createElement("p", "eyebrow", config.kicker));
   if (config.showCredo) {
@@ -232,7 +250,8 @@ function createHero(config: HeroConfig): HTMLElement {
   }
   visual.append(frame);
 
-  hero.append(copy, visual);
+  inner.append(copy, visual);
+  hero.append(inner);
   return hero;
 }
 
