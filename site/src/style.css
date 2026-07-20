@@ -252,7 +252,7 @@ img {
 
 .hero-inner {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   width: var(--shell-width);
   min-height: clamp(520px, 36vw, 580px);
   margin: 0 auto;
@@ -392,7 +392,7 @@ img {
 .hero-frame {
   position: relative;
   width: 100%;
-  /* 원본 이미지가 1536×1024(3:2)이므로 프레임을 같은 비율로 두면 cover가 크롭하지 않는다. */
+  /* 단일 열 fallback의 원본 비율. 데스크톱에서는 아래 media query가 visual 전체로 확장한다. */
   aspect-ratio: 3 / 2;
 }
 
@@ -486,6 +486,15 @@ img {
 
 .hero--projects .hero-visual img {
   object-position: 62% center;
+}
+
+@media (min-width: 1101px) {
+  .hero-frame {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    aspect-ratio: auto;
+  }
 }
 
 .reveal {
@@ -1708,6 +1717,9 @@ img {
   }
 
   .hero-frame {
+    position: relative;
+    inset: auto;
+    width: 100%;
     aspect-ratio: auto;
   }
 
