@@ -46,10 +46,10 @@ const publicNotesById = new Map(publicNotes.map((note) => [note.id, note]));
 const firstPublicNote = publicNotes[0];
 const primaryRoutes = ["os", "garden", "lab", "projects"] as const;
 const valueRoutes = [
-  { path: "hope", tag: "hope", name: "H.O.P.E" },
-  { path: "trust", tag: "trust", name: "T.R.U.S.T" },
-  { path: "mercy", tag: "mercy", name: "M.E.R.C.Y" },
-  { path: "love", tag: "love", name: "L.O.V.E" },
+  { path: "hope", tag: "hope", name: "H.O.P.E", image: "/assets/value-hope.webp" },
+  { path: "trust", tag: "trust", name: "T.R.U.S.T", image: "/assets/value-trust.webp" },
+  { path: "mercy", tag: "mercy", name: "M.E.R.C.Y", image: "/assets/value-mercy.webp" },
+  { path: "love", tag: "love", name: "L.O.V.E", image: "/assets/value-love.webp" },
 ] as const;
 
 if (!firstPublicNote) {
@@ -113,6 +113,33 @@ test("/love 직접 접속은 가치 히어로와 실제 love 기록을 보여 �
   await expect(page.locator(".skip-link")).toHaveAttribute("href", "#main-content");
   await expect(page.locator(".value-growth-label")).toHaveText("자라는 중");
   await expect(page.locator("#value-note-list-love .note-entry")).toHaveCount(loveNotes.length);
+});
+
+test("네 가치 공간은 서로 다른 전용 3:2 hero 이미지를 사용한다", async ({ page }) => {
+  const sources: string[] = [];
+
+  for (const value of valueRoutes) {
+    await page.goto(`/${value.path}`);
+    const heroImage = page.locator(".hero-visual img");
+    await expect(heroImage).toHaveAttribute("src", value.image);
+    await expect(heroImage).toHaveAttribute("alt", /.+/);
+
+    const image = await heroImage.evaluate((element) => ({
+      complete: element.complete,
+      naturalWidth: element.naturalWidth,
+      naturalHeight: element.naturalHeight,
+      objectFit: getComputedStyle(element).objectFit,
+    }));
+    expect(image.complete).toBeTruthy();
+    expect(image.naturalWidth).toBe(1536);
+    expect(image.naturalHeight).toBe(1024);
+    expect(image.objectFit).toBe("contain");
+    const source = await heroImage.getAttribute("src");
+    sources.push(source ?? "");
+  }
+
+  expect(new Set(sources).size).toBe(valueRoutes.length);
+  expect(sources.every((source) => !source.includes("constellation-"))).toBeTruthy();
 });
 
 test("OS의 네 가지 약속 카드는 각각의 가치 공간으로 이동한다", async ({ page }) => {
