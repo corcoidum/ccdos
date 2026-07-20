@@ -394,7 +394,8 @@ function createHero(config: HeroConfig): HTMLElement {
   copy.append(actions, createElement("p", "hero-note", config.note));
 
   const visual = createElement("figure", "hero-visual");
-  // 넓은 화면에서는 visual을 채우고, 단일 열에서는 원본 3:2 비율로 돌아가도록 별자리 라벨과 이미지를 한 프레임에 둔다.
+  // 원본 별자리는 자르지 않고 보여 주며, 같은 이미지의 ambient backdrop만 패널의 남는 영역을 채운다.
+  visual.style.setProperty("--hero-image", `url("${config.image}")`);
   const frame = createElement("div", "hero-frame");
   const image = createElement("img");
   image.src = config.image;
