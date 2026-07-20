@@ -3,7 +3,10 @@ import graph from "../../content/public/graph.json";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
 
-type Route = "/os" | "/garden" | "/lab" | "/projects";
+type PrimaryRoute = "/os" | "/garden" | "/lab" | "/projects";
+type ValueRoute = "/hope" | "/trust" | "/mercy" | "/love";
+type Route = PrimaryRoute | ValueRoute;
+type ValueTag = "hope" | "trust" | "mercy" | "love";
 
 type HeroAction = {
   label: string;
@@ -27,6 +30,16 @@ type RouteDefinition = {
   path: Route;
   label: string;
   title: string;
+};
+
+type ValueSpaceConfig = {
+  path: ValueRoute;
+  tag: ValueTag;
+  name: string;
+  meaning: string;
+  description: string;
+  image: string;
+  imageAlt: string;
 };
 
 type AnswerApiResponse = {
@@ -94,13 +107,65 @@ const relationLabels: Record<RelationType, string> = {
   uses: "이 기록을 활용함",
 };
 const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
-const routeDefinitions: RouteDefinition[] = [
+const primaryRouteDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
   { path: "/garden", label: "Garden", title: "검토된 기록" },
   { path: "/lab", label: "Lab", title: "작은 실험" },
   { path: "/projects", label: "Projects", title: "결과와 증거" },
 ];
+const valueSpaces: readonly ValueSpaceConfig[] = [
+  {
+    path: "/hope",
+    tag: "hope",
+    name: "H.O.P.E",
+    meaning: "성장 · 재시작 · 학습",
+    description:
+      "배움의 공백과 실패를 끝으로 보지 않습니다. 다시 시작한 학습과 새 기술, 다시 시도한 기록을 다음 성장의 발판으로 남깁니다.",
+    image: "/assets/constellation-garden.jpg",
+    imageAlt: "별자리와 뿌리의 빛으로 연결된 새싹이 다시 자라는 지식의 정원",
+  },
+  {
+    path: "/trust",
+    tag: "trust",
+    name: "T.R.U.S.T",
+    meaning: "명확한 사고 · 시스템 · 기술",
+    description:
+      "설명할 수 있고 다시 검증할 수 있는 시스템을 만듭니다. 구축과 검증, 디버깅의 근거를 남겨 기술 위에 신뢰를 쌓습니다.",
+    image: "/assets/constellation-os.jpg",
+    imageAlt: "심장을 중심으로 시스템과 별들이 명확하게 연결된 CORCOIDUM OS 별자리 지도",
+  },
+  {
+    path: "/mercy",
+    tag: "mercy",
+    name: "M.E.R.C.Y",
+    meaning: "사람의 부담을 줄이는 기술",
+    description:
+      "현장의 마찰을 먼저 보고 반복 업무와 불필요한 부담을 줄이는 자동화를 만듭니다. 기능 수보다 사람이 되찾은 여유를 성과로 봅니다.",
+    image: "/assets/constellation-lab.jpg",
+    imageAlt: "사람을 위한 작은 실험 도구가 별빛으로 이어진 CORCOIDUM Lab 별자리",
+  },
+  {
+    path: "/love",
+    tag: "love",
+    name: "L.O.V.E",
+    meaning: "가족 · 일상 · 지속 가능성",
+    description:
+      "가족과 일상, 건강을 희생하지 않아도 이어 갈 수 있는 기술을 선택합니다. 일과 삶을 함께 지키는 지속 가능한 리듬을 기록합니다.",
+    image: "/assets/constellation-projects.jpg",
+    imageAlt: "삶과 일의 방향을 오래 비추는 나침반과 별자리로 이루어진 프로젝트 지도",
+  },
+];
+const valueRouteDefinitions: RouteDefinition[] = valueSpaces.map(({ path, name, meaning }) => ({
+  path,
+  label: name,
+  title: `${name} · ${meaning}`,
+}));
+const routeDefinitions: RouteDefinition[] = [
+  ...primaryRouteDefinitions,
+  ...valueRouteDefinitions,
+];
 const routes = routeDefinitions.map(({ path }) => path);
+const gestureRoutes = primaryRouteDefinitions.map(({ path }) => path);
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -200,7 +265,12 @@ function supportsScrollDrivenAnimations(): boolean {
 }
 
 function routeDirection(from: Route, to: Route): NavigationDirection {
-  const difference = routes.indexOf(to) - routes.indexOf(from);
+  const fromIndex = gestureRoutes.indexOf(from);
+  const toIndex = gestureRoutes.indexOf(to);
+  if (fromIndex < 0 || toIndex < 0) {
+    return "none";
+  }
+  const difference = toIndex - fromIndex;
   return difference > 0 ? "forward" : difference < 0 ? "backward" : "none";
 }
 
@@ -411,6 +481,8 @@ function renderOs(): HTMLElement {
   );
 
   const values = createElement("section", "content-section values-section");
+  values.id = "values";
+  values.tabIndex = -1;
   values.append(
     createSectionHeading(
       "FOUR HUMAN PROMISES",
@@ -419,17 +491,15 @@ function renderOs(): HTMLElement {
     ),
   );
   const valueList = createElement("div", "value-list");
-  for (const [name, meaning, description] of [
-    ["H.O.P.E", "성장 · 재시작 · 학습", "공백은 끝이 아니라 다시 배우기 위한 여백이 됩니다."],
-    ["T.R.U.S.T", "명확한 사고 · 시스템 · 기술", "이해할 수 있고 검증 가능한 흐름으로 신뢰를 쌓습니다."],
-    ["M.E.R.C.Y", "사람의 부담을 줄이는 기술", "자동화의 성공을 기능 수가 아니라 줄어든 부담으로 판단합니다."],
-    ["L.O.V.E", "가족 · 일상 · 지속 가능성", "일과 가족, 건강과 성장이 함께 지속될 수 있어야 합니다."],
-  ]) {
-    const item = createElement("article", "value-item");
+  for (const value of valueSpaces) {
+    const item = createRouteLink(value.path, "", "value-item value-item-link");
+    item.dataset.value = value.tag;
+    item.setAttribute("aria-label", `${value.name} 가치 공간: ${value.meaning}`);
     item.append(
-      createElement("p", "value-name", name),
-      createElement("h3", undefined, meaning),
-      createElement("p", undefined, description),
+      createElement("p", "value-name", value.name),
+      createElement("h3", undefined, value.meaning),
+      createElement("p", "value-description", value.description),
+      createElement("span", "value-action", "가치 공간 보기"),
     );
     valueList.append(item);
   }
@@ -462,6 +532,82 @@ function renderOs(): HTMLElement {
   portals.append(portalList);
 
   page.append(journey, values, portals);
+  return page;
+}
+
+function renderValueSpace(value: ValueSpaceConfig): HTMLElement {
+  const notes = publicContent.notes.filter((note) => note.tags.includes(value.tag));
+  const page = createElement("div", `page page--value page--${value.tag}`);
+  page.append(
+    createHero({
+      routeName: value.tag,
+      kicker: `살아 있는 가치 · ${value.name}`,
+      title: `${value.name}\n${value.meaning}`,
+      description: value.description,
+      image: value.image,
+      imageAlt: value.imageAlt,
+      actions: [
+        { label: `${value.name} 기록 보기`, href: "#value-records", style: "primary" },
+        { label: "Garden 전체 기록", href: "/garden", style: "secondary" },
+      ],
+      note: "가치는 선언으로 끝나지 않습니다. 승인된 공개 기록이 쌓이는 동안 이 공간도 계속 자랍니다.",
+    }),
+  );
+
+  const records = createElement("section", "content-section value-records-section");
+  records.id = "value-records";
+  records.tabIndex = -1;
+  records.append(
+    createSectionHeading(
+      `#${value.tag} · 승인된 공개 기록`,
+      `${value.meaning}에서 자란 기록`,
+      `${value.name}의 의미를 실제 배움과 선택으로 남긴 공개 기록만 모았습니다.`,
+    ),
+  );
+
+  const growthState = createElement("aside", "value-growth-state");
+  const growthCopy = createElement("div", "value-growth-copy");
+  growthCopy.append(
+    createElement("p", "eyebrow", "기록 상태"),
+    createElement("strong", "value-growth-label", "자라는 중"),
+  );
+  growthState.append(
+    growthCopy,
+    createElement(
+      "p",
+      undefined,
+      `현재 ${notes.length}편의 승인된 기록이 연결되어 있습니다. 기록이 더 쌓인 뒤에도 사람의 검토를 거쳐 다음 상태를 결정합니다.`,
+    ),
+  );
+  records.append(growthState);
+
+  if (notes.length > 0) {
+    const noteList = createElement("div", "note-list value-note-list");
+    noteList.id = `value-note-list-${value.tag}`;
+    noteList.append(
+      ...notes.map((note) =>
+        createNoteCard(
+          note,
+          publicContent.notes.length - publicContent.notes.findIndex(({ id }) => id === note.id),
+        ),
+      ),
+    );
+    records.append(noteList);
+  } else {
+    const empty = createElement("div", "value-empty-state");
+    empty.append(
+      createElement("p", "eyebrow", "첫 기록을 기다립니다"),
+      createElement("h3", undefined, "비어 있기보다, 자라는 중입니다."),
+      createElement(
+        "p",
+        undefined,
+        "검토와 승인을 마친 기록만 이곳에 놓입니다. 아직 없는 내용을 채우기 위해 약속을 낮추지 않습니다.",
+      ),
+    );
+    records.append(empty);
+  }
+
+  page.append(records);
   return page;
 }
 
@@ -1250,6 +1396,10 @@ function pageFor(route: Route): HTMLElement {
     "/garden": renderGarden,
     "/lab": renderLab,
     "/projects": renderProjects,
+    "/hope": () => renderValueSpace(valueSpaces[0]),
+    "/trust": () => renderValueSpace(valueSpaces[1]),
+    "/mercy": () => renderValueSpace(valueSpaces[2]),
+    "/love": () => renderValueSpace(valueSpaces[3]),
   };
   return pages[route]();
 }
@@ -1272,7 +1422,7 @@ function createHeader(route: Route): HTMLElement {
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
-  for (const item of routeDefinitions) {
+  for (const item of primaryRouteDefinitions) {
     const link = createRouteLink(item.path, item.label, "nav-link");
     if (item.path === route) {
       link.classList.add("active");
@@ -1444,9 +1594,12 @@ function gestureTargetIsBlocked(target: EventTarget | null): boolean {
 }
 
 function navigateAdjacentRoute(direction: "backward" | "forward"): boolean {
-  const index = routes.indexOf(currentRoute());
+  const index = gestureRoutes.indexOf(currentRoute());
+  if (index < 0) {
+    return false;
+  }
   const nextIndex = index + (direction === "forward" ? 1 : -1);
-  const route = routes[nextIndex];
+  const route = gestureRoutes[nextIndex];
   if (!route) {
     return false;
   }
