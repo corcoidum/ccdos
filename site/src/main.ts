@@ -1,4 +1,5 @@
 import content from "../../content/public/index.json";
+import graph from "../../content/public/graph.json";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
 
@@ -36,6 +37,28 @@ type AnswerApiResponse = {
   model?: string;
 };
 
+type RelationType =
+  | "related_to"
+  | "builds_on"
+  | "supports"
+  | "demonstrates"
+  | "implemented_by"
+  | "uses";
+
+type PublicGraph = {
+  nodes: Array<{
+    id: string;
+    backlinks: Array<{ source: string; type: RelationType }>;
+    related_notes: string[];
+  }>;
+  edges: Array<{ source: string; target: string; type: RelationType }>;
+};
+
+type NoteConnection = {
+  note: PublicNote;
+  type: RelationType;
+};
+
 type RenderOptions = {
   announce?: boolean;
   restoreHistory?: boolean;
@@ -45,6 +68,8 @@ type NoteModalCloseOptions = {
   restoreFocus?: boolean;
   syncHistory?: boolean;
 };
+
+type NoteModalHistoryMode = "push" | "replace" | "none";
 
 type NavigationDirection = "backward" | "forward" | "none";
 
@@ -57,7 +82,17 @@ type ViewTransitionDocument = Document & {
 };
 
 const publicContent = content as PublicContent;
+const publicGraph = graph as PublicGraph;
 const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
+const graphNodesById = new Map(publicGraph.nodes.map((node) => [node.id, node]));
+const relationLabels: Record<RelationType, string> = {
+  related_to: "관련 기록",
+  builds_on: "이 기록에서 이어짐",
+  supports: "이 기록을 뒷받침함",
+  demonstrates: "이 기록을 보여 주는 사례",
+  implemented_by: "이 기록을 구현함",
+  uses: "이 기록을 활용함",
+};
 const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
 const routeDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
@@ -102,13 +137,23 @@ function noteIdFromLocation(): string | null {
   return new URLSearchParams(window.location.search).get("note");
 }
 
-function noteHistoryState(noteId: string | null): Record<string, unknown> {
+function currentHistoryTracksNote(): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      typeof state[NOTE_MODAL_HISTORY_KEY] === "string",
+  );
+}
+
+function noteHistoryState(noteId: string | null, trackNote: boolean): Record<string, unknown> {
   const currentState = window.history.state;
   const state =
     currentState && typeof currentState === "object" && !Array.isArray(currentState)
       ? { ...currentState }
       : {};
-  if (noteId === null) {
+  if (noteId === null || !trackNote) {
     delete state[NOTE_MODAL_HISTORY_KEY];
   } else {
     state[NOTE_MODAL_HISTORY_KEY] = noteId;
@@ -124,7 +169,7 @@ function updateNoteQuery(noteId: string | null, mode: "push" | "replace"): void 
     url.searchParams.set("note", noteId);
   }
   const relativeUrl = `${url.pathname}${url.search}${url.hash}`;
-  const state = noteHistoryState(noteId);
+  const state = noteHistoryState(noteId, mode === "push" || currentHistoryTracksNote());
   if (mode === "push") {
     window.history.pushState(state, "", relativeUrl);
   } else {
@@ -467,49 +512,92 @@ function noteExcerpt(note: PublicNote, limit = 180): string {
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
 }
 
+function connectionsForNote(noteId: string): NoteConnection[] {
+  const connections = new Map<string, NoteConnection>();
+  const addConnection = (targetId: string, type: RelationType): void => {
+    const note = publicNotesById.get(targetId);
+    if (targetId !== noteId && note && !connections.has(targetId)) {
+      connections.set(targetId, { note, type });
+    }
+  };
+
+  for (const edge of publicGraph.edges) {
+    if (edge.source === noteId) {
+      addConnection(edge.target, edge.type);
+    }
+  }
+  const graphNode = graphNodesById.get(noteId);
+  for (const backlink of graphNode?.backlinks ?? []) {
+    addConnection(backlink.source, backlink.type);
+  }
+  for (const relatedId of graphNode?.related_notes ?? []) {
+    addConnection(relatedId, "related_to");
+  }
+  return Array.from(connections.values());
+}
+
+function createNoteConnectionsSection(
+  note: PublicNote,
+  selectNote: (target: PublicNote) => void,
+): HTMLElement | null {
+  const connections = connectionsForNote(note.id);
+  if (connections.length === 0) {
+    return null;
+  }
+
+  const section = createElement("section", "note-relations");
+  const headingId = `note-relations-title-${note.id}`;
+  section.setAttribute("aria-labelledby", headingId);
+  const eyebrow = createElement("p", "eyebrow note-relations-eyebrow", "지식의 연결");
+  const heading = createElement("h3", "note-relations-title", "이어지는 기록");
+  heading.id = headingId;
+  const list = createElement("ul", "note-relations-list");
+
+  for (const connection of connections) {
+    const item = createElement("li", "note-relation-item");
+    const button = createElement("button", "note-relation-button");
+    button.type = "button";
+    button.dataset.noteId = connection.note.id;
+    button.append(
+      createElement("span", "note-relation-title", connection.note.title),
+      createElement("span", "note-relation-type", relationLabels[connection.type]),
+    );
+    button.addEventListener("click", () => selectNote(connection.note));
+    item.append(button);
+    list.append(item);
+  }
+
+  section.append(eyebrow, heading, list);
+  return section;
+}
+
 let activeNoteModalId: string | null = null;
 let noteHistoryBackPending = false;
 let closeActiveNoteModal: ((options?: NoteModalCloseOptions) => void) | null = null;
+let showActiveNoteModal: ((note: PublicNote, historyMode: NoteModalHistoryMode) => void) | null = null;
+let activeNoteModalReturnFocus: HTMLElement | null = null;
 
 // Lab 검색 결과와 Garden 카드가 함께 쓰는 전문 읽기 모달. 데이터는 이미 클라이언트에 있어 추가 요청이 없다.
 function openNoteModal(
   note: PublicNote,
   trigger: HTMLElement | null,
-  historyMode: "push" | "none" = "push",
+  historyMode: NoteModalHistoryMode = "push",
 ): void {
+  const previousFocus =
+    activeNoteModalReturnFocus ?? trigger ?? (document.activeElement as HTMLElement | null);
   closeActiveNoteModal?.({ restoreFocus: false, syncHistory: false });
-  if (historyMode === "push") {
-    updateNoteQuery(note.id, "push");
-  }
-  const previousFocus = trigger ?? (document.activeElement as HTMLElement | null);
 
   const overlay = createElement("div", "note-modal-overlay");
   overlay.dataset.swipeIgnore = "";
   const dialog = createElement("div", "note-modal");
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
-  const titleId = `note-modal-title-${note.id}`;
-  dialog.setAttribute("aria-labelledby", titleId);
 
   const closeButton = createElement("button", "note-modal-close", "✕");
   closeButton.type = "button";
   closeButton.setAttribute("aria-label", "닫기");
 
   const scroll = createElement("div", "note-modal-scroll");
-  const meta = createElement("p", "note-meta");
-  const displayDate = note.published_at ?? note.updated;
-  const time = createElement("time", undefined, formatDate(displayDate));
-  time.dateTime = displayDate;
-  meta.append(time, document.createTextNode(` · ${note.state}`));
-  const heading = createElement("h2", "note-modal-title", note.title);
-  heading.id = titleId;
-  const tags = createElement("div", "tag-list");
-  for (const tag of note.tags) {
-    tags.append(createElement("span", "tag", `#${tag}`));
-  }
-  const body = createElement("div", "note-modal-body");
-  appendNoteBody(body, note);
-  scroll.append(meta, heading, tags, body);
   dialog.append(closeButton, scroll);
   overlay.append(dialog);
   document.body.append(overlay);
@@ -519,12 +607,54 @@ function openNoteModal(
   appRoot.setAttribute("aria-hidden", "true");
   appRoot.inert = true;
 
+  const showNote = (
+    nextNote: PublicNote,
+    nextHistoryMode: NoteModalHistoryMode,
+    focusHeading = false,
+  ): void => {
+    if (nextHistoryMode !== "none") {
+      updateNoteQuery(nextNote.id, nextHistoryMode);
+    }
+    activeNoteModalId = nextNote.id;
+    const titleId = `note-modal-title-${nextNote.id}`;
+    dialog.setAttribute("aria-labelledby", titleId);
+
+    const meta = createElement("p", "note-meta");
+    const displayDate = nextNote.published_at ?? nextNote.updated;
+    const time = createElement("time", undefined, formatDate(displayDate));
+    time.dateTime = displayDate;
+    meta.append(time, document.createTextNode(` · ${nextNote.state}`));
+    const heading = createElement("h2", "note-modal-title", nextNote.title);
+    heading.id = titleId;
+    const tags = createElement("div", "tag-list");
+    for (const tag of nextNote.tags) {
+      tags.append(createElement("span", "tag", `#${tag}`));
+    }
+    const body = createElement("div", "note-modal-body");
+    appendNoteBody(body, nextNote);
+    const connections = createNoteConnectionsSection(nextNote, (target) =>
+      showNote(target, "replace", true),
+    );
+    scroll.replaceChildren(meta, heading, tags, body);
+    if (connections) {
+      scroll.append(connections);
+    }
+    scroll.scrollTop = 0;
+    if (focusHeading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  };
+
   const close = ({ restoreFocus = true, syncHistory = true }: NoteModalCloseOptions = {}): void => {
     if (closeActiveNoteModal !== close) {
       return;
     }
+    const closingNoteId = activeNoteModalId;
     closeActiveNoteModal = null;
+    showActiveNoteModal = null;
     activeNoteModalId = null;
+    activeNoteModalReturnFocus = null;
     document.removeEventListener("keydown", onKeydown, true);
     overlay.remove();
     document.body.style.overflow = scrollLock;
@@ -533,8 +663,8 @@ function openNoteModal(
     if (restoreFocus) {
       previousFocus?.focus?.({ preventScroll: true });
     }
-    if (syncHistory && noteIdFromLocation() === note.id) {
-      if (currentHistoryOwnsNote(note.id)) {
+    if (syncHistory && closingNoteId && noteIdFromLocation() === closingNoteId) {
+      if (currentHistoryOwnsNote(closingNoteId)) {
         noteHistoryBackPending = true;
         window.history.back();
       } else {
@@ -582,8 +712,10 @@ function openNoteModal(
     }
   });
   document.addEventListener("keydown", onKeydown, true);
-  activeNoteModalId = note.id;
+  activeNoteModalReturnFocus = previousFocus;
+  showActiveNoteModal = (nextNote, nextHistoryMode) => showNote(nextNote, nextHistoryMode, false);
   closeActiveNoteModal = close;
+  showNote(note, historyMode);
   window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));
 }
 
@@ -600,6 +732,10 @@ function syncNoteModalFromLocation(): void {
     return;
   }
   if (activeNoteModalId === note.id) {
+    return;
+  }
+  if (showActiveNoteModal) {
+    showActiveNoteModal(note, "none");
     return;
   }
   const trigger = document.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);

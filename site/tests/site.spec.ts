@@ -5,17 +5,84 @@ import { expect, test } from "@playwright/test";
 
 import { boundedDailyLimit, extractOpenAIText, hasValidCitations } from "../src/answer-policy";
 
+type RelationType =
+  | "related_to"
+  | "builds_on"
+  | "supports"
+  | "demonstrates"
+  | "implemented_by"
+  | "uses";
+
+type GraphNode = {
+  id: string;
+  url: string;
+  backlinks: Array<{ source: string; type: RelationType }>;
+  related_notes: string[];
+};
+
+type PublicGraph = {
+  nodes: GraphNode[];
+  edges: Array<{ source: string; target: string; type: RelationType }>;
+};
+
+const relationLabels: Record<RelationType, string> = {
+  related_to: "관련 기록",
+  builds_on: "이 기록에서 이어짐",
+  supports: "이 기록을 뒷받침함",
+  demonstrates: "이 기록을 보여 주는 사례",
+  implemented_by: "이 기록을 구현함",
+  uses: "이 기록을 활용함",
+};
+
 const indexPath = fileURLToPath(new URL("../../content/public/index.json", import.meta.url));
 const publicNotes = (
   JSON.parse(readFileSync(indexPath, "utf8")) as {
     notes: Array<{ id: string; title: string; tags: string[] }>;
   }
 ).notes;
+const graphPath = fileURLToPath(new URL("../../content/public/graph.json", import.meta.url));
+const publicGraph = JSON.parse(readFileSync(graphPath, "utf8")) as PublicGraph;
+const publicNotesById = new Map(publicNotes.map((note) => [note.id, note]));
 const firstPublicNote = publicNotes[0];
 
 if (!firstPublicNote) {
   throw new Error("딥링크 테스트에 사용할 공개 노트가 없습니다.");
 }
+
+function graphConnections(nodeId: string): Array<{ targetId: string; type: RelationType }> {
+  const connections = new Map<string, RelationType>();
+  const addConnection = (targetId: string, type: RelationType): void => {
+    if (targetId !== nodeId && publicNotesById.has(targetId) && !connections.has(targetId)) {
+      connections.set(targetId, type);
+    }
+  };
+
+  for (const edge of publicGraph.edges) {
+    if (edge.source === nodeId) {
+      addConnection(edge.target, edge.type);
+    }
+  }
+  const graphNode = publicGraph.nodes.find((node) => node.id === nodeId);
+  for (const backlink of graphNode?.backlinks ?? []) {
+    addConnection(backlink.source, backlink.type);
+  }
+  for (const relatedId of graphNode?.related_notes ?? []) {
+    addConnection(relatedId, "related_to");
+  }
+  return Array.from(connections, ([targetId, type]) => ({ targetId, type }));
+}
+
+const connectedGraphFixture = publicGraph.nodes
+  .map((source) => {
+    const connection = graphConnections(source.id)[0];
+    const sourceNote = publicNotesById.get(source.id);
+    const targetNote = connection ? publicNotesById.get(connection.targetId) : undefined;
+    return connection && sourceNote && targetNote ? { source, sourceNote, targetNote, connection } : null;
+  })
+  .find((fixture) => fixture !== null);
+const isolatedGraphFixture = publicGraph.nodes.find(
+  (node) => publicNotesById.has(node.id) && graphConnections(node.id).length === 0,
+);
 
 // 로컬 .dev.vars에 실제 키가 있으면 아래 계약 테스트가 유료 provider를 호출하므로 건너뛴다. CI에는 키가 없어 항상 실행된다.
 const devVarsPath = fileURLToPath(new URL("../.dev.vars", import.meta.url));
@@ -132,6 +199,53 @@ test("존재하지 않는 노트 딥링크는 모달 없이 query를 조용히 �
 
   await expect(page).toHaveURL(/\/garden$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("그래프 연결이 있는 노트는 이어지는 기록에서 같은 모달로 이동한다", async ({ page }) => {
+  test.skip(!connectedGraphFixture, "graph.json에 연결된 공개 노트가 없습니다.");
+  if (!connectedGraphFixture) {
+    return;
+  }
+
+  await page.goto(connectedGraphFixture.source.url);
+  const dialog = page.getByRole("dialog");
+  const relations = dialog.locator(".note-relations");
+  await expect(relations.getByRole("heading", { name: "이어지는 기록" })).toBeVisible();
+  await expect(relations.locator(".note-relation-button")).toHaveCount(
+    graphConnections(connectedGraphFixture.source.id).length,
+  );
+
+  const relation = relations.locator(`[data-note-id="${connectedGraphFixture.targetNote.id}"]`);
+  await expect(relation).toContainText(connectedGraphFixture.targetNote.title);
+  await expect(relation).toContainText(relationLabels[connectedGraphFixture.connection.type]);
+  await relation.click();
+
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  const targetHeading = dialog.getByRole("heading", {
+    level: 2,
+    name: connectedGraphFixture.targetNote.title,
+  });
+  await expect(targetHeading).toBeVisible();
+  await expect(targetHeading).toBeFocused();
+  expect(new URL(page.url()).searchParams.get("note")).toBe(connectedGraphFixture.targetNote.id);
+  const modalWidth = await dialog.locator(".note-modal-scroll").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(modalWidth.scrollWidth).toBeLessThanOrEqual(modalWidth.clientWidth);
+});
+
+test("그래프 연결이 없는 노트에는 이어지는 기록 섹션을 렌더링하지 않는다", async ({ page }) => {
+  test.skip(!isolatedGraphFixture, "graph.json에 연결이 없는 공개 노트가 없습니다.");
+  if (!isolatedGraphFixture) {
+    return;
+  }
+
+  await page.goto(isolatedGraphFixture.url);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".note-relations")).toHaveCount(0);
+  await expect(dialog.getByRole("heading", { name: "이어지는 기록" })).toHaveCount(0);
 });
 
 test("Lab 검색 결과를 클릭하면 같은 모달로 전문을 읽고 닫기 버튼으로 닫는다", async ({ page }) => {

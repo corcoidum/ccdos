@@ -962,6 +962,77 @@ img {
   margin-bottom: 0;
 }
 
+.note-relations {
+  margin-top: 38px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.note-relations-eyebrow {
+  margin-bottom: 8px;
+}
+
+.note-relations-title {
+  margin: 0 0 20px;
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.note-relations-list {
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.note-relation-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.note-relation-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 24px;
+  width: 100%;
+  padding: 17px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    padding 160ms ease;
+}
+
+.note-relation-button:hover {
+  padding-right: 10px;
+  padding-left: 10px;
+  background: rgba(167, 182, 108, 0.06);
+}
+
+.note-relation-button:focus-visible {
+  outline: 2px solid var(--coral-bright);
+  outline-offset: 3px;
+}
+
+.note-relation-title {
+  color: var(--ivory);
+  line-height: 1.55;
+}
+
+.note-relation-type {
+  color: var(--moss);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-align: right;
+}
+
 @keyframes overlay-fade {
   from {
     opacity: 0;
@@ -1813,6 +1884,21 @@ img {
   .note-modal-scroll {
     max-height: 100vh;
     padding: 66px 22px 44px;
+  }
+
+  .note-relation-button {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 16px 2px;
+  }
+
+  .note-relation-button:hover {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .note-relation-type {
+    text-align: left;
   }
 
   .experiment-row {
