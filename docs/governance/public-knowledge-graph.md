@@ -86,7 +86,7 @@ relations:
       "id": "search-that-does-not-guess",
       "type": "note",
       "label": "추측하지 않는 검색",
-      "url": "/garden",
+      "url": "/garden?note=search-that-does-not-guess",
       "tags": ["automation", "retrieval"],
       "state": "published",
       "updated": "2026-07-13T08:54:00Z",
@@ -103,7 +103,7 @@ relations:
       "id": "value-of-invisible-work",
       "type": "note",
       "label": "화면에 보이지 않는 작업의 가치",
-      "url": "/garden",
+      "url": "/garden?note=value-of-invisible-work",
       "tags": ["case-study", "ci"],
       "state": "published",
       "updated": "2026-07-13T08:54:00Z",
@@ -122,7 +122,7 @@ relations:
 }
 ```
 
-현재 site에는 개별 note permalink가 없으므로 node URL은 실제 read-only route인 `/garden`만 사용한다. node는 ID, tag와 Related Notes는 문자열, backlinks는 `source → type`, edge는 `source → target → type` 순으로 정렬한다. JSON key 삽입 순서도 builder에서 고정한다. 실행 시각은 source 사실이 아니고 매 실행 diff를 만들기 때문에 `generated_at`을 두지 않는다.
+node URL은 `/garden?note=<note-id>` 형식의 read-only deep link이며, query의 note ID는 해당 node ID와 정확히 일치해야 한다. node는 ID, tag와 Related Notes는 문자열, backlinks는 `source → type`, edge는 `source → target → type` 순으로 정렬한다. JSON key 삽입 순서도 builder에서 고정한다. 실행 시각은 source 사실이 아니고 매 실행 diff를 만들기 때문에 `generated_at`을 두지 않는다.
 
 ## 검증과 build
 

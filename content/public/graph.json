@@ -5,7 +5,7 @@
       "id": "discord-webhook-403-lesson",
       "type": "note",
       "label": "403은 항상 권한 문제가 아니다",
-      "url": "/garden",
+      "url": "/garden?note=discord-webhook-403-lesson",
       "tags": [
         "automation",
         "debugging",
@@ -23,7 +23,7 @@
       "id": "doubt-into-a-ladder",
       "type": "note",
       "label": "의심을 계단으로 바꾸는 법",
-      "url": "/garden",
+      "url": "/garden?note=doubt-into-a-ladder",
       "tags": [
         "graphrag",
         "hope",
@@ -39,7 +39,7 @@
       "id": "empty-garden-is-a-promise",
       "type": "note",
       "label": "빈 정원은 실패가 아니라 약속이다",
-      "url": "/garden",
+      "url": "/garden?note=empty-garden-is-a-promise",
       "tags": [
         "case-study",
         "governance",
@@ -60,7 +60,7 @@
       "id": "from-working-site-to-trustworthy-system",
       "type": "note",
       "label": "작동하는 사이트에서 신뢰할 수 있는 시스템으로",
-      "url": "/garden",
+      "url": "/garden?note=from-working-site-to-trustworthy-system",
       "tags": [
         "automation",
         "case-study",
@@ -78,7 +78,7 @@
       "id": "late-restart-operating-system",
       "type": "note",
       "label": "늦게 다시 시작한 사람의 운영체제",
-      "url": "/garden",
+      "url": "/garden?note=late-restart-operating-system",
       "tags": [
         "hope",
         "learning",
@@ -99,7 +99,7 @@
       "id": "moonlight-and-the-name-claude",
       "type": "note",
       "label": "달빛처럼, 압도하지 않는 기술",
-      "url": "/garden",
+      "url": "/garden?note=moonlight-and-the-name-claude",
       "tags": [
         "art",
         "love",
@@ -115,7 +115,7 @@
       "id": "night-comfort-with-my-son",
       "type": "note",
       "label": "아들과 함께 듣는 밤의 위로",
-      "url": "/garden",
+      "url": "/garden?note=night-comfort-with-my-son",
       "tags": [
         "family",
         "love",
@@ -131,7 +131,7 @@
       "id": "safe-automation-case-study",
       "type": "note",
       "label": "안전한 운영 자동화의 작은 시작",
-      "url": "/garden",
+      "url": "/garden?note=safe-automation-case-study",
       "tags": [
         "automation",
         "case-study",
@@ -154,7 +154,7 @@
       "id": "search-that-does-not-guess",
       "type": "note",
       "label": "추측하지 않는 검색",
-      "url": "/garden",
+      "url": "/garden?note=search-that-does-not-guess",
       "tags": [
         "automation",
         "retrieval",
@@ -175,7 +175,7 @@
       "id": "value-of-invisible-work",
       "type": "note",
       "label": "화면에 보이지 않는 작업의 가치",
-      "url": "/garden",
+      "url": "/garden?note=value-of-invisible-work",
       "tags": [
         "case-study",
         "ci",

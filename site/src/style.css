@@ -106,7 +106,9 @@ a {
 #experiments,
 #case-study,
 #wiki-search,
-#roadmap {
+#roadmap,
+#values,
+#value-records {
   scroll-margin-top: 84px;
 }
 
@@ -250,7 +252,7 @@ img {
 
 .hero-inner {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   width: var(--shell-width);
   min-height: clamp(520px, 36vw, 580px);
   margin: 0 auto;
@@ -390,7 +392,7 @@ img {
 .hero-frame {
   position: relative;
   width: 100%;
-  /* 원본 이미지가 1536×1024(3:2)이므로 프레임을 같은 비율로 두면 cover가 크롭하지 않는다. */
+  /* 단일 열 fallback의 원본 비율. 데스크톱에서는 아래 media query가 visual 전체로 확장한다. */
   aspect-ratio: 3 / 2;
 }
 
@@ -484,6 +486,15 @@ img {
 
 .hero--projects .hero-visual img {
   object-position: 62% center;
+}
+
+@media (min-width: 1101px) {
+  .hero-frame {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    aspect-ratio: auto;
+  }
 }
 
 .reveal {
@@ -635,6 +646,19 @@ img {
   padding: 32px 28px 32px 0;
 }
 
+.value-item-link {
+  position: relative;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease, background 160ms ease, padding 160ms ease;
+}
+
+.value-item-link:hover {
+  color: var(--ivory-strong);
+  background: linear-gradient(90deg, rgba(167, 182, 108, 0.08), transparent 86%);
+}
+
 .value-item + .value-item {
   padding-left: 28px;
   border-left: 1px solid var(--line);
@@ -658,11 +682,75 @@ img {
   line-height: 1.45;
 }
 
-.value-item p:last-child {
+.value-description {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.8;
+}
+
+.value-action {
+  display: inline-block;
+  margin-top: 24px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--coral-bright);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.value-records-section {
+  padding-bottom: clamp(110px, 13vw, 180px);
+}
+
+.value-growth-state {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(28px, 5vw, 80px);
+  margin-bottom: 42px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+
+.value-growth-copy .eyebrow {
+  margin-bottom: 10px;
+}
+
+.value-growth-label {
+  color: var(--moss);
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 3vw, 2.6rem);
+  font-weight: 600;
+}
+
+.value-growth-state > p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.85;
+}
+
+.value-empty-state {
+  padding: 52px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.value-empty-state h3 {
+  margin: 12px 0 16px;
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 3vw, 2.7rem);
+  font-weight: 600;
+}
+
+.value-empty-state > p:not(.eyebrow) {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.85;
 }
 
 .dur-note {
@@ -960,6 +1048,77 @@ img {
 
 .note-modal-body p:last-child {
   margin-bottom: 0;
+}
+
+.note-relations {
+  margin-top: 38px;
+  padding-top: 30px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.note-relations-eyebrow {
+  margin-bottom: 8px;
+}
+
+.note-relations-title {
+  margin: 0 0 20px;
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.note-relations-list {
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.note-relation-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.note-relation-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 24px;
+  width: 100%;
+  padding: 17px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    padding 160ms ease;
+}
+
+.note-relation-button:hover {
+  padding-right: 10px;
+  padding-left: 10px;
+  background: rgba(167, 182, 108, 0.06);
+}
+
+.note-relation-button:focus-visible {
+  outline: 2px solid var(--coral-bright);
+  outline-offset: 3px;
+}
+
+.note-relation-title {
+  color: var(--ivory);
+  line-height: 1.55;
+}
+
+.note-relation-type {
+  color: var(--moss);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-align: right;
 }
 
 @keyframes overlay-fade {
@@ -1558,6 +1717,9 @@ img {
   }
 
   .hero-frame {
+    position: relative;
+    inset: auto;
+    width: 100%;
     aspect-ratio: auto;
   }
 
@@ -1762,6 +1924,11 @@ img {
     min-height: 0;
   }
 
+  .value-growth-state {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
   .portal-row {
     grid-template-columns: 42px 1fr;
     gap: 14px 16px;
@@ -1813,6 +1980,21 @@ img {
   .note-modal-scroll {
     max-height: 100vh;
     padding: 66px 22px 44px;
+  }
+
+  .note-relation-button {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 16px 2px;
+  }
+
+  .note-relation-button:hover {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .note-relation-type {
+    text-align: left;
   }
 
   .experiment-row {

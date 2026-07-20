@@ -5,9 +5,91 @@ import { expect, test } from "@playwright/test";
 
 import { boundedDailyLimit, extractOpenAIText, hasValidCitations } from "../src/answer-policy";
 
+type RelationType =
+  | "related_to"
+  | "builds_on"
+  | "supports"
+  | "demonstrates"
+  | "implemented_by"
+  | "uses";
+
+type GraphNode = {
+  id: string;
+  url: string;
+  backlinks: Array<{ source: string; type: RelationType }>;
+  related_notes: string[];
+};
+
+type PublicGraph = {
+  nodes: GraphNode[];
+  edges: Array<{ source: string; target: string; type: RelationType }>;
+};
+
+const relationLabels: Record<RelationType, string> = {
+  related_to: "관련 기록",
+  builds_on: "이 기록에서 이어짐",
+  supports: "이 기록을 뒷받침함",
+  demonstrates: "이 기록을 보여 주는 사례",
+  implemented_by: "이 기록을 구현함",
+  uses: "이 기록을 활용함",
+};
+
 const indexPath = fileURLToPath(new URL("../../content/public/index.json", import.meta.url));
-const publicNotes = (JSON.parse(readFileSync(indexPath, "utf8")) as { notes: Array<{ tags: string[] }> })
-  .notes;
+const publicNotes = (
+  JSON.parse(readFileSync(indexPath, "utf8")) as {
+    notes: Array<{ id: string; title: string; tags: string[] }>;
+  }
+).notes;
+const graphPath = fileURLToPath(new URL("../../content/public/graph.json", import.meta.url));
+const publicGraph = JSON.parse(readFileSync(graphPath, "utf8")) as PublicGraph;
+const publicNotesById = new Map(publicNotes.map((note) => [note.id, note]));
+const firstPublicNote = publicNotes[0];
+const primaryRoutes = ["os", "garden", "lab", "projects"] as const;
+const valueRoutes = [
+  { path: "hope", tag: "hope", name: "H.O.P.E" },
+  { path: "trust", tag: "trust", name: "T.R.U.S.T" },
+  { path: "mercy", tag: "mercy", name: "M.E.R.C.Y" },
+  { path: "love", tag: "love", name: "L.O.V.E" },
+] as const;
+
+if (!firstPublicNote) {
+  throw new Error("딥링크 테스트에 사용할 공개 노트가 없습니다.");
+}
+
+function graphConnections(nodeId: string): Array<{ targetId: string; type: RelationType }> {
+  const connections = new Map<string, RelationType>();
+  const addConnection = (targetId: string, type: RelationType): void => {
+    if (targetId !== nodeId && publicNotesById.has(targetId) && !connections.has(targetId)) {
+      connections.set(targetId, type);
+    }
+  };
+
+  for (const edge of publicGraph.edges) {
+    if (edge.source === nodeId) {
+      addConnection(edge.target, edge.type);
+    }
+  }
+  const graphNode = publicGraph.nodes.find((node) => node.id === nodeId);
+  for (const backlink of graphNode?.backlinks ?? []) {
+    addConnection(backlink.source, backlink.type);
+  }
+  for (const relatedId of graphNode?.related_notes ?? []) {
+    addConnection(relatedId, "related_to");
+  }
+  return Array.from(connections, ([targetId, type]) => ({ targetId, type }));
+}
+
+const connectedGraphFixture = publicGraph.nodes
+  .map((source) => {
+    const connection = graphConnections(source.id)[0];
+    const sourceNote = publicNotesById.get(source.id);
+    const targetNote = connection ? publicNotesById.get(connection.targetId) : undefined;
+    return connection && sourceNote && targetNote ? { source, sourceNote, targetNote, connection } : null;
+  })
+  .find((fixture) => fixture !== null);
+const isolatedGraphFixture = publicGraph.nodes.find(
+  (node) => publicNotesById.has(node.id) && graphConnections(node.id).length === 0,
+);
 
 // 로컬 .dev.vars에 실제 키가 있으면 아래 계약 테스트가 유료 provider를 호출하므로 건너뛴다. CI에는 키가 없어 항상 실행된다.
 const devVarsPath = fileURLToPath(new URL("../.dev.vars", import.meta.url));
@@ -20,6 +102,30 @@ test("주요 route가 SPA 안에서 이동한다", async ({ page }) => {
   await navigation.getByRole("link", { name: "Garden" }).click();
   await expect(page).toHaveURL(/\/garden$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("지식의 정원");
+});
+
+test("/love 직접 접속은 가치 히어로와 실제 love 기록을 보여 준다", async ({ page }) => {
+  const loveNotes = publicNotes.filter((note) => note.tags.includes("love"));
+  await page.goto("/love");
+
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("L.O.V.E");
+  await expect(page).toHaveTitle("L.O.V.E · 가족 · 일상 · 지속 가능성 | CORCOIDUM OS");
+  await expect(page.locator(".skip-link")).toHaveAttribute("href", "#main-content");
+  await expect(page.locator(".value-growth-label")).toHaveText("자라는 중");
+  await expect(page.locator("#value-note-list-love .note-entry")).toHaveCount(loveNotes.length);
+});
+
+test("OS의 네 가지 약속 카드는 각각의 가치 공간으로 이동한다", async ({ page }) => {
+  for (const value of valueRoutes) {
+    await page.goto("/os");
+    await page.locator(`.value-item[data-value="${value.tag}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`/${value.path}$`));
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(value.name);
+    await expect(page.locator("#page-title")).toBeFocused();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/os$/);
+    await expect(page.locator("#page-title")).toBeFocused();
+  }
 });
 
 test("같은 페이지 CTA는 hash target으로 이동하고 keyboard focus를 넘긴다", async ({ page }) => {
@@ -67,19 +173,110 @@ test("Garden은 처음 두 기록만 보여 주고 펼치기·필터를 지원�
   }
 });
 
-test("Garden 기록을 클릭하면 전문이 모달로 열리고 Esc로 포커스와 함께 닫힌다", async ({ page }) => {
+test("Garden 기록을 클릭하면 URL과 전문 모달이 열리고 Esc로 포커스와 함께 닫힌다", async ({ page }) => {
   await page.goto("/garden");
   const opener = page.locator("#public-note-list .note-open-button").first();
   const title = (await opener.textContent()) ?? "";
   await opener.click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("note")).toBe(firstPublicNote.id);
   await expect(dialog.getByRole("heading", { name: title })).toBeVisible();
   expect(await dialog.locator(".note-modal-body p").count()).toBeGreaterThan(0);
 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/garden$/);
   await expect(opener).toBeFocused();
+});
+
+test("노트 딥링크로 직접 접속하면 해당 전문 모달을 연다", async ({ page }) => {
+  await page.goto(`/garden?note=${firstPublicNote.id}`);
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: firstPublicNote.title })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("note")).toBe(firstPublicNote.id);
+});
+
+test("노트 모달을 연 뒤 브라우저 뒤로가기를 하면 모달과 query가 함께 닫힌다", async ({ page }) => {
+  await page.goto("/garden");
+  const opener = page.locator(`[data-note-id="${firstPublicNote.id}"]`).first();
+  await opener.click();
+  await expect(page).toHaveURL(new RegExp(`/garden\\?note=${firstPublicNote.id}$`));
+
+  await page.goBack();
+
+  await expect(page).toHaveURL(/\/garden$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(opener).toBeFocused();
+});
+
+test("노트 모달이 열린 상태에서 SPA route를 이동하면 모달과 query를 정리한다", async ({ page }) => {
+  await page.goto("/garden");
+  await page.locator(`[data-note-id="${firstPublicNote.id}"]`).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.locator('.site-nav a[href="/lab"]').evaluate((link) => {
+    link.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
+  });
+
+  await expect(page).toHaveURL(/\/lab$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("존재하지 않는 노트 딥링크는 모달 없이 query를 조용히 제거한다", async ({ page }) => {
+  await page.goto("/garden?note=not-a-public-note");
+
+  await expect(page).toHaveURL(/\/garden$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("그래프 연결이 있는 노트는 이어지는 기록에서 같은 모달로 이동한다", async ({ page }) => {
+  test.skip(!connectedGraphFixture, "graph.json에 연결된 공개 노트가 없습니다.");
+  if (!connectedGraphFixture) {
+    return;
+  }
+
+  await page.goto(connectedGraphFixture.source.url);
+  const dialog = page.getByRole("dialog");
+  const relations = dialog.locator(".note-relations");
+  await expect(relations.getByRole("heading", { name: "이어지는 기록" })).toBeVisible();
+  await expect(relations.locator(".note-relation-button")).toHaveCount(
+    graphConnections(connectedGraphFixture.source.id).length,
+  );
+
+  const relation = relations.locator(`[data-note-id="${connectedGraphFixture.targetNote.id}"]`);
+  await expect(relation).toContainText(connectedGraphFixture.targetNote.title);
+  await expect(relation).toContainText(relationLabels[connectedGraphFixture.connection.type]);
+  await relation.click();
+
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  const targetHeading = dialog.getByRole("heading", {
+    level: 2,
+    name: connectedGraphFixture.targetNote.title,
+  });
+  await expect(targetHeading).toBeVisible();
+  await expect(targetHeading).toBeFocused();
+  expect(new URL(page.url()).searchParams.get("note")).toBe(connectedGraphFixture.targetNote.id);
+  const modalWidth = await dialog.locator(".note-modal-scroll").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(modalWidth.scrollWidth).toBeLessThanOrEqual(modalWidth.clientWidth);
+});
+
+test("그래프 연결이 없는 노트에는 이어지는 기록 섹션을 렌더링하지 않는다", async ({ page }) => {
+  test.skip(!isolatedGraphFixture, "graph.json에 연결이 없는 공개 노트가 없습니다.");
+  if (!isolatedGraphFixture) {
+    return;
+  }
+
+  await page.goto(isolatedGraphFixture.url);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".note-relations")).toHaveCount(0);
+  await expect(dialog.getByRole("heading", { name: "이어지는 기록" })).toHaveCount(0);
 });
 
 test("Lab 검색 결과를 클릭하면 같은 모달로 전문을 읽고 닫기 버튼으로 닫는다", async ({ page }) => {
@@ -96,7 +293,7 @@ test("Lab 검색 결과를 클릭하면 같은 모달로 전문을 읽고 닫기
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("touch swipe와 trackpad wheel이 인접 route로 한 번만 이동한다", async ({ page }) => {
+test("가치 공간을 제외한 touch swipe와 trackpad wheel 순환은 기존 route 순서를 유지한다", async ({ page }) => {
   for (const [from, to] of [
     ["os", "garden"],
     ["garden", "lab"],
@@ -133,6 +330,12 @@ test("touch swipe와 trackpad wheel이 인접 route로 한 번만 이동한다",
     window.dispatchEvent(new WheelEvent("wheel", { cancelable: true, deltaX: 170, deltaY: 5 }));
   });
   await expect(page).toHaveURL(/\/lab$/);
+
+  await page.goto("/love");
+  await page.evaluate(() => {
+    window.dispatchEvent(new WheelEvent("wheel", { cancelable: true, deltaX: 170, deltaY: 5 }));
+  });
+  await expect(page).toHaveURL(/\/love$/);
 });
 
 test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다", async ({ page }) => {
@@ -155,7 +358,7 @@ test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다",
 });
 
 test("모든 route가 모바일 viewport에서 전역 수평 overflow를 만들지 않는다", async ({ page }) => {
-  for (const route of ["os", "garden", "lab", "projects"]) {
+  for (const route of [...primaryRoutes, ...valueRoutes.map(({ path }) => path)]) {
     await page.goto(`/${route}`);
     const widths = await page.evaluate(() => ({
       client: document.documentElement.clientWidth,
@@ -166,7 +369,7 @@ test("모든 route가 모바일 viewport에서 전역 수평 overflow를 만들�
 });
 
 test("Hero와 본문은 모든 대표 viewport에서 같은 fluid shell을 사용한다", async ({ page }) => {
-  const routes = ["os", "garden", "lab", "projects"];
+  const routes = [...primaryRoutes, ...valueRoutes.map(({ path }) => path)];
   const viewports = [
     { width: 1536, height: 1024 },
     { width: 1024, height: 900 },
@@ -203,6 +406,54 @@ test("Hero와 본문은 모든 대표 viewport에서 같은 fluid shell을 사�
       expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth);
     }
   }
+});
+
+test("별자리 이미지는 데스크톱 hero를 채우고 단일 열에서는 원본 비율을 유지한다", async ({ page }) => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1280, height: 800 },
+    { width: 1120, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/os");
+    const geometry = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const bounds = document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
+        if (!bounds) {
+          throw new Error(`${selector} is missing`);
+        }
+        return {
+          top: bounds.top,
+          right: bounds.right,
+          bottom: bounds.bottom,
+          left: bounds.left,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      };
+      return {
+        visual: rect(".hero-visual"),
+        frame: rect(".hero-frame"),
+        image: rect(".hero-visual img"),
+        objectFit: getComputedStyle(document.querySelector<HTMLImageElement>(".hero-visual img")!)
+          .objectFit,
+      };
+    });
+
+    for (const edge of ["top", "right", "bottom", "left"] as const) {
+      expect(Math.abs(geometry.frame[edge] - geometry.visual[edge])).toBeLessThanOrEqual(1);
+      expect(Math.abs(geometry.image[edge] - geometry.visual[edge])).toBeLessThanOrEqual(1);
+    }
+    expect(geometry.objectFit).toBe("cover");
+  }
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/os");
+  const stacked = await page.locator(".hero-visual img").evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height };
+  });
+  expect(stacked.width / stacked.height).toBeCloseTo(1.5, 2);
 });
 
 test("근거 답변 API는 Secret이 없을 때 retrieval-only로 폴백한다", async ({ request }) => {

@@ -1,8 +1,12 @@
 import content from "../../content/public/index.json";
+import graph from "../../content/public/graph.json";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
 
-type Route = "/os" | "/garden" | "/lab" | "/projects";
+type PrimaryRoute = "/os" | "/garden" | "/lab" | "/projects";
+type ValueRoute = "/hope" | "/trust" | "/mercy" | "/love";
+type Route = PrimaryRoute | ValueRoute;
+type ValueTag = "hope" | "trust" | "mercy" | "love";
 
 type HeroAction = {
   label: string;
@@ -28,6 +32,16 @@ type RouteDefinition = {
   title: string;
 };
 
+type ValueSpaceConfig = {
+  path: ValueRoute;
+  tag: ValueTag;
+  name: string;
+  meaning: string;
+  description: string;
+  image: string;
+  imageAlt: string;
+};
+
 type AnswerApiResponse = {
   mode: "generated" | "retrieval";
   reason?: string;
@@ -36,10 +50,39 @@ type AnswerApiResponse = {
   model?: string;
 };
 
+type RelationType =
+  | "related_to"
+  | "builds_on"
+  | "supports"
+  | "demonstrates"
+  | "implemented_by"
+  | "uses";
+
+type PublicGraph = {
+  nodes: Array<{
+    id: string;
+    backlinks: Array<{ source: string; type: RelationType }>;
+    related_notes: string[];
+  }>;
+  edges: Array<{ source: string; target: string; type: RelationType }>;
+};
+
+type NoteConnection = {
+  note: PublicNote;
+  type: RelationType;
+};
+
 type RenderOptions = {
   announce?: boolean;
   restoreHistory?: boolean;
 };
+
+type NoteModalCloseOptions = {
+  restoreFocus?: boolean;
+  syncHistory?: boolean;
+};
+
+type NoteModalHistoryMode = "push" | "replace" | "none";
 
 type NavigationDirection = "backward" | "forward" | "none";
 
@@ -52,13 +95,77 @@ type ViewTransitionDocument = Document & {
 };
 
 const publicContent = content as PublicContent;
-const routeDefinitions: RouteDefinition[] = [
+const publicGraph = graph as PublicGraph;
+const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
+const graphNodesById = new Map(publicGraph.nodes.map((node) => [node.id, node]));
+const relationLabels: Record<RelationType, string> = {
+  related_to: "관련 기록",
+  builds_on: "이 기록에서 이어짐",
+  supports: "이 기록을 뒷받침함",
+  demonstrates: "이 기록을 보여 주는 사례",
+  implemented_by: "이 기록을 구현함",
+  uses: "이 기록을 활용함",
+};
+const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
+const primaryRouteDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
   { path: "/garden", label: "Garden", title: "검토된 기록" },
   { path: "/lab", label: "Lab", title: "작은 실험" },
   { path: "/projects", label: "Projects", title: "결과와 증거" },
 ];
+const valueSpaces: readonly ValueSpaceConfig[] = [
+  {
+    path: "/hope",
+    tag: "hope",
+    name: "H.O.P.E",
+    meaning: "성장 · 재시작 · 학습",
+    description:
+      "배움의 공백과 실패를 끝으로 보지 않습니다. 다시 시작한 학습과 새 기술, 다시 시도한 기록을 다음 성장의 발판으로 남깁니다.",
+    image: "/assets/constellation-garden.jpg",
+    imageAlt: "별자리와 뿌리의 빛으로 연결된 새싹이 다시 자라는 지식의 정원",
+  },
+  {
+    path: "/trust",
+    tag: "trust",
+    name: "T.R.U.S.T",
+    meaning: "명확한 사고 · 시스템 · 기술",
+    description:
+      "설명할 수 있고 다시 검증할 수 있는 시스템을 만듭니다. 구축과 검증, 디버깅의 근거를 남겨 기술 위에 신뢰를 쌓습니다.",
+    image: "/assets/constellation-os.jpg",
+    imageAlt: "심장을 중심으로 시스템과 별들이 명확하게 연결된 CORCOIDUM OS 별자리 지도",
+  },
+  {
+    path: "/mercy",
+    tag: "mercy",
+    name: "M.E.R.C.Y",
+    meaning: "사람의 부담을 줄이는 기술",
+    description:
+      "현장의 마찰을 먼저 보고 반복 업무와 불필요한 부담을 줄이는 자동화를 만듭니다. 기능 수보다 사람이 되찾은 여유를 성과로 봅니다.",
+    image: "/assets/constellation-lab.jpg",
+    imageAlt: "사람을 위한 작은 실험 도구가 별빛으로 이어진 CORCOIDUM Lab 별자리",
+  },
+  {
+    path: "/love",
+    tag: "love",
+    name: "L.O.V.E",
+    meaning: "가족 · 일상 · 지속 가능성",
+    description:
+      "가족과 일상, 건강을 희생하지 않아도 이어 갈 수 있는 기술을 선택합니다. 일과 삶을 함께 지키는 지속 가능한 리듬을 기록합니다.",
+    image: "/assets/constellation-projects.jpg",
+    imageAlt: "삶과 일의 방향을 오래 비추는 나침반과 별자리로 이루어진 프로젝트 지도",
+  },
+];
+const valueRouteDefinitions: RouteDefinition[] = valueSpaces.map(({ path, name, meaning }) => ({
+  path,
+  label: name,
+  title: `${name} · ${meaning}`,
+}));
+const routeDefinitions: RouteDefinition[] = [
+  ...primaryRouteDefinitions,
+  ...valueRouteDefinitions,
+];
 const routes = routeDefinitions.map(({ path }) => path);
+const gestureRoutes = primaryRouteDefinitions.map(({ path }) => path);
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -87,6 +194,64 @@ function currentRoute(): Route {
   return routes.includes(normalizedPath as Route) ? (normalizedPath as Route) : "/os";
 }
 
+function hasNoteQuery(): boolean {
+  return new URLSearchParams(window.location.search).has("note");
+}
+
+function noteIdFromLocation(): string | null {
+  return new URLSearchParams(window.location.search).get("note");
+}
+
+function currentHistoryTracksNote(): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      typeof state[NOTE_MODAL_HISTORY_KEY] === "string",
+  );
+}
+
+function noteHistoryState(noteId: string | null, trackNote: boolean): Record<string, unknown> {
+  const currentState = window.history.state;
+  const state =
+    currentState && typeof currentState === "object" && !Array.isArray(currentState)
+      ? { ...currentState }
+      : {};
+  if (noteId === null || !trackNote) {
+    delete state[NOTE_MODAL_HISTORY_KEY];
+  } else {
+    state[NOTE_MODAL_HISTORY_KEY] = noteId;
+  }
+  return state;
+}
+
+function updateNoteQuery(noteId: string | null, mode: "push" | "replace"): void {
+  const url = new URL(window.location.href);
+  if (noteId === null) {
+    url.searchParams.delete("note");
+  } else {
+    url.searchParams.set("note", noteId);
+  }
+  const relativeUrl = `${url.pathname}${url.search}${url.hash}`;
+  const state = noteHistoryState(noteId, mode === "push" || currentHistoryTracksNote());
+  if (mode === "push") {
+    window.history.pushState(state, "", relativeUrl);
+  } else {
+    window.history.replaceState(state, "", relativeUrl);
+  }
+}
+
+function currentHistoryOwnsNote(noteId: string): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      state[NOTE_MODAL_HISTORY_KEY] === noteId,
+  );
+}
+
 function isPlainLeftClick(event: MouseEvent): boolean {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
@@ -100,7 +265,12 @@ function supportsScrollDrivenAnimations(): boolean {
 }
 
 function routeDirection(from: Route, to: Route): NavigationDirection {
-  const difference = routes.indexOf(to) - routes.indexOf(from);
+  const fromIndex = gestureRoutes.indexOf(from);
+  const toIndex = gestureRoutes.indexOf(to);
+  if (fromIndex < 0 || toIndex < 0) {
+    return "none";
+  }
+  const difference = toIndex - fromIndex;
   return difference > 0 ? "forward" : difference < 0 ? "backward" : "none";
 }
 
@@ -120,7 +290,8 @@ function renderWithTransition(options: RenderOptions, direction: NavigationDirec
 function navigate(route: Route, direction?: NavigationDirection): void {
   const from = currentRoute();
   if (window.location.pathname === route) {
-    if (window.location.hash) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    if (window.location.search || window.location.hash) {
       window.history.replaceState({}, "", route);
     }
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -223,7 +394,7 @@ function createHero(config: HeroConfig): HTMLElement {
   copy.append(actions, createElement("p", "hero-note", config.note));
 
   const visual = createElement("figure", "hero-visual");
-  // 이미지를 원본 3:2 비율 프레임으로 감싸 cover 크롭을 없애고, 별자리 라벨이 그 프레임 기준으로 정렬되게 한다.
+  // 넓은 화면에서는 visual을 채우고, 단일 열에서는 원본 3:2 비율로 돌아가도록 별자리 라벨과 이미지를 한 프레임에 둔다.
   const frame = createElement("div", "hero-frame");
   const image = createElement("img");
   image.src = config.image;
@@ -310,6 +481,8 @@ function renderOs(): HTMLElement {
   );
 
   const values = createElement("section", "content-section values-section");
+  values.id = "values";
+  values.tabIndex = -1;
   values.append(
     createSectionHeading(
       "FOUR HUMAN PROMISES",
@@ -318,17 +491,15 @@ function renderOs(): HTMLElement {
     ),
   );
   const valueList = createElement("div", "value-list");
-  for (const [name, meaning, description] of [
-    ["H.O.P.E", "성장 · 재시작 · 학습", "공백은 끝이 아니라 다시 배우기 위한 여백이 됩니다."],
-    ["T.R.U.S.T", "명확한 사고 · 시스템 · 기술", "이해할 수 있고 검증 가능한 흐름으로 신뢰를 쌓습니다."],
-    ["M.E.R.C.Y", "사람의 부담을 줄이는 기술", "자동화의 성공을 기능 수가 아니라 줄어든 부담으로 판단합니다."],
-    ["L.O.V.E", "가족 · 일상 · 지속 가능성", "일과 가족, 건강과 성장이 함께 지속될 수 있어야 합니다."],
-  ]) {
-    const item = createElement("article", "value-item");
+  for (const value of valueSpaces) {
+    const item = createRouteLink(value.path, "", "value-item value-item-link");
+    item.dataset.value = value.tag;
+    item.setAttribute("aria-label", `${value.name} 가치 공간: ${value.meaning}`);
     item.append(
-      createElement("p", "value-name", name),
-      createElement("h3", undefined, meaning),
-      createElement("p", undefined, description),
+      createElement("p", "value-name", value.name),
+      createElement("h3", undefined, value.meaning),
+      createElement("p", "value-description", value.description),
+      createElement("span", "value-action", "가치 공간 보기"),
     );
     valueList.append(item);
   }
@@ -361,6 +532,82 @@ function renderOs(): HTMLElement {
   portals.append(portalList);
 
   page.append(journey, values, portals);
+  return page;
+}
+
+function renderValueSpace(value: ValueSpaceConfig): HTMLElement {
+  const notes = publicContent.notes.filter((note) => note.tags.includes(value.tag));
+  const page = createElement("div", `page page--value page--${value.tag}`);
+  page.append(
+    createHero({
+      routeName: value.tag,
+      kicker: `살아 있는 가치 · ${value.name}`,
+      title: `${value.name}\n${value.meaning}`,
+      description: value.description,
+      image: value.image,
+      imageAlt: value.imageAlt,
+      actions: [
+        { label: `${value.name} 기록 보기`, href: "#value-records", style: "primary" },
+        { label: "Garden 전체 기록", href: "/garden", style: "secondary" },
+      ],
+      note: "가치는 선언으로 끝나지 않습니다. 승인된 공개 기록이 쌓이는 동안 이 공간도 계속 자랍니다.",
+    }),
+  );
+
+  const records = createElement("section", "content-section value-records-section");
+  records.id = "value-records";
+  records.tabIndex = -1;
+  records.append(
+    createSectionHeading(
+      `#${value.tag} · 승인된 공개 기록`,
+      `${value.meaning}에서 자란 기록`,
+      `${value.name}의 의미를 실제 배움과 선택으로 남긴 공개 기록만 모았습니다.`,
+    ),
+  );
+
+  const growthState = createElement("aside", "value-growth-state");
+  const growthCopy = createElement("div", "value-growth-copy");
+  growthCopy.append(
+    createElement("p", "eyebrow", "기록 상태"),
+    createElement("strong", "value-growth-label", "자라는 중"),
+  );
+  growthState.append(
+    growthCopy,
+    createElement(
+      "p",
+      undefined,
+      `현재 ${notes.length}편의 승인된 기록이 연결되어 있습니다. 기록이 더 쌓인 뒤에도 사람의 검토를 거쳐 다음 상태를 결정합니다.`,
+    ),
+  );
+  records.append(growthState);
+
+  if (notes.length > 0) {
+    const noteList = createElement("div", "note-list value-note-list");
+    noteList.id = `value-note-list-${value.tag}`;
+    noteList.append(
+      ...notes.map((note) =>
+        createNoteCard(
+          note,
+          publicContent.notes.length - publicContent.notes.findIndex(({ id }) => id === note.id),
+        ),
+      ),
+    );
+    records.append(noteList);
+  } else {
+    const empty = createElement("div", "value-empty-state");
+    empty.append(
+      createElement("p", "eyebrow", "첫 기록을 기다립니다"),
+      createElement("h3", undefined, "비어 있기보다, 자라는 중입니다."),
+      createElement(
+        "p",
+        undefined,
+        "검토와 승인을 마친 기록만 이곳에 놓입니다. 아직 없는 내용을 채우기 위해 약속을 낮추지 않습니다.",
+      ),
+    );
+    records.append(empty);
+  }
+
+  page.append(records);
   return page;
 }
 
@@ -411,40 +658,92 @@ function noteExcerpt(note: PublicNote, limit = 180): string {
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
 }
 
-let closeActiveNoteModal: (() => void) | null = null;
+function connectionsForNote(noteId: string): NoteConnection[] {
+  const connections = new Map<string, NoteConnection>();
+  const addConnection = (targetId: string, type: RelationType): void => {
+    const note = publicNotesById.get(targetId);
+    if (targetId !== noteId && note && !connections.has(targetId)) {
+      connections.set(targetId, { note, type });
+    }
+  };
+
+  for (const edge of publicGraph.edges) {
+    if (edge.source === noteId) {
+      addConnection(edge.target, edge.type);
+    }
+  }
+  const graphNode = graphNodesById.get(noteId);
+  for (const backlink of graphNode?.backlinks ?? []) {
+    addConnection(backlink.source, backlink.type);
+  }
+  for (const relatedId of graphNode?.related_notes ?? []) {
+    addConnection(relatedId, "related_to");
+  }
+  return Array.from(connections.values());
+}
+
+function createNoteConnectionsSection(
+  note: PublicNote,
+  selectNote: (target: PublicNote) => void,
+): HTMLElement | null {
+  const connections = connectionsForNote(note.id);
+  if (connections.length === 0) {
+    return null;
+  }
+
+  const section = createElement("section", "note-relations");
+  const headingId = `note-relations-title-${note.id}`;
+  section.setAttribute("aria-labelledby", headingId);
+  const eyebrow = createElement("p", "eyebrow note-relations-eyebrow", "지식의 연결");
+  const heading = createElement("h3", "note-relations-title", "이어지는 기록");
+  heading.id = headingId;
+  const list = createElement("ul", "note-relations-list");
+
+  for (const connection of connections) {
+    const item = createElement("li", "note-relation-item");
+    const button = createElement("button", "note-relation-button");
+    button.type = "button";
+    button.dataset.noteId = connection.note.id;
+    button.append(
+      createElement("span", "note-relation-title", connection.note.title),
+      createElement("span", "note-relation-type", relationLabels[connection.type]),
+    );
+    button.addEventListener("click", () => selectNote(connection.note));
+    item.append(button);
+    list.append(item);
+  }
+
+  section.append(eyebrow, heading, list);
+  return section;
+}
+
+let activeNoteModalId: string | null = null;
+let noteHistoryBackPending = false;
+let closeActiveNoteModal: ((options?: NoteModalCloseOptions) => void) | null = null;
+let showActiveNoteModal: ((note: PublicNote, historyMode: NoteModalHistoryMode) => void) | null = null;
+let activeNoteModalReturnFocus: HTMLElement | null = null;
 
 // Lab 검색 결과와 Garden 카드가 함께 쓰는 전문 읽기 모달. 데이터는 이미 클라이언트에 있어 추가 요청이 없다.
-function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
-  closeActiveNoteModal?.();
-  const previousFocus = trigger ?? (document.activeElement as HTMLElement | null);
+function openNoteModal(
+  note: PublicNote,
+  trigger: HTMLElement | null,
+  historyMode: NoteModalHistoryMode = "push",
+): void {
+  const previousFocus =
+    activeNoteModalReturnFocus ?? trigger ?? (document.activeElement as HTMLElement | null);
+  closeActiveNoteModal?.({ restoreFocus: false, syncHistory: false });
 
   const overlay = createElement("div", "note-modal-overlay");
   overlay.dataset.swipeIgnore = "";
   const dialog = createElement("div", "note-modal");
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
-  const titleId = `note-modal-title-${note.id}`;
-  dialog.setAttribute("aria-labelledby", titleId);
 
   const closeButton = createElement("button", "note-modal-close", "✕");
   closeButton.type = "button";
   closeButton.setAttribute("aria-label", "닫기");
 
   const scroll = createElement("div", "note-modal-scroll");
-  const meta = createElement("p", "note-meta");
-  const displayDate = note.published_at ?? note.updated;
-  const time = createElement("time", undefined, formatDate(displayDate));
-  time.dateTime = displayDate;
-  meta.append(time, document.createTextNode(` · ${note.state}`));
-  const heading = createElement("h2", "note-modal-title", note.title);
-  heading.id = titleId;
-  const tags = createElement("div", "tag-list");
-  for (const tag of note.tags) {
-    tags.append(createElement("span", "tag", `#${tag}`));
-  }
-  const body = createElement("div", "note-modal-body");
-  appendNoteBody(body, note);
-  scroll.append(meta, heading, tags, body);
   dialog.append(closeButton, scroll);
   overlay.append(dialog);
   document.body.append(overlay);
@@ -454,17 +753,70 @@ function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
   appRoot.setAttribute("aria-hidden", "true");
   appRoot.inert = true;
 
-  const close = (): void => {
+  const showNote = (
+    nextNote: PublicNote,
+    nextHistoryMode: NoteModalHistoryMode,
+    focusHeading = false,
+  ): void => {
+    if (nextHistoryMode !== "none") {
+      updateNoteQuery(nextNote.id, nextHistoryMode);
+    }
+    activeNoteModalId = nextNote.id;
+    const titleId = `note-modal-title-${nextNote.id}`;
+    dialog.setAttribute("aria-labelledby", titleId);
+
+    const meta = createElement("p", "note-meta");
+    const displayDate = nextNote.published_at ?? nextNote.updated;
+    const time = createElement("time", undefined, formatDate(displayDate));
+    time.dateTime = displayDate;
+    meta.append(time, document.createTextNode(` · ${nextNote.state}`));
+    const heading = createElement("h2", "note-modal-title", nextNote.title);
+    heading.id = titleId;
+    const tags = createElement("div", "tag-list");
+    for (const tag of nextNote.tags) {
+      tags.append(createElement("span", "tag", `#${tag}`));
+    }
+    const body = createElement("div", "note-modal-body");
+    appendNoteBody(body, nextNote);
+    const connections = createNoteConnectionsSection(nextNote, (target) =>
+      showNote(target, "replace", true),
+    );
+    scroll.replaceChildren(meta, heading, tags, body);
+    if (connections) {
+      scroll.append(connections);
+    }
+    scroll.scrollTop = 0;
+    if (focusHeading) {
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+  };
+
+  const close = ({ restoreFocus = true, syncHistory = true }: NoteModalCloseOptions = {}): void => {
     if (closeActiveNoteModal !== close) {
       return;
     }
+    const closingNoteId = activeNoteModalId;
     closeActiveNoteModal = null;
+    showActiveNoteModal = null;
+    activeNoteModalId = null;
+    activeNoteModalReturnFocus = null;
     document.removeEventListener("keydown", onKeydown, true);
     overlay.remove();
     document.body.style.overflow = scrollLock;
     appRoot.removeAttribute("aria-hidden");
     appRoot.inert = false;
-    previousFocus?.focus?.({ preventScroll: true });
+    if (restoreFocus) {
+      previousFocus?.focus?.({ preventScroll: true });
+    }
+    if (syncHistory && closingNoteId && noteIdFromLocation() === closingNoteId) {
+      if (currentHistoryOwnsNote(closingNoteId)) {
+        noteHistoryBackPending = true;
+        window.history.back();
+      } else {
+        updateNoteQuery(null, "replace");
+      }
+    }
   };
 
   const focusable = (): HTMLElement[] =>
@@ -499,20 +851,47 @@ function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
     }
   };
 
-  closeButton.addEventListener("click", close);
+  closeButton.addEventListener("click", () => close());
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) {
       close();
     }
   });
   document.addEventListener("keydown", onKeydown, true);
+  activeNoteModalReturnFocus = previousFocus;
+  showActiveNoteModal = (nextNote, nextHistoryMode) => showNote(nextNote, nextHistoryMode, false);
   closeActiveNoteModal = close;
+  showNote(note, historyMode);
   window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));
+}
+
+function syncNoteModalFromLocation(): void {
+  if (!hasNoteQuery()) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    return;
+  }
+  const noteId = noteIdFromLocation() ?? "";
+  const note = publicNotesById.get(noteId);
+  if (!note) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    updateNoteQuery(null, "replace");
+    return;
+  }
+  if (activeNoteModalId === note.id) {
+    return;
+  }
+  if (showActiveNoteModal) {
+    showActiveNoteModal(note, "none");
+    return;
+  }
+  const trigger = document.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
+  openNoteModal(note, trigger, "none");
 }
 
 function attachNoteOpener(card: HTMLElement, note: PublicNote): HTMLButtonElement {
   const openButton = createElement("button", "note-open-button", note.title);
   openButton.type = "button";
+  openButton.dataset.noteId = note.id;
   openButton.setAttribute("aria-haspopup", "dialog");
   openButton.addEventListener("click", () => openNoteModal(note, openButton));
   // 카드 어디를 눌러도 열리게 하되, 태그·링크 등 다른 인터랙션은 방해하지 않는다.
@@ -1017,6 +1396,10 @@ function pageFor(route: Route): HTMLElement {
     "/garden": renderGarden,
     "/lab": renderLab,
     "/projects": renderProjects,
+    "/hope": () => renderValueSpace(valueSpaces[0]),
+    "/trust": () => renderValueSpace(valueSpaces[1]),
+    "/mercy": () => renderValueSpace(valueSpaces[2]),
+    "/love": () => renderValueSpace(valueSpaces[3]),
   };
   return pages[route]();
 }
@@ -1039,7 +1422,7 @@ function createHeader(route: Route): HTMLElement {
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
-  for (const item of routeDefinitions) {
+  for (const item of primaryRouteDefinitions) {
     const link = createRouteLink(item.path, item.label, "nav-link");
     if (item.path === route) {
       link.classList.add("active");
@@ -1148,11 +1531,15 @@ function setupReveals(root: HTMLElement): void {
   revealCleanup = () => observer.disconnect();
 }
 
+let renderedRoute: Route | null = null;
+
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
-  closeActiveNoteModal?.();
+  closeActiveNoteModal?.({ syncHistory: false });
   const route = currentRoute();
   if (window.location.pathname !== route) {
-    window.history.replaceState({}, "", route);
+    const url = new URL(window.location.href);
+    url.pathname = route;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
   const routeDefinition = routeDefinitions.find(({ path }) => path === route);
   document.title = `${routeDefinition?.title ?? "세계관과 시스템"} | CORCOIDUM OS`;
@@ -1164,9 +1551,14 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   main.append(pageFor(route));
   appRoot.replaceChildren(skipLink, createHeader(route), main, createFooter());
   setupReveals(main);
+  renderedRoute = route;
+  syncNoteModalFromLocation();
 
   if (announce) {
     window.requestAnimationFrame(() => {
+      if (activeNoteModalId !== null) {
+        return;
+      }
       const hashTarget = window.location.hash
         ? document.getElementById(window.location.hash.slice(1))
         : null;
@@ -1202,9 +1594,12 @@ function gestureTargetIsBlocked(target: EventTarget | null): boolean {
 }
 
 function navigateAdjacentRoute(direction: "backward" | "forward"): boolean {
-  const index = routes.indexOf(currentRoute());
+  const index = gestureRoutes.indexOf(currentRoute());
+  if (index < 0) {
+    return false;
+  }
   const nextIndex = index + (direction === "forward" ? 1 : -1);
-  const route = routes[nextIndex];
+  const route = gestureRoutes[nextIndex];
   if (!route) {
     return false;
   }
@@ -1295,8 +1690,18 @@ function setupRouteGestures(): void {
   );
 }
 
-window.addEventListener("popstate", () =>
-  renderWithTransition({ announce: true, restoreHistory: true }),
-);
+window.addEventListener("popstate", () => {
+  if (noteHistoryBackPending && renderedRoute === currentRoute()) {
+    noteHistoryBackPending = false;
+    syncNoteModalFromLocation();
+    return;
+  }
+  noteHistoryBackPending = false;
+  if (renderedRoute === currentRoute() && (activeNoteModalId !== null || hasNoteQuery())) {
+    syncNoteModalFromLocation();
+    return;
+  }
+  renderWithTransition({ announce: true, restoreHistory: true });
+});
 setupRouteGestures();
 render();
