@@ -47,7 +47,7 @@ def build_payload_from_notes(notes: list[ParsedNote]) -> dict[str, object]:
                 "id": note_id,
                 "type": "note",
                 "label": metadata["title"],
-                "url": "/garden",
+                "url": f"/garden?note={note_id}",
                 "tags": sorted(str(tag) for tag in metadata["tags"]),
                 "state": metadata["publish_state"],
                 "updated": metadata["updated"],
@@ -118,8 +118,8 @@ def validate_graph_payload(payload: object, expected_node_ids: set[str] | None =
             raise ValueError("graph nodes must be sorted by id")
         if node["type"] != "note" or not isinstance(node["label"], str) or not node["label"].strip():
             raise ValueError(f"node[{index}] must be a labeled note")
-        if node["url"] != "/garden":
-            raise ValueError(f"node[{index}] has an unsupported public route")
+        if node["url"] != f"/garden?note={node_id}":
+            raise ValueError(f"node[{index}] url must match its public note id")
         tags = node["tags"]
         if not isinstance(tags, list) or not tags or any(not isinstance(tag, str) or not tag for tag in tags):
             raise ValueError(f"node[{index}] tags must be a non-empty string array")

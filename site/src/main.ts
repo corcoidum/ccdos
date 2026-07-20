@@ -41,6 +41,11 @@ type RenderOptions = {
   restoreHistory?: boolean;
 };
 
+type NoteModalCloseOptions = {
+  restoreFocus?: boolean;
+  syncHistory?: boolean;
+};
+
 type NavigationDirection = "backward" | "forward" | "none";
 
 type ViewTransition = {
@@ -52,6 +57,8 @@ type ViewTransitionDocument = Document & {
 };
 
 const publicContent = content as PublicContent;
+const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
+const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
 const routeDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
   { path: "/garden", label: "Garden", title: "검토된 기록" },
@@ -87,6 +94,54 @@ function currentRoute(): Route {
   return routes.includes(normalizedPath as Route) ? (normalizedPath as Route) : "/os";
 }
 
+function hasNoteQuery(): boolean {
+  return new URLSearchParams(window.location.search).has("note");
+}
+
+function noteIdFromLocation(): string | null {
+  return new URLSearchParams(window.location.search).get("note");
+}
+
+function noteHistoryState(noteId: string | null): Record<string, unknown> {
+  const currentState = window.history.state;
+  const state =
+    currentState && typeof currentState === "object" && !Array.isArray(currentState)
+      ? { ...currentState }
+      : {};
+  if (noteId === null) {
+    delete state[NOTE_MODAL_HISTORY_KEY];
+  } else {
+    state[NOTE_MODAL_HISTORY_KEY] = noteId;
+  }
+  return state;
+}
+
+function updateNoteQuery(noteId: string | null, mode: "push" | "replace"): void {
+  const url = new URL(window.location.href);
+  if (noteId === null) {
+    url.searchParams.delete("note");
+  } else {
+    url.searchParams.set("note", noteId);
+  }
+  const relativeUrl = `${url.pathname}${url.search}${url.hash}`;
+  const state = noteHistoryState(noteId);
+  if (mode === "push") {
+    window.history.pushState(state, "", relativeUrl);
+  } else {
+    window.history.replaceState(state, "", relativeUrl);
+  }
+}
+
+function currentHistoryOwnsNote(noteId: string): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      state[NOTE_MODAL_HISTORY_KEY] === noteId,
+  );
+}
+
 function isPlainLeftClick(event: MouseEvent): boolean {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
@@ -120,7 +175,8 @@ function renderWithTransition(options: RenderOptions, direction: NavigationDirec
 function navigate(route: Route, direction?: NavigationDirection): void {
   const from = currentRoute();
   if (window.location.pathname === route) {
-    if (window.location.hash) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    if (window.location.search || window.location.hash) {
       window.history.replaceState({}, "", route);
     }
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -411,11 +467,20 @@ function noteExcerpt(note: PublicNote, limit = 180): string {
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
 }
 
-let closeActiveNoteModal: (() => void) | null = null;
+let activeNoteModalId: string | null = null;
+let noteHistoryBackPending = false;
+let closeActiveNoteModal: ((options?: NoteModalCloseOptions) => void) | null = null;
 
 // Lab 검색 결과와 Garden 카드가 함께 쓰는 전문 읽기 모달. 데이터는 이미 클라이언트에 있어 추가 요청이 없다.
-function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
-  closeActiveNoteModal?.();
+function openNoteModal(
+  note: PublicNote,
+  trigger: HTMLElement | null,
+  historyMode: "push" | "none" = "push",
+): void {
+  closeActiveNoteModal?.({ restoreFocus: false, syncHistory: false });
+  if (historyMode === "push") {
+    updateNoteQuery(note.id, "push");
+  }
   const previousFocus = trigger ?? (document.activeElement as HTMLElement | null);
 
   const overlay = createElement("div", "note-modal-overlay");
@@ -454,17 +519,28 @@ function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
   appRoot.setAttribute("aria-hidden", "true");
   appRoot.inert = true;
 
-  const close = (): void => {
+  const close = ({ restoreFocus = true, syncHistory = true }: NoteModalCloseOptions = {}): void => {
     if (closeActiveNoteModal !== close) {
       return;
     }
     closeActiveNoteModal = null;
+    activeNoteModalId = null;
     document.removeEventListener("keydown", onKeydown, true);
     overlay.remove();
     document.body.style.overflow = scrollLock;
     appRoot.removeAttribute("aria-hidden");
     appRoot.inert = false;
-    previousFocus?.focus?.({ preventScroll: true });
+    if (restoreFocus) {
+      previousFocus?.focus?.({ preventScroll: true });
+    }
+    if (syncHistory && noteIdFromLocation() === note.id) {
+      if (currentHistoryOwnsNote(note.id)) {
+        noteHistoryBackPending = true;
+        window.history.back();
+      } else {
+        updateNoteQuery(null, "replace");
+      }
+    }
   };
 
   const focusable = (): HTMLElement[] =>
@@ -499,20 +575,41 @@ function openNoteModal(note: PublicNote, trigger: HTMLElement | null): void {
     }
   };
 
-  closeButton.addEventListener("click", close);
+  closeButton.addEventListener("click", () => close());
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) {
       close();
     }
   });
   document.addEventListener("keydown", onKeydown, true);
+  activeNoteModalId = note.id;
   closeActiveNoteModal = close;
   window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));
+}
+
+function syncNoteModalFromLocation(): void {
+  if (!hasNoteQuery()) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    return;
+  }
+  const noteId = noteIdFromLocation() ?? "";
+  const note = publicNotesById.get(noteId);
+  if (!note) {
+    closeActiveNoteModal?.({ syncHistory: false });
+    updateNoteQuery(null, "replace");
+    return;
+  }
+  if (activeNoteModalId === note.id) {
+    return;
+  }
+  const trigger = document.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
+  openNoteModal(note, trigger, "none");
 }
 
 function attachNoteOpener(card: HTMLElement, note: PublicNote): HTMLButtonElement {
   const openButton = createElement("button", "note-open-button", note.title);
   openButton.type = "button";
+  openButton.dataset.noteId = note.id;
   openButton.setAttribute("aria-haspopup", "dialog");
   openButton.addEventListener("click", () => openNoteModal(note, openButton));
   // 카드 어디를 눌러도 열리게 하되, 태그·링크 등 다른 인터랙션은 방해하지 않는다.
@@ -1148,11 +1245,15 @@ function setupReveals(root: HTMLElement): void {
   revealCleanup = () => observer.disconnect();
 }
 
+let renderedRoute: Route | null = null;
+
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
-  closeActiveNoteModal?.();
+  closeActiveNoteModal?.({ syncHistory: false });
   const route = currentRoute();
   if (window.location.pathname !== route) {
-    window.history.replaceState({}, "", route);
+    const url = new URL(window.location.href);
+    url.pathname = route;
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
   }
   const routeDefinition = routeDefinitions.find(({ path }) => path === route);
   document.title = `${routeDefinition?.title ?? "세계관과 시스템"} | CORCOIDUM OS`;
@@ -1164,9 +1265,14 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   main.append(pageFor(route));
   appRoot.replaceChildren(skipLink, createHeader(route), main, createFooter());
   setupReveals(main);
+  renderedRoute = route;
+  syncNoteModalFromLocation();
 
   if (announce) {
     window.requestAnimationFrame(() => {
+      if (activeNoteModalId !== null) {
+        return;
+      }
       const hashTarget = window.location.hash
         ? document.getElementById(window.location.hash.slice(1))
         : null;
@@ -1295,8 +1401,18 @@ function setupRouteGestures(): void {
   );
 }
 
-window.addEventListener("popstate", () =>
-  renderWithTransition({ announce: true, restoreHistory: true }),
-);
+window.addEventListener("popstate", () => {
+  if (noteHistoryBackPending && renderedRoute === currentRoute()) {
+    noteHistoryBackPending = false;
+    syncNoteModalFromLocation();
+    return;
+  }
+  noteHistoryBackPending = false;
+  if (renderedRoute === currentRoute() && (activeNoteModalId !== null || hasNoteQuery())) {
+    syncNoteModalFromLocation();
+    return;
+  }
+  renderWithTransition({ announce: true, restoreHistory: true });
+});
 setupRouteGestures();
 render();

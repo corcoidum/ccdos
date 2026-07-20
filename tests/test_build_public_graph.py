@@ -104,6 +104,8 @@ class BuildPublicGraphTests(unittest.TestCase):
             [{"source": "alpha-note", "target": "beta-note", "type": "related_to"}],
         )
         nodes = {node["id"]: node for node in payload["nodes"]}
+        self.assertEqual(nodes["alpha-note"]["url"], "/garden?note=alpha-note")
+        self.assertEqual(nodes["beta-note"]["url"], "/garden?note=beta-note")
         self.assertEqual(nodes["alpha-note"]["backlinks"], [])
         self.assertEqual(nodes["alpha-note"]["related_notes"], ["beta-note"])
         self.assertEqual(
@@ -301,10 +303,24 @@ class BuildPublicGraphTests(unittest.TestCase):
             root = Path(temp_dir)
             self.write_public_note(root, "only.md", synthetic_note("only-note"))
             payload = build_payload(self.source(root))
-        extra_node = {**payload["nodes"][0], "id": "private-note", "label": "Unexpected node"}
+        extra_node = {
+            **payload["nodes"][0],
+            "id": "private-note",
+            "label": "Unexpected node",
+            "url": "/garden?note=private-note",
+        }
         payload["nodes"].append(extra_node)
         with self.assertRaisesRegex(ValueError, "do not match the approved public source"):
             validate_graph_payload(payload, {"only-note"})
+
+    def test_rejects_node_url_that_does_not_match_its_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.write_public_note(root, "only.md", synthetic_note("only-note"))
+            payload = build_payload(self.source(root))
+        payload["nodes"][0]["url"] = "/garden?note=another-note"
+        with self.assertRaisesRegex(ValueError, "url must match its public note id"):
+            validate_graph_payload(payload)
 
     def test_rejects_backlinks_that_do_not_match_edges(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
