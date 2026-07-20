@@ -2,22 +2,25 @@
 id: safe-automation-case-study
 title: 안전한 운영 자동화의 작은 시작
 created: 2026-07-10T00:00:00Z
-updated: 2026-07-14T09:12:12Z
+updated: 2026-07-20T02:24:51Z
 classification: S0_PUBLIC
 visibility: public
 publish_state: published
-review_requested_at: 2026-07-14T09:12:12Z
+review_requested_at: 2026-07-20T02:24:52Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-14T09:12:12Z
+privacy_reviewed_at: 2026-07-20T02:24:53Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-14T09:12:12Z
+reviewed_revision: 2026-07-20T02:24:51Z
 approved_by: corcoidum
-approved_at: 2026-07-14T09:12:12Z
-published_at: 2026-07-14T09:14:52Z
+approved_at: 2026-07-20T02:24:54Z
+published_at: 2026-07-20T02:24:55Z
 tags:
   - mercy
   - automation
   - case-study
+relations:
+  - target: empty-garden-is-a-promise
+    type: supports
 ---
 
 운영 자동화를 시작할 때 가장 먼저 정한 것은 기능 목록이 아니라 경계였다. 상태 보고는 무엇이 통과하고 무엇이 실패했는지만 전하고, 기록의 내용 자체는 절대 담지 않는다. Discord로 전송되는 알림에도 승인된 노트의 개수와 검사 결과만 남는다.

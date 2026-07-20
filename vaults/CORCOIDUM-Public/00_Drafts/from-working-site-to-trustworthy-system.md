@@ -2,24 +2,27 @@
 id: from-working-site-to-trustworthy-system
 title: 작동하는 사이트에서 신뢰할 수 있는 시스템으로
 created: 2026-07-13T20:46:31Z
-updated: 2026-07-14T09:12:12Z
+updated: 2026-07-20T02:24:51Z
 classification: S0_PUBLIC
 visibility: public
 publish_state: published
-review_requested_at: 2026-07-14T09:12:12Z
+review_requested_at: 2026-07-20T02:24:52Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-14T09:12:12Z
+privacy_reviewed_at: 2026-07-20T02:24:53Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-14T09:12:12Z
+reviewed_revision: 2026-07-20T02:24:51Z
 approved_by: corcoidum
-approved_at: 2026-07-14T09:12:12Z
-published_at: 2026-07-14T09:14:52Z
+approved_at: 2026-07-20T02:24:54Z
+published_at: 2026-07-20T02:24:55Z
 tags:
   - trust
   - reliability
   - automation
   - openai
   - case-study
+relations:
+  - target: search-that-does-not-guess
+    type: builds_on
 ---
 
 오늘 CCDOS에서 한 일은 새로운 화면 하나를 더 만드는 일이 아니었다. 이미 작동하는 사이트가 사람의 실수와 외부 서비스의 실패 앞에서도 약속을 지키도록, 보이지 않는 경계를 촘촘하게 만드는 일이었다.
