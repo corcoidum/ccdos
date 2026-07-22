@@ -1,9 +1,15 @@
 import content from "../../content/public/index.json";
 import graph from "../../content/public/graph.json";
+import {
+  connectionsForNote,
+  createKnowledgeMap,
+  relationLabel,
+  type PublicGraph,
+} from "./graph-view";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
 
-type PrimaryRoute = "/os" | "/garden" | "/lab" | "/projects";
+type PrimaryRoute = "/os" | "/garden" | "/lab" | "/projects" | "/graph";
 type ValueRoute = "/hope" | "/trust" | "/mercy" | "/love";
 type Route = PrimaryRoute | ValueRoute;
 type ValueTag = "hope" | "trust" | "mercy" | "love";
@@ -50,28 +56,6 @@ type AnswerApiResponse = {
   model?: string;
 };
 
-type RelationType =
-  | "related_to"
-  | "builds_on"
-  | "supports"
-  | "demonstrates"
-  | "implemented_by"
-  | "uses";
-
-type PublicGraph = {
-  nodes: Array<{
-    id: string;
-    backlinks: Array<{ source: string; type: RelationType }>;
-    related_notes: string[];
-  }>;
-  edges: Array<{ source: string; target: string; type: RelationType }>;
-};
-
-type NoteConnection = {
-  note: PublicNote;
-  type: RelationType;
-};
-
 type RenderOptions = {
   announce?: boolean;
   restoreHistory?: boolean;
@@ -97,21 +81,13 @@ type ViewTransitionDocument = Document & {
 const publicContent = content as PublicContent;
 const publicGraph = graph as PublicGraph;
 const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
-const graphNodesById = new Map(publicGraph.nodes.map((node) => [node.id, node]));
-const relationLabels: Record<RelationType, string> = {
-  related_to: "관련 기록",
-  builds_on: "이 기록에서 이어짐",
-  supports: "이 기록을 뒷받침함",
-  demonstrates: "이 기록을 보여 주는 사례",
-  implemented_by: "이 기록을 구현함",
-  uses: "이 기록을 활용함",
-};
 const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
 const primaryRouteDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
   { path: "/garden", label: "Garden", title: "검토된 기록" },
   { path: "/lab", label: "Lab", title: "작은 실험" },
   { path: "/projects", label: "Projects", title: "결과와 증거" },
+  { path: "/graph", label: "Map", title: "읽기 전용 지식 연결 지도" },
 ];
 const valueSpaces: readonly ValueSpaceConfig[] = [
   {
@@ -165,7 +141,8 @@ const routeDefinitions: RouteDefinition[] = [
   ...valueRouteDefinitions,
 ];
 const routes = routeDefinitions.map(({ path }) => path);
-const gestureRoutes = primaryRouteDefinitions.map(({ path }) => path);
+// Knowledge Map은 내부 node와 관계를 직접 조작하므로 swipe 순환에서 제외한다.
+const gestureRoutes: Route[] = ["/os", "/garden", "/lab", "/projects"];
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -659,35 +636,11 @@ function noteExcerpt(note: PublicNote, limit = 180): string {
   return normalized.length > limit ? `${normalized.slice(0, limit).trimEnd()}…` : normalized;
 }
 
-function connectionsForNote(noteId: string): NoteConnection[] {
-  const connections = new Map<string, NoteConnection>();
-  const addConnection = (targetId: string, type: RelationType): void => {
-    const note = publicNotesById.get(targetId);
-    if (targetId !== noteId && note && !connections.has(targetId)) {
-      connections.set(targetId, { note, type });
-    }
-  };
-
-  for (const edge of publicGraph.edges) {
-    if (edge.source === noteId) {
-      addConnection(edge.target, edge.type);
-    }
-  }
-  const graphNode = graphNodesById.get(noteId);
-  for (const backlink of graphNode?.backlinks ?? []) {
-    addConnection(backlink.source, backlink.type);
-  }
-  for (const relatedId of graphNode?.related_notes ?? []) {
-    addConnection(relatedId, "related_to");
-  }
-  return Array.from(connections.values());
-}
-
 function createNoteConnectionsSection(
   note: PublicNote,
   selectNote: (target: PublicNote) => void,
 ): HTMLElement | null {
-  const connections = connectionsForNote(note.id);
+  const connections = connectionsForNote(publicGraph, publicNotesById, note.id);
   if (connections.length === 0) {
     return null;
   }
@@ -707,7 +660,11 @@ function createNoteConnectionsSection(
     button.dataset.noteId = connection.note.id;
     button.append(
       createElement("span", "note-relation-title", connection.note.title),
-      createElement("span", "note-relation-type", relationLabels[connection.type]),
+      createElement(
+        "span",
+        "note-relation-type",
+        relationLabel(connection.type, connection.direction),
+      ),
     );
     button.addEventListener("click", () => selectNote(connection.note));
     item.append(button);
@@ -1267,6 +1224,44 @@ function renderLab(): HTMLElement {
   return page;
 }
 
+function renderGraph(): HTMLElement {
+  const page = createElement("div", "page page--graph");
+  page.append(
+    createHero({
+      routeName: "graph",
+      kicker: "PUBLIC KNOWLEDGE MAP",
+      title: "사람이 검토한 연결을\n읽기 전용 지도로 봅니다.",
+      description:
+        "승인된 공개 기록과 사람이 선언한 관계만 표시합니다. 자동 추론이나 비공개 지식은 이 지도에 들어오지 않습니다.",
+      image: "/assets/constellation-garden.jpg",
+      imageAlt: "별자리와 뿌리의 빛으로 연결된 공개 지식의 정원",
+      actions: [
+        { label: "연결 지도 보기", href: "#knowledge-map", style: "primary" },
+        { label: "Garden 기록 보기", href: "/garden", style: "secondary" },
+      ],
+      note: "이 화면은 content/public/graph.json을 읽을 뿐이며 관계를 추가하거나 수정하지 않습니다.",
+    }),
+  );
+
+  const mapSection = createElement("section", "content-section knowledge-map-section");
+  mapSection.id = "knowledge-map";
+  mapSection.tabIndex = -1;
+  mapSection.append(
+    createSectionHeading(
+      "APPROVED CONNECTIONS ONLY",
+      "공개 기록이 어떤 생각에서 이어졌는지 살펴보세요.",
+      "화살표는 사람이 선언한 관계의 방향을 보존합니다. related_to만 양방향 의미로 읽으며, 연결이 없는 기록도 숨기지 않습니다.",
+    ),
+    createKnowledgeMap({
+      graph: publicGraph,
+      notes: publicContent.notes,
+      onOpenNote: (note, trigger) => openNoteModal(note, trigger),
+    }),
+  );
+  page.append(mapSection);
+  return page;
+}
+
 function renderProjects(): HTMLElement {
   const page = createElement("div", "page page--projects");
   page.append(
@@ -1397,6 +1392,7 @@ function pageFor(route: Route): HTMLElement {
     "/garden": renderGarden,
     "/lab": renderLab,
     "/projects": renderProjects,
+    "/graph": renderGraph,
     "/hope": () => renderValueSpace(valueSpaces[0]),
     "/trust": () => renderValueSpace(valueSpaces[1]),
     "/mercy": () => renderValueSpace(valueSpaces[2]),
@@ -1622,6 +1618,7 @@ function createFooter(): HTMLElement {
     createRouteLink("/garden", "Garden", "footer-link"),
     createRouteLink("/lab", "Lab", "footer-link"),
     createRouteLink("/projects", "Projects", "footer-link"),
+    createRouteLink("/graph", "Map", "footer-link"),
     createExternalLink("https://github.com/corcoidum/ccdos", "GitHub", "footer-link"),
     createExternalLink("https://www.threads.com/@openkiki.os", "Threads", "footer-link"),
   );
@@ -1647,6 +1644,7 @@ const REVEAL_SELECTORS = [
   ".seed-state",
   ".evidence-links",
   ".dur-note",
+  ".knowledge-map-interface",
 ].join(", ");
 
 let revealCleanup: (() => void) | null = null;

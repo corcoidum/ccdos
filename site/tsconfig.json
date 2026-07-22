@@ -12,5 +12,5 @@
     "noEmit": true,
     "strict": true
   },
-  "include": ["src/main.ts", "src/search.ts"]
+  "include": ["src/main.ts", "src/search.ts", "src/graph-view.ts"]
 }

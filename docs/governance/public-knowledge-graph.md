@@ -136,6 +136,19 @@ python -m unittest discover -s tests -v
 
 graph build는 current public index를 선행 조건으로 확인한다. 같은 입력은 byte 단위로 같은 JSON을 생성하며, `--check`는 기존 artifact의 JSON 계약과 source 일치를 모두 확인한다.
 
+## Read-only Knowledge Map
+
+`/graph` route는 이 artifact를 읽기 전용으로 소비한다. UI는 관계를 생성하거나 수정하지 않으며 다음 표시 규칙을 따른다.
+
+- `related_to`만 undirected로 해석한다.
+- 나머지 relation은 `source → target` 방향을 화살표와 방향별 label로 보존한다.
+- incoming, outgoing, undirected connection과 동일 node 사이의 복수 relation type을 버리지 않는다.
+- Desktop SVG는 보조 시각화이며 전체 제목 HTML 목록과 상세 panel을 접근 가능한 canonical UI로 제공한다.
+- 작은 화면에서는 축소된 graph보다 기록 목록을 우선한다.
+- Living Value와 relation type 필터는 화면 표시만 바꾸며 artifact와 source를 변경하지 않는다.
+
+결정 배경은 ADR-0007을 따른다. 이 route에서도 approved/published 경계, 사람 선언 관계, 정적 재현성 원칙은 그대로 유지된다.
+
 ## 변경과 사람 승인
 
 `relations`는 공개 의미를 추가하는 frontmatter 콘텐츠다. 승인 또는 발행된 노트에서 관계를 추가·수정·삭제하면 `updated`를 바꾸고 `publish_state: draft`로 되돌린 뒤 Privacy Review와 approval evidence를 새로 기록해야 한다. builder는 증적을 만들거나 갱신하지 않는다.
@@ -144,6 +157,6 @@ graph build는 current public index를 선행 조건으로 확인한다. 같은 
 
 ## 향후 확장
 
-작은 후속 단계로 생성된 backlinks와 Related Notes를 소비하는 read-only UI를 만들 수 있다. 그 다음에만 local graph, `/graph` route, `concept`, `project`, `principle`, `tool`, `value`, `phase` registry, knowledge path, graph-assisted retrieval을 검토한다. registry가 도입되더라도 Public 승인 경계와 Markdown 권위 원천을 우회할 수 없다.
+현재 note modal과 `/graph` read-only Knowledge Map은 권위 있는 `edges`를 직접 해석해 방향과 relation type을 보존하고, `backlinks`와 `related_notes` projection은 정적 소비자를 위한 동일 artifact의 파생 조회 계약으로 유지한다. 다음 단계에서만 local graph, `concept`, `project`, `principle`, `tool`, `value`, `phase` registry, knowledge path, graph-assisted retrieval을 검토한다. registry가 도입되더라도 Public 승인 경계와 Markdown 권위 원천을 우회할 수 없다.
 
 이 Foundation은 Living Values 콘텐츠를 축적하는 Phase 9의 완료 조건을 변경하지 않는다. Phase 9 기록을 연결하고 탐색하기 위한 횡단 기반 기능이며, 콘텐츠 축적과 사람 검토를 대신하지 않는다.
