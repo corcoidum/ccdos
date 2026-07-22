@@ -30,6 +30,18 @@ export class ProviderError extends Error {
   }
 }
 
+// Provider edge가 egress 위치에 따라 403을, 과부하 시 5xx를 준다. 둘 다
+// 요청 내용과 무관한 일시적 실패이므로 폴백 전에 다시 시도할 가치가 있다.
+// 429는 제외한다 — 재시도가 상황을 악화시킨다.
+const RETRYABLE_STATUS = new Set([403, 408, 500, 502, 503, 504]);
+
+export function isRetryableProviderFailure(error: unknown): boolean {
+  if (error instanceof ProviderError) {
+    return error.kind === "network" || (error.status !== undefined && RETRYABLE_STATUS.has(error.status));
+  }
+  return false;
+}
+
 export function providerFailureLabel(error: unknown): string {
   if (error instanceof ProviderError) {
     return error.kind === "http" ? `http_${error.status}` : error.kind;

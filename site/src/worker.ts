@@ -6,6 +6,7 @@ import {
   extractOpenAIText,
   hasValidCitations,
   type OpenAIResponsePayload,
+  isRetryableProviderFailure,
   ProviderError,
   providerFailureLabel,
 } from "./answer-policy";
@@ -123,6 +124,38 @@ async function refundDailyBudget(env: Env): Promise<void> {
   }
 }
 
+// 일시적 provider 실패는 폴백 전에 짧게 다시 시도한다. 사용자를 오래 기다리게
+// 하지 않도록 전체 시도를 deadline으로 묶는다.
+const PROVIDER_ATTEMPTS = 3;
+const PROVIDER_RETRY_DELAY_MS = 300;
+const PROVIDER_DEADLINE_MS = 24_000;
+
+async function callOpenAIWithRetry(
+  env: Env,
+  query: string,
+  sources: AnswerSource[],
+): Promise<string> {
+  const deadline = Date.now() + PROVIDER_DEADLINE_MS;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= PROVIDER_ATTEMPTS; attempt += 1) {
+    try {
+      return await callOpenAI(env, query, sources);
+    } catch (error) {
+      lastError = error;
+      const canRetry =
+        attempt < PROVIDER_ATTEMPTS &&
+        isRetryableProviderFailure(error) &&
+        Date.now() + PROVIDER_RETRY_DELAY_MS < deadline;
+      if (!canRetry) {
+        break;
+      }
+      console.warn(`answer provider retry ${attempt}:`, providerFailureLabel(error));
+      await new Promise((resolve) => setTimeout(resolve, PROVIDER_RETRY_DELAY_MS * attempt));
+    }
+  }
+  throw lastError;
+}
+
 async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Promise<string> {
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -221,7 +254,7 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
   }
 
   try {
-    const answer = await callOpenAI(env, query, toModelSources(ranked, query));
+    const answer = await callOpenAIWithRetry(env, query, toModelSources(ranked, query));
     if (!answer) {
       return retrievalFallback(sources, "empty_answer");
     }

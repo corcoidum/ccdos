@@ -7,6 +7,7 @@ import {
   boundedDailyLimit,
   extractOpenAIText,
   hasValidCitations,
+  isRetryableProviderFailure,
   ProviderError,
   providerFailureLabel,
 } from "../src/answer-policy";
@@ -696,6 +697,19 @@ test("provider 실패는 질문·키 없이 진단 가능한 유형으로만 요
   // 예상 못 한 오류의 메시지가 그대로 새어 나가지 않아야 한다.
   expect(providerFailureLabel(new Error("sk-secret-key-leaked"))).toBe("unknown");
   expect(providerFailureLabel("문자열 오류")).toBe("unknown");
+});
+
+test("일시적 provider 실패만 재시도하고 429·본문 오류는 즉시 폴백한다", () => {
+  // egress 위치에 따라 오는 403과 provider 과부하는 다시 시도할 가치가 있다.
+  expect(isRetryableProviderFailure(new ProviderError("http", 403))).toBeTruthy();
+  expect(isRetryableProviderFailure(new ProviderError("http", 503))).toBeTruthy();
+  expect(isRetryableProviderFailure(new ProviderError("network"))).toBeTruthy();
+
+  // 재시도가 상황을 악화시키거나 결과가 같은 실패는 즉시 폴백한다.
+  expect(isRetryableProviderFailure(new ProviderError("http", 429))).toBeFalsy();
+  expect(isRetryableProviderFailure(new ProviderError("http", 401))).toBeFalsy();
+  expect(isRetryableProviderFailure(new ProviderError("http", 400))).toBeFalsy();
+  expect(isRetryableProviderFailure(new Error("unexpected"))).toBeFalsy();
 });
 
 test("OpenAI Responses API의 message output만 안전하게 추출한다", () => {
