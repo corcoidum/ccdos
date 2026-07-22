@@ -83,6 +83,8 @@ python automation/build_public_graph.py --check
 
 ## Phase 5 실행
 
+`/projects`는 Phase 0–9의 요약을 유지하면서 하나의 공통 상세 dialog로 목적, 구현, 안전 경계, 공개 검증 증거와 결과를 제공합니다. Phase deep link는 `/projects?phase=<id>#roadmap` 형식이며, Phase 0–9는 Foundation 여정으로 유지하고 이후 횡단 기능은 별도 initiative로 분리합니다.
+
 ```powershell
 cd site
 npm ci

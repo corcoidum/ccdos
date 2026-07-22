@@ -6,6 +6,11 @@ import {
   relationLabel,
   type PublicGraph,
 } from "./graph-view";
+import {
+  phaseDefinitions,
+  phaseDefinitionsById,
+  type PhaseDefinition,
+} from "./phase-details";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
 
@@ -68,6 +73,13 @@ type NoteModalCloseOptions = {
 
 type NoteModalHistoryMode = "push" | "replace" | "none";
 
+type PhaseModalCloseOptions = {
+  restoreFocus?: boolean;
+  syncHistory?: boolean;
+};
+
+type PhaseModalHistoryMode = "push" | "none";
+
 type NavigationDirection = "backward" | "forward" | "none";
 
 type ViewTransition = {
@@ -82,6 +94,7 @@ const publicContent = content as PublicContent;
 const publicGraph = graph as PublicGraph;
 const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
 const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
+const PHASE_MODAL_HISTORY_KEY = "corcoidumPhaseModal";
 const primaryRouteDefinitions: RouteDefinition[] = [
   { path: "/os", label: "OS", title: "세계관과 시스템" },
   { path: "/garden", label: "Garden", title: "검토된 기록" },
@@ -199,6 +212,7 @@ function noteHistoryState(noteId: string | null, trackNote: boolean): Record<str
     delete state[NOTE_MODAL_HISTORY_KEY];
   } else {
     state[NOTE_MODAL_HISTORY_KEY] = noteId;
+    delete state[PHASE_MODAL_HISTORY_KEY];
   }
   return state;
 }
@@ -209,6 +223,7 @@ function updateNoteQuery(noteId: string | null, mode: "push" | "replace"): void 
     url.searchParams.delete("note");
   } else {
     url.searchParams.set("note", noteId);
+    url.searchParams.delete("phase");
   }
   const relativeUrl = `${url.pathname}${url.search}${url.hash}`;
   const state = noteHistoryState(noteId, mode === "push" || currentHistoryTracksNote());
@@ -226,6 +241,67 @@ function currentHistoryOwnsNote(noteId: string): boolean {
       typeof state === "object" &&
       !Array.isArray(state) &&
       state[NOTE_MODAL_HISTORY_KEY] === noteId,
+  );
+}
+
+function hasPhaseQuery(): boolean {
+  return new URLSearchParams(window.location.search).has("phase");
+}
+
+function phaseIdFromLocation(): string | null {
+  return new URLSearchParams(window.location.search).get("phase");
+}
+
+function currentHistoryTracksPhase(): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      typeof state[PHASE_MODAL_HISTORY_KEY] === "string",
+  );
+}
+
+function phaseHistoryState(phaseId: string | null, trackPhase: boolean): Record<string, unknown> {
+  const currentState = window.history.state;
+  const state =
+    currentState && typeof currentState === "object" && !Array.isArray(currentState)
+      ? { ...currentState }
+      : {};
+  if (phaseId === null || !trackPhase) {
+    delete state[PHASE_MODAL_HISTORY_KEY];
+  } else {
+    state[PHASE_MODAL_HISTORY_KEY] = phaseId;
+    delete state[NOTE_MODAL_HISTORY_KEY];
+  }
+  return state;
+}
+
+function updatePhaseQuery(phaseId: string | null, mode: "push" | "replace"): void {
+  const url = new URL(window.location.href);
+  if (phaseId === null) {
+    url.searchParams.delete("phase");
+  } else {
+    url.searchParams.set("phase", phaseId);
+    url.searchParams.delete("note");
+    url.hash = "roadmap";
+  }
+  const relativeUrl = `${url.pathname}${url.search}${url.hash}`;
+  const state = phaseHistoryState(phaseId, mode === "push" || currentHistoryTracksPhase());
+  if (mode === "push") {
+    window.history.pushState(state, "", relativeUrl);
+  } else {
+    window.history.replaceState(state, "", relativeUrl);
+  }
+}
+
+function currentHistoryOwnsPhase(phaseId: string): boolean {
+  const state = window.history.state;
+  return Boolean(
+    state &&
+      typeof state === "object" &&
+      !Array.isArray(state) &&
+      state[PHASE_MODAL_HISTORY_KEY] === phaseId,
   );
 }
 
@@ -268,6 +344,7 @@ function navigate(route: Route, direction?: NavigationDirection): void {
   const from = currentRoute();
   if (window.location.pathname === route) {
     closeActiveNoteModal?.({ syncHistory: false });
+    closeActivePhaseModal?.({ syncHistory: false });
     if (window.location.search || window.location.hash) {
       window.history.replaceState({}, "", route);
     }
@@ -689,6 +766,7 @@ function openNoteModal(
 ): void {
   const previousFocus =
     activeNoteModalReturnFocus ?? trigger ?? (document.activeElement as HTMLElement | null);
+  closeActivePhaseModal?.({ restoreFocus: false, syncHistory: false });
   closeActiveNoteModal?.({ restoreFocus: false, syncHistory: false });
 
   const overlay = createElement("div", "note-modal-overlay");
@@ -844,6 +922,195 @@ function syncNoteModalFromLocation(): void {
   }
   const trigger = document.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
   openNoteModal(note, trigger, "none");
+}
+
+let activePhaseModalId: string | null = null;
+let phaseHistoryBackPending = false;
+let closeActivePhaseModal: ((options?: PhaseModalCloseOptions) => void) | null = null;
+let activePhaseModalReturnFocus: HTMLElement | null = null;
+
+function createPhaseListSection(title: string, items: readonly string[]): HTMLElement {
+  const section = createElement("section", "phase-modal-section");
+  section.append(createElement("h3", undefined, title));
+  const list = createElement("ul", "phase-modal-list");
+  for (const item of items) {
+    list.append(createElement("li", undefined, item));
+  }
+  section.append(list);
+  return section;
+}
+
+// 모든 Phase가 같은 dialog 구조와 keyboard·history 규칙을 공유한다.
+function openPhaseModal(
+  phase: PhaseDefinition,
+  trigger: HTMLElement | null,
+  historyMode: PhaseModalHistoryMode = "push",
+): void {
+  const previousFocus =
+    activePhaseModalReturnFocus ?? trigger ?? (document.activeElement as HTMLElement | null);
+  closeActiveNoteModal?.({ restoreFocus: false, syncHistory: false });
+  closeActivePhaseModal?.({ restoreFocus: false, syncHistory: false });
+  if (historyMode === "push") {
+    updatePhaseQuery(phase.id, "push");
+  }
+
+  const overlay = createElement("div", "note-modal-overlay phase-modal-overlay");
+  overlay.dataset.swipeIgnore = "";
+  const dialog = createElement("div", "note-modal phase-modal");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  const titleId = `phase-modal-title-${phase.id}`;
+  dialog.setAttribute("aria-labelledby", titleId);
+
+  const closeButton = createElement("button", "note-modal-close", "✕");
+  closeButton.type = "button";
+  closeButton.setAttribute("aria-label", "닫기");
+  const scroll = createElement("div", "note-modal-scroll phase-modal-scroll");
+
+  const meta = createElement("div", "phase-modal-meta");
+  meta.append(
+    createElement("span", "phase-number", `PHASE ${phase.id}`),
+    createElement("span", "phase-status", phase.status),
+  );
+  const heading = createElement("h2", "note-modal-title phase-modal-title", phase.title);
+  heading.id = titleId;
+  const summary = createElement("p", "phase-modal-summary", phase.summary);
+
+  const purpose = createElement("section", "phase-modal-section");
+  purpose.append(
+    createElement("h3", undefined, "목적"),
+    createElement("p", undefined, phase.purpose),
+  );
+
+  const evidence = createElement("section", "phase-modal-section");
+  evidence.append(createElement("h3", undefined, "검증과 증거"));
+  const evidenceList = createElement("ul", "phase-modal-evidence-list");
+  for (const entry of phase.evidence) {
+    const item = createElement("li");
+    item.append(createExternalLink(entry.href, entry.label, "phase-modal-evidence-link"));
+    evidenceList.append(item);
+  }
+  evidence.append(evidenceList);
+
+  const outcome = createElement("section", "phase-modal-section phase-modal-outcome");
+  outcome.append(
+    createElement("h3", undefined, "결과"),
+    createElement("p", undefined, phase.outcome),
+  );
+
+  scroll.append(
+    meta,
+    heading,
+    summary,
+    purpose,
+    createPhaseListSection("구현", phase.delivered),
+    createPhaseListSection("안전 경계", phase.boundaries),
+    evidence,
+    outcome,
+  );
+  dialog.append(closeButton, scroll);
+  overlay.append(dialog);
+  document.body.append(overlay);
+
+  const scrollLock = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+  appRoot.setAttribute("aria-hidden", "true");
+  appRoot.inert = true;
+  activePhaseModalId = phase.id;
+  activePhaseModalReturnFocus = previousFocus;
+
+  const close = ({ restoreFocus = true, syncHistory = true }: PhaseModalCloseOptions = {}): void => {
+    if (closeActivePhaseModal !== close) {
+      return;
+    }
+    const closingPhaseId = activePhaseModalId;
+    closeActivePhaseModal = null;
+    activePhaseModalId = null;
+    activePhaseModalReturnFocus = null;
+    document.removeEventListener("keydown", onKeydown, true);
+    overlay.remove();
+    document.body.style.overflow = scrollLock;
+    appRoot.removeAttribute("aria-hidden");
+    appRoot.inert = false;
+    if (restoreFocus) {
+      previousFocus?.focus?.({ preventScroll: true });
+    }
+    if (syncHistory && closingPhaseId && phaseIdFromLocation() === closingPhaseId) {
+      if (currentHistoryOwnsPhase(closingPhaseId)) {
+        phaseHistoryBackPending = true;
+        window.history.back();
+      } else {
+        updatePhaseQuery(null, "replace");
+      }
+    }
+  };
+
+  const focusable = (): HTMLElement[] =>
+    Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      close();
+      return;
+    }
+    if (event.key !== "Tab") {
+      return;
+    }
+    const items = focusable();
+    if (items.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  closeButton.addEventListener("click", () => close());
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      close();
+    }
+  });
+  document.addEventListener("keydown", onKeydown, true);
+  closeActivePhaseModal = close;
+  window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));
+}
+
+function syncPhaseModalFromLocation(): void {
+  if (currentRoute() !== "/projects" || hasNoteQuery()) {
+    closeActivePhaseModal?.({ syncHistory: false });
+    if (hasPhaseQuery()) {
+      updatePhaseQuery(null, "replace");
+    }
+    return;
+  }
+  if (!hasPhaseQuery()) {
+    closeActivePhaseModal?.({ syncHistory: false });
+    return;
+  }
+  const phaseId = phaseIdFromLocation() ?? "";
+  const phase = phaseDefinitionsById.get(phaseId);
+  if (!phase) {
+    closeActivePhaseModal?.({ syncHistory: false });
+    updatePhaseQuery(null, "replace");
+    return;
+  }
+  if (activePhaseModalId === phase.id) {
+    return;
+  }
+  const trigger = document.querySelector<HTMLElement>(`[data-phase-id="${phase.id}"]`);
+  openPhaseModal(phase, trigger, "none");
 }
 
 function attachNoteOpener(card: HTMLElement, note: PublicNote): HTMLButtonElement {
@@ -1327,23 +1594,22 @@ function renderProjects(): HTMLElement {
     ),
   );
   const timeline = createElement("ol", "phase-timeline");
-  for (const phase of [
-    ["0", "Architecture Charter", "목적·책임·보안 경계와 중단 조건 정의", "PASSED"],
-    ["1", "Safe Knowledge Foundation", "Vault·metadata·민감 패턴 검증 기반", "PASSED"],
-    ["2", "Public Review Foundation", "사람의 review checklist와 승인 증적", "PASSED"],
-    ["3–4", "CI Gate & Publishing", "승인된 콘텐츠만 index와 build로 전달", "VALIDATED"],
-    ["5", "Public OS UI", "OS·Garden·Lab·Projects 공개 화면", "LIVE"],
-    ["6", "Automation & Discord", "비식별 상태 보고와 선택적 webhook", "VERIFIED"],
-    ["7", "Retrieval-only Public Wiki", "외부 LLM 없이 승인된 출처 검색 · Lab에서 체험 가능", "LIVE"],
-    ["8", "Grounded Answer Layer", "ADR-0003 결정: 경계 안에서 OpenAI Responses API 연결", "LIVE"],
-    ["9", "Living Values", "H.O.P.E · T.R.U.S.T · M.E.R.C.Y · L.O.V.E 가치별 공개 기록 축적", "GROWING"],
-  ]) {
+  for (const phase of phaseDefinitions) {
     const item = createElement("li", "phase-item");
+    item.dataset.phaseId = phase.id;
+    const footer = createElement("div", "phase-item-footer");
+    const detailButton = createElement("button", "phase-detail-button", "자세히 보기");
+    detailButton.type = "button";
+    detailButton.dataset.phaseId = phase.id;
+    detailButton.setAttribute("aria-label", `Phase ${phase.id} ${phase.title} 자세히 보기`);
+    detailButton.setAttribute("aria-haspopup", "dialog");
+    detailButton.addEventListener("click", () => openPhaseModal(phase, detailButton));
+    footer.append(createElement("span", "phase-status", phase.status), detailButton);
     item.append(
-      createElement("span", "phase-number", `PHASE ${phase[0]}`),
-      createElement("h3", undefined, phase[1]),
-      createElement("p", undefined, phase[2]),
-      createElement("span", "phase-status", phase[3]),
+      createElement("span", "phase-number", `PHASE ${phase.id}`),
+      createElement("h3", undefined, phase.title),
+      createElement("p", undefined, phase.summary),
+      footer,
     );
     timeline.append(item);
   }
@@ -1705,6 +1971,7 @@ let renderedRoute: Route | null = null;
 
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
   closeActiveNoteModal?.({ syncHistory: false });
+  closeActivePhaseModal?.({ syncHistory: false });
   livingValuesDrawerCleanup?.();
   livingValuesDrawerCleanup = null;
   const route = currentRoute();
@@ -1725,10 +1992,11 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   setupReveals(main);
   renderedRoute = route;
   syncNoteModalFromLocation();
+  syncPhaseModalFromLocation();
 
   if (announce) {
     window.requestAnimationFrame(() => {
-      if (activeNoteModalId !== null) {
+      if (activeNoteModalId !== null || activePhaseModalId !== null) {
         return;
       }
       const hashTarget = window.location.hash
@@ -1866,11 +2134,23 @@ window.addEventListener("popstate", () => {
   if (noteHistoryBackPending && renderedRoute === currentRoute()) {
     noteHistoryBackPending = false;
     syncNoteModalFromLocation();
+    syncPhaseModalFromLocation();
+    return;
+  }
+  if (phaseHistoryBackPending && renderedRoute === currentRoute()) {
+    phaseHistoryBackPending = false;
+    syncNoteModalFromLocation();
+    syncPhaseModalFromLocation();
     return;
   }
   noteHistoryBackPending = false;
-  if (renderedRoute === currentRoute() && (activeNoteModalId !== null || hasNoteQuery())) {
+  phaseHistoryBackPending = false;
+  if (
+    renderedRoute === currentRoute() &&
+    (activeNoteModalId !== null || hasNoteQuery() || activePhaseModalId !== null || hasPhaseQuery())
+  ) {
     syncNoteModalFromLocation();
+    syncPhaseModalFromLocation();
     return;
   }
   renderWithTransition({ announce: true, restoreHistory: true });
