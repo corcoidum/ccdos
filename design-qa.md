@@ -77,3 +77,58 @@
 - P3: define route-specific image focal points before considering a full-height crop treatment.
 
 final result: passed
+
+---
+
+# Living Values Global Drawer Extension QA
+
+## Comparison Target
+
+- Source visual truth: `docs/design-evidence/living-values-os-source.png`.
+- Rendered implementations:
+  - `docs/design-evidence/living-values-garden-implementation.png`
+  - `docs/design-evidence/living-values-lab-implementation.png`
+  - `docs/design-evidence/living-values-projects-implementation.png`
+- Full-view comparison evidence: `docs/design-evidence/living-values-primary-routes-comparison.jpg` (top-left: OS source, top-right: Garden, bottom-left: Lab, bottom-right: Projects).
+- Viewport and density: `1280 × 720` CSS px, `devicePixelRatio: 1`; every individual source/implementation capture is `1280 × 720` px. The comparison sheet is an unscaled `2560 × 1440` px 2×2 composition.
+- State: dark theme, Living Values drawer open, H.O.P.E expanded with three approved records, motion settled.
+- Focused comparison: a separate crop was not needed because the drawer occupies `540 × 636` CSS px and its typography, spacing, icon, dividers, counts, and record rows remain readable at native size in the combined evidence.
+
+## Findings
+
+- No actionable P0, P1, or P2 findings remain.
+- The Garden, Lab, and Projects implementations reproduce the OS source drawer at the same position, dimensions, hierarchy, colors, content, and expanded state.
+- No P3 follow-up specific to this extension was identified.
+
+## Required Fidelity Surfaces
+
+- Fonts and typography: passed. The same heading, body, count, and record-date typography is reused through the shared component and style tokens.
+- Spacing and layout rhythm: passed. Every route measured the drawer at `540 × 636` CSS px, anchored at `x: 38.390625`, `y: 64`; header alignment and internal row rhythm match the OS source.
+- Colors and visual tokens: passed. Forest, ivory, coral, moss, gold, opacity, dividers, and focus/expanded tokens are unchanged.
+- Image quality and asset fidelity: passed. The official menu icon asset and existing route hero assets remain unchanged; no placeholder or code-drawn replacement was introduced.
+- Copy and content: passed. Drawer heading, hint, H.O.P.E label, three approved note titles, dates, counts, and value-space link match the source.
+- Interaction and accessibility: passed. All four primary routes expose the labelled trigger; accordion state, note counts, modal opening, modal close return, Esc focus restoration, `aria-expanded`, `aria-hidden`, and `inert` behavior are covered by browser and Playwright checks.
+- Responsiveness: passed. Desktop captures showed no horizontal overflow; the existing `390 × 844` mobile drawer test continues to pass.
+
+## Comparison History
+
+### Pass 1 — passed
+
+- The shared drawer code and existing style tokens produced no visible route-specific drift.
+- Garden, Lab, and Projects each kept their active top-navigation indicator and route-specific hero while the overlay remained visually identical to OS.
+- Browser console: zero warning/error entries after the Projects interaction check.
+- Primary interactions checked: drawer open, H.O.P.E expand, three-note list rendering, and route-preserving note modal behavior.
+
+## Implementation Checklist
+
+- [x] Reuse one global drawer implementation across OS, Garden, Lab, and Projects.
+- [x] Preserve the existing value-space routes without adding the drawer there.
+- [x] Add route-level regression coverage for trigger, drawer, accordion, note count, and Projects modal return.
+- [x] Scope Garden note-modal locators to visible page content now that identical notes also exist in the header drawer.
+- [x] Run typecheck, production build, full Playwright suite, visual comparison, overflow check, and console check.
+
+## Follow-up Polish
+
+- None required for this extension.
+
+final result: passed

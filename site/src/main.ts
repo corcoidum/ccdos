@@ -1572,7 +1572,10 @@ function createHeader(route: Route): HTMLElement {
   brand.setAttribute("aria-label", "CORCOIDUM OS 홈");
   brand.append(createBrandLogo(28), createElement("span", undefined, "CORCOIDUM OS"));
 
-  if (route === "/os") {
+  const hasLivingValuesNavigation = primaryRouteDefinitions.some(
+    (item) => item.path === route,
+  );
+  if (hasLivingValuesNavigation) {
     const { trigger, drawer } = createLivingValuesDrawer();
     leading.append(trigger, drawer, brand);
   } else {
