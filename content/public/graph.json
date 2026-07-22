@@ -14,7 +14,12 @@
       "state": "published",
       "updated": "2026-07-20T02:24:51Z",
       "published_at": "2026-07-20T02:24:55Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "graceful-fallback-hid-the-outage",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "safe-automation-case-study"
       ]
@@ -98,6 +103,24 @@
       "published_at": "2026-07-20T02:24:55Z",
       "backlinks": [],
       "related_notes": []
+    },
+    {
+      "id": "graceful-fallback-hid-the-outage",
+      "type": "note",
+      "label": "잘 만든 폴백이 장애를 숨겼다",
+      "url": "/garden?note=graceful-fallback-hid-the-outage",
+      "tags": [
+        "automation",
+        "debugging",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-07-22T10:46:39Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "search-that-does-not-guess"
+      ]
     },
     {
       "id": "late-restart-operating-system",
@@ -249,9 +272,15 @@
         {
           "source": "from-working-site-to-trustworthy-system",
           "type": "builds_on"
+        },
+        {
+          "source": "graceful-fallback-hid-the-outage",
+          "type": "related_to"
         }
       ],
-      "related_notes": []
+      "related_notes": [
+        "graceful-fallback-hid-the-outage"
+      ]
     },
     {
       "id": "value-of-invisible-work",
@@ -290,6 +319,16 @@
       "source": "from-working-site-to-trustworthy-system",
       "target": "search-that-does-not-guess",
       "type": "builds_on"
+    },
+    {
+      "source": "graceful-fallback-hid-the-outage",
+      "target": "discord-webhook-403-lesson",
+      "type": "builds_on"
+    },
+    {
+      "source": "graceful-fallback-hid-the-outage",
+      "target": "search-that-does-not-guess",
+      "type": "related_to"
     },
     {
       "source": "leave-the-constellation-uncropped",
