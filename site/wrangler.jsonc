@@ -11,9 +11,7 @@
   },
   "vars": {
     "OPENAI_MODEL": "gpt-5.4-mini",
-    "DAILY_ANSWER_LIMIT": "200",
-    // 일시적 진단용. 원인 확인 후 제거한다.
-    "ANSWER_DEBUG": "1"
+    "DAILY_ANSWER_LIMIT": "200"
   },
   "secrets": {
     "required": ["OPENAI_API_KEY"]

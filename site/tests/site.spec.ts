@@ -3,7 +3,13 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
 
-import { boundedDailyLimit, extractOpenAIText, hasValidCitations } from "../src/answer-policy";
+import {
+  boundedDailyLimit,
+  extractOpenAIText,
+  hasValidCitations,
+  ProviderError,
+  providerFailureLabel,
+} from "../src/answer-policy";
 
 type RelationType =
   | "related_to"
@@ -224,6 +230,20 @@ test("OS의 Living Values drawer는 가치 단어와 승인 기록을 바로 펼
   await page.keyboard.press("Escape");
   await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await expect(trigger).toBeFocused();
+});
+
+test("touch 기기에서는 값 이름이 접히지 않고 처음부터 전부 보인다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/os");
+  await page.getByRole("button", { name: "가치 공간 메뉴 열기" }).click();
+  const drawer = page.locator("#living-values-drawer");
+
+  // hover 예고가 없는 기기에서 "H·T·M·L" 한 글자만 남으면 의미를 알 수 없다.
+  for (const name of ["H.O.P.E", "T.R.U.S.T", "M.E.R.C.Y", "L.O.V.E"]) {
+    const tail = drawer.getByRole("button", { name: `${name} 글 목록` }).locator(".living-values-word-tail");
+    await expect(tail).toHaveCSS("opacity", "1");
+    await expect(tail).toBeVisible();
+  }
 });
 
 test("Living Values drawer는 mobile tap으로 전체 단어와 한 목록만 연다", async ({ page }) => {
@@ -658,6 +678,24 @@ test("생성 정책은 허용된 source ID 인용과 안전한 일일 상한만 
   expect(boundedDailyLimit("250")).toBe(250);
   expect(boundedDailyLimit("0")).toBe(200);
   expect(boundedDailyLimit("not-a-number")).toBe(200);
+});
+
+test("provider 실패는 질문·키 없이 진단 가능한 유형으로만 요약된다", () => {
+  expect(providerFailureLabel(new ProviderError("http", 404))).toBe("http_404");
+  expect(providerFailureLabel(new ProviderError("http", 401))).toBe("http_401");
+  expect(providerFailureLabel(new ProviderError("network"))).toBe("network");
+
+  const timeout = new Error("The operation timed out");
+  timeout.name = "TimeoutError";
+  expect(providerFailureLabel(timeout)).toBe("timeout");
+
+  const aborted = new Error("aborted");
+  aborted.name = "AbortError";
+  expect(providerFailureLabel(aborted)).toBe("timeout");
+
+  // 예상 못 한 오류의 메시지가 그대로 새어 나가지 않아야 한다.
+  expect(providerFailureLabel(new Error("sk-secret-key-leaked"))).toBe("unknown");
+  expect(providerFailureLabel("문자열 오류")).toBe("unknown");
 });
 
 test("OpenAI Responses API의 message output만 안전하게 추출한다", () => {

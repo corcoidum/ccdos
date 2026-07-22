@@ -130,6 +130,9 @@ async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Pro
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY ?? ""}`,
       "content-type": "application/json",
+      // Discord webhook 403과 같은 층의 문제였다: provider edge가 이름 없는
+      // 기본 User-Agent를 간헐적으로 차단한다. 호출 주체를 밝히면 통과한다.
+      "user-agent": "corcoidum-os-answer-layer/1.0",
     },
     body: JSON.stringify({
       model,

@@ -2404,17 +2404,13 @@ img {
     min-height: 48px;
   }
 
-  .living-values-toggle:hover .living-values-word-tail {
-    max-width: 0;
-    opacity: 0;
-    transform: translateX(-0.22em);
-  }
-
-  .living-values-toggle:focus-visible .living-values-word-tail,
-  .living-values-toggle[aria-expanded="true"] .living-values-word-tail {
+  /* 터치 기기에는 hover 예고가 없어 접힌 상태가 "H·T·M·L" 한 글자로만 보인다.
+     desktop의 펼침 연출 대신 값 이름을 처음부터 전부 노출한다. */
+  .living-values-word-tail {
     max-width: 7em;
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
+    transition: none;
   }
 }
 
