@@ -6,6 +6,8 @@ import {
   extractOpenAIText,
   hasValidCitations,
   type OpenAIResponsePayload,
+  ProviderError,
+  providerFailureLabel,
 } from "./answer-policy";
 import { excerptOf, type PublicContent, type RankedNote, searchPublicNotes, tokenize } from "./search";
 
@@ -21,6 +23,7 @@ type Env = {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   DAILY_ANSWER_LIMIT?: string;
+  ANSWER_DEBUG?: string;
 };
 
 type AnswerSource = {
@@ -34,6 +37,7 @@ type AnswerSource = {
 type FallbackReason =
   | "budget_exhausted"
   | "empty_answer"
+  | "infrastructure_error"
   | "invalid_citations"
   | "not_configured"
   | "provider_error"
@@ -84,13 +88,23 @@ function toModelSources(ranked: RankedNote[], query: string): AnswerSource[] {
   }));
 }
 
-function retrievalFallback(sources: AnswerSource[], reason: FallbackReason): Response {
+function retrievalFallback(
+  sources: AnswerSource[],
+  reason: FallbackReason,
+  diagnostic?: string,
+): Response {
   return jsonResponse({
     mode: "retrieval",
     reason,
+    // diagnostic은 ANSWER_DEBUG가 켜진 배포에서만 채워진다(기본 비활성).
+    ...(diagnostic ? { diagnostic } : {}),
     answer: "생성 답변 대신, 아래 승인된 공개 출처를 직접 확인해 주세요.",
     sources,
   });
+}
+
+function debugDiagnostic(env: Env, label: string): string | undefined {
+  return env.ANSWER_DEBUG === "1" ? label : undefined;
 }
 
 async function reserveDailyBudget(env: Env): Promise<boolean> {
@@ -131,10 +145,10 @@ async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Pro
         "Markdown 강조·제목·목록·코드 기호 없이 3개의 짧은 plain-text 문단 이내로 답하고, 후속 질문이나 추가 작업을 제안하지 마세요.",
       input: `질문:\n${query}\n\n승인된 공개 출처:\n${JSON.stringify(sources)}`,
     }),
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}`);
+    throw new ProviderError("http", response.status);
   }
   return extractOpenAIText((await response.json()) as OpenAIResponsePayload);
 }
@@ -185,16 +199,22 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
     return retrievalFallback(sources, "not_configured");
   }
 
-  const visitorKey = request.headers.get("CF-Connecting-IP") || "anonymous";
-  const [visitorLimit, globalLimit] = await Promise.all([
-    env.ANSWER_RATE_LIMITER.limit({ key: visitorKey }),
-    env.ANSWER_GLOBAL_LIMITER.limit({ key: "global" }),
-  ]);
-  if (!visitorLimit.success || !globalLimit.success) {
-    return retrievalFallback(sources, "rate_limited");
-  }
-  if (!(await reserveDailyBudget(env))) {
-    return retrievalFallback(sources, "budget_exhausted");
+  // Rate limit·budget 바인딩이 던지더라도 500이 아니라 설계된 retrieval 폴백으로 떨어져야 한다.
+  try {
+    const visitorKey = request.headers.get("CF-Connecting-IP") || "anonymous";
+    const [visitorLimit, globalLimit] = await Promise.all([
+      env.ANSWER_RATE_LIMITER.limit({ key: visitorKey }),
+      env.ANSWER_GLOBAL_LIMITER.limit({ key: "global" }),
+    ]);
+    if (!visitorLimit.success || !globalLimit.success) {
+      return retrievalFallback(sources, "rate_limited");
+    }
+    if (!(await reserveDailyBudget(env))) {
+      return retrievalFallback(sources, "budget_exhausted");
+    }
+  } catch (error) {
+    console.warn("answer preflight failed:", providerFailureLabel(error));
+    return retrievalFallback(sources, "infrastructure_error", debugDiagnostic(env, "preflight"));
   }
 
   try {
@@ -211,10 +231,12 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
       sources,
       model: env.OPENAI_MODEL || DEFAULT_MODEL,
     });
-  } catch {
-    // 질문·IP·출처 본문은 로그에 남기지 않고 retrieval-only로 안전하게 폴백한다.
+  } catch (error) {
+    // 질문·IP·출처 본문은 남기지 않고, 진단 가능한 실패 유형만 기록한 뒤 안전하게 폴백한다.
+    const label = providerFailureLabel(error);
+    console.warn("answer provider failed:", label);
     await refundDailyBudget(env);
-    return retrievalFallback(sources, "provider_error");
+    return retrievalFallback(sources, "provider_error", debugDiagnostic(env, label));
   }
 }
 
