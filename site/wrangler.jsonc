@@ -9,9 +9,14 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  // Worker의 egress 위치가 요청마다 달라지면 provider가 지역에 따라 403을 준다.
+  // Smart placement로 backend에 가까운 일관된 위치에서 실행한다.
+  "placement": { "mode": "smart" },
   "vars": {
     "OPENAI_MODEL": "gpt-5.4-mini",
-    "DAILY_ANSWER_LIMIT": "200"
+    "DAILY_ANSWER_LIMIT": "200",
+    // 답변 계층 403 원인이 확정될 때까지 유지한다.
+    "ANSWER_DEBUG": "1"
   },
   "secrets": {
     "required": ["OPENAI_API_KEY"]
