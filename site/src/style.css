@@ -2254,11 +2254,51 @@ img {
   content: "";
 }
 
+.phase-modal-evidence-list {
+  gap: 14px;
+}
+
+.phase-modal-evidence-item {
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  background: rgba(246, 239, 218, 0.025);
+}
+
+.phase-modal-evidence-source {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--sage-bright);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.phase-modal-evidence-title {
+  margin: 0;
+  color: var(--ivory);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.phase-modal-section .phase-modal-evidence-summary {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
 .phase-modal-evidence-link {
   display: inline-flex;
   align-items: center;
+  width: fit-content;
+  max-width: 100%;
   min-height: 44px;
+  margin-top: 10px;
   color: var(--ivory);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
   text-decoration: none;
   border-bottom: 1px solid var(--line);
 }
