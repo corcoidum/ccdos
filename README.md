@@ -75,6 +75,12 @@ python automation/build_public_graph.py --check
 
 관계 계약과 검토 규칙은 [Public Knowledge Graph 정책](docs/governance/public-knowledge-graph.md)을 따릅니다.
 
+### Read-only Knowledge Map
+
+`/graph`는 승인된 공개 node와 사람이 선언한 edge만 정적으로 표시합니다. 방향 관계는 화살표로, `related_to`는 양방향 의미로 보여 주며, node를 선택하면 기존 공개 note modal에서 전문을 읽을 수 있습니다. 외부 graph library, API, database, LLM 또는 자동 관계 추론은 사용하지 않습니다.
+
+관계 의미와 접근성 결정은 [ADR-0007](docs/adr/0007-read-only-knowledge-map.md)을 따릅니다.
+
 ## Phase 5 실행
 
 ```powershell
