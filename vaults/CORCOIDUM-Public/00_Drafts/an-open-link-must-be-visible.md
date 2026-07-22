@@ -5,7 +5,7 @@ created: 2026-07-22T16:33:24Z
 updated: 2026-07-22T16:33:24Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
+publish_state: published
 review_requested_at: 2026-07-22T16:38:04Z
 privacy_reviewed_by: corcoidum
 privacy_reviewed_at: 2026-07-22T16:38:04Z
@@ -13,6 +13,7 @@ privacy_review_result: passed
 reviewed_revision: 2026-07-22T16:33:24Z
 approved_by: corcoidum
 approved_at: 2026-07-22T16:38:04Z
+published_at: 2026-07-22T16:46:57Z
 tags:
   - mercy
   - accessibility
