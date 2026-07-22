@@ -1,4 +1,4 @@
-import type { PublicNote } from "./search";
+import { publicRecordNumbers, type PublicNote } from "./search";
 
 export type RelationType =
   | "related_to"
@@ -205,10 +205,17 @@ export function createKnowledgeMap({
   onOpenNote,
 }: KnowledgeMapOptions): HTMLElement {
   const notesById = new Map(notes.map((note) => [note.id, note]));
+  const recordNumbers = publicRecordNumbers(notes);
   const graphNodes = [...graph.nodes]
     .filter((node) => notesById.has(node.id))
-    .sort((left, right) => left.id.localeCompare(right.id));
+    .sort(
+      (left, right) =>
+        (recordNumbers.get(right.id) ?? 0) - (recordNumbers.get(left.id) ?? 0) ||
+        left.id.localeCompare(right.id),
+    );
   const graphNodeIds = new Set(graphNodes.map((node) => node.id));
+  const recordNumberFor = (node: PublicGraphNode, index: number): number =>
+    recordNumbers.get(node.id) ?? graphNodes.length - index;
   const positions = graphPositions(graphNodes);
   const root = createElement("div", "knowledge-map-interface");
   root.dataset.swipeIgnore = "";
@@ -292,6 +299,7 @@ export function createKnowledgeMap({
 
   const nodeElements = new Map<string, SVGGElement>();
   graphNodes.forEach((node, index) => {
+    const recordNumber = recordNumberFor(node, index);
     const position = positions.get(node.id);
     if (!position) {
       return;
@@ -302,7 +310,7 @@ export function createKnowledgeMap({
     group.setAttribute("transform", `translate(${position.x} ${position.y})`);
     group.setAttribute("role", "button");
     group.setAttribute("tabindex", "0");
-    group.setAttribute("aria-label", `${index + 1}. ${node.label}`);
+    group.setAttribute("aria-label", `${recordNumber}. ${node.label}`);
     const halo = createSvgElement("circle");
     halo.classList.add("knowledge-map-node-halo");
     halo.setAttribute("r", "34");
@@ -313,7 +321,7 @@ export function createKnowledgeMap({
     label.classList.add("knowledge-map-node-number");
     label.setAttribute("text-anchor", "middle");
     label.setAttribute("dominant-baseline", "central");
-    label.textContent = String(index + 1).padStart(2, "0");
+    label.textContent = String(recordNumber).padStart(2, "0");
     group.append(halo, circle, label);
     nodeElements.set(node.id, group);
     svg.append(group);
@@ -334,12 +342,13 @@ export function createKnowledgeMap({
   const indexList = createElement("ol", "knowledge-map-index");
   const indexButtons = new Map<string, HTMLButtonElement>();
   graphNodes.forEach((node, index) => {
+    const recordNumber = recordNumberFor(node, index);
     const item = createElement("li");
     const button = createElement("button", "knowledge-map-index-button");
     button.type = "button";
     button.dataset.nodeId = node.id;
     button.append(
-      createElement("span", "knowledge-map-index-number", String(index + 1).padStart(2, "0")),
+      createElement("span", "knowledge-map-index-number", String(recordNumber).padStart(2, "0")),
       createElement("span", "knowledge-map-index-label", node.label),
     );
     item.append(button);

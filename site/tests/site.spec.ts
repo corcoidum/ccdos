@@ -18,7 +18,7 @@ import {
   type PublicGraphNode,
 } from "../src/graph-view";
 import { phaseDefinitions } from "../src/phase-details";
-import type { PublicNote } from "../src/search";
+import { publicRecordNumbers, type PublicNote } from "../src/search";
 
 const indexPath = fileURLToPath(new URL("../../content/public/index.json", import.meta.url));
 const publicNotes = (
@@ -433,6 +433,25 @@ test("/graph는 승인된 공개 node와 edge를 읽기 전용으로 탐색한�
   await page.getByRole("button", { name: "전문 읽기" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(new URL(page.url()).searchParams.get("note")).toBe(selectedId);
+});
+
+test("Map 목록과 node는 Garden의 최신 기록 순서와 번호를 공유한다", async ({ page }) => {
+  const graphNodeIds = new Set(publicGraph.nodes.map((node) => node.id));
+  const expectedNotes = publicNotes.filter((note) => graphNodeIds.has(note.id));
+  const recordNumbers = publicRecordNumbers(publicNotes);
+  const expectedNumbers = expectedNotes.map((note) =>
+    String(recordNumbers.get(note.id)).padStart(2, "0"),
+  );
+
+  await page.goto("/graph");
+
+  const indexButtons = page.locator(".knowledge-map-index-button");
+  const indexNoteIds = await indexButtons.evaluateAll((buttons) =>
+    buttons.map((button) => button.getAttribute("data-node-id")),
+  );
+  expect(indexNoteIds).toEqual(expectedNotes.map((note) => note.id));
+  expect(await page.locator(".knowledge-map-index-number").allTextContents()).toEqual(expectedNumbers);
+  expect(await page.locator(".knowledge-map-node-number").allTextContents()).toEqual(expectedNumbers);
 });
 
 test("모바일 Knowledge Map은 축소 SVG 대신 전체 제목 목록을 제공한다", async ({ page }) => {

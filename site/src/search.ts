@@ -19,6 +19,11 @@ export type RankedNote = {
   excerpt: string;
 };
 
+// Public index는 최신 기록부터 정렬된다. 가장 오래된 기록을 01로 유지하는 공통 표시 번호다.
+export function publicRecordNumbers(notes: readonly PublicNote[]): ReadonlyMap<string, number> {
+  return new Map(notes.map((note, index) => [note.id, notes.length - index]));
+}
+
 const TOKEN_PATTERN = /[0-9A-Za-z가-힣_]+/g;
 const PUBLISHABLE_STATES = new Set(["approved", "published"]);
 
