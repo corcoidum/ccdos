@@ -12,7 +12,13 @@ import {
   type PhaseDefinition,
   type PhaseEvidence,
 } from "./phase-details";
-import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
+import {
+  publicRecordNumbers,
+  type PublicContent,
+  type PublicNote,
+  searchPublicNotes,
+  tokenize,
+} from "./search";
 import "./style.css";
 
 type PrimaryRoute = "/os" | "/garden" | "/lab" | "/projects" | "/graph";
@@ -1201,9 +1207,7 @@ function createPublicArchive(): HTMLElement {
   }
 
   // 기록이 늘어나거나 태그 필터를 걸어도 번호가 바뀌지 않도록, 가장 오래된 기록을 01번으로 고정한다.
-  const recordNumbers = new Map(
-    publicContent.notes.map((note, index) => [note.id, publicContent.notes.length - index]),
-  );
+  const recordNumbers = publicRecordNumbers(publicContent.notes);
   const tags = Array.from(new Set(publicContent.notes.flatMap((note) => note.tags))).sort();
   const filters = createElement("div", "archive-filters");
   filters.setAttribute("role", "group");
