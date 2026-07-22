@@ -17,6 +17,7 @@ import {
   type PublicGraph,
   type PublicGraphNode,
 } from "../src/graph-view";
+import { phaseDefinitions } from "../src/phase-details";
 import type { PublicNote } from "../src/search";
 
 const indexPath = fileURLToPath(new URL("../../content/public/index.json", import.meta.url));
@@ -571,6 +572,109 @@ test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다",
   for (const [index, expected] of [0, 1, 2, 3, 4].entries()) {
     await expect(filled.nth(index).locator(".depth-step.is-filled")).toHaveCount(expected);
   }
+});
+
+test("Phase 0–9 상세 데이터는 공개 증거와 필수 설명을 모두 가진다", () => {
+  expect(phaseDefinitions.map(({ id }) => id)).toEqual([
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+  ]);
+  for (const phase of phaseDefinitions) {
+    expect(phase.purpose.length).toBeGreaterThan(20);
+    expect(phase.delivered.length).toBeGreaterThanOrEqual(2);
+    expect(phase.boundaries.length).toBeGreaterThanOrEqual(2);
+    expect(phase.evidence.length).toBeGreaterThanOrEqual(2);
+    expect(phase.evidence.every(({ href }) => href.startsWith("https://"))).toBeTruthy();
+    expect(phase.outcome.length).toBeGreaterThan(20);
+  }
+});
+
+test("Projects Phase 카드는 하나의 공통 상세 dialog와 focus 복원을 사용한다", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await expect(page.locator(".phase-item")).toHaveCount(phaseDefinitions.length);
+  await expect(page.locator(".phase-detail-button")).toHaveCount(phaseDefinitions.length);
+  await expect(page.locator('[data-phase-id="3"] h3')).toHaveText("Public Content CI Gate");
+  await expect(page.locator('[data-phase-id="4"] h3')).toHaveText(
+    "Approved Publishing Pipeline",
+  );
+
+  const trigger = page.getByRole("button", {
+    name: "Phase 0 Architecture Charter 자세히 보기",
+  });
+  await trigger.click();
+  await expect(page).toHaveURL(/\/projects\?phase=0#roadmap$/);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Architecture Charter");
+  await expect(dialog.getByRole("heading", { name: "목적" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "구현" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "안전 경계" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "검증과 증거" })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "결과" })).toBeVisible();
+  await expect(dialog.locator(".phase-modal-evidence-link")).toHaveCount(2);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/\/projects$/);
+  await expect(trigger).toBeFocused();
+});
+
+test("Phase deep link와 브라우저 뒤로가기는 dialog 상태를 URL과 동기화한다", async ({
+  page,
+}) => {
+  await page.goto("/projects?phase=8#roadmap");
+  await expect(page.getByRole("dialog")).toContainText("Grounded Answer Layer");
+  await page.getByRole("button", { name: "닫기" }).click();
+  await expect(page).toHaveURL(/\/projects#roadmap$/);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const trigger = page.getByRole("button", {
+    name: "Phase 9 Living Values 자세히 보기",
+  });
+  await trigger.click();
+  await expect(page).toHaveURL(/phase=9/);
+  await page.goBack();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/projects#roadmap$/);
+
+  await page.goto("/projects?phase=unknown#roadmap");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/projects#roadmap$/);
+});
+
+test("모바일 Phase 상세는 전체 화면에서 가로 overflow 없이 읽힌다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/projects?phase=9#roadmap");
+
+  const dialog = page.locator(".phase-modal");
+  await expect(dialog).toBeVisible();
+  const geometry = await page.evaluate(() => {
+    const modal = document.querySelector<HTMLElement>(".phase-modal");
+    if (!modal) throw new Error("Phase modal is missing");
+    const rect = modal.getBoundingClientRect();
+    return {
+      width: rect.width,
+      height: rect.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  });
+  expect(geometry.width).toBe(geometry.viewportWidth);
+  expect(geometry.height).toBe(geometry.viewportHeight);
+  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth);
+  await expect(dialog).toContainText("GROWING");
+  await expect(dialog).toContainText("네 가치마다 승인·발행 기록 3편 이상");
 });
 
 test("모든 route가 모바일 viewport에서 전역 수평 overflow를 만들지 않는다", async ({ page }) => {
