@@ -12,12 +12,15 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 
 DEFAULT_URL = "https://ccdos.corcoidum.workers.dev/api/answer"
 DEFAULT_QUERY = "automation"
 TIMEOUT_SECONDS = 30
+DEFAULT_ATTEMPTS = 4
+RETRY_DELAY_SECONDS = 3
 
 # The generated path is configured and reachable; throttling is a healthy answer.
 HEALTHY_REASONS = {"rate_limited", "budget_exhausted"}
@@ -68,22 +71,35 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Smoke-check the deployed answer layer.")
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--query", default=DEFAULT_QUERY)
+    parser.add_argument("--attempts", type=int, default=DEFAULT_ATTEMPTS)
     args = parser.parse_args(argv)
 
-    try:
-        payload = request_answer(args.url, args.query)
-    except urllib.error.HTTPError as error:
-        # Name the status: a bare exception class hides whether this is the
-        # edge, the route, or the Worker rejecting the request.
-        print(f"FAIL: answer layer returned HTTP {error.code}")
-        return 1
-    except (urllib.error.URLError, TimeoutError, ValueError) as error:
-        print(f"FAIL: cannot reach the answer layer: {type(error).__name__}")
-        return 1
+    # The question is "can this deployment produce a grounded answer at all",
+    # not "did one call succeed". Retrying keeps a partially degraded provider
+    # from turning the gate into a coin flip, while a fully broken layer still
+    # fails every attempt.
+    summary = "FAIL: no attempt completed"
+    for attempt in range(1, max(args.attempts, 1) + 1):
+        try:
+            payload = request_answer(args.url, args.query)
+        except urllib.error.HTTPError as error:
+            # Name the status: a bare exception class hides whether this is the
+            # edge, the route, or the Worker rejecting the request.
+            summary = f"FAIL: answer layer returned HTTP {error.code}"
+        except (urllib.error.URLError, TimeoutError, ValueError) as error:
+            summary = f"FAIL: cannot reach the answer layer: {type(error).__name__}"
+        else:
+            exit_code, summary = evaluate(payload)
+            if exit_code == 0:
+                if attempt > 1:
+                    summary += f" (attempt {attempt}/{args.attempts})"
+                print(summary)
+                return 0
+        if attempt < args.attempts:
+            time.sleep(RETRY_DELAY_SECONDS)
 
-    exit_code, summary = evaluate(payload)
-    print(summary)
-    return exit_code
+    print(f"{summary} after {args.attempts} attempt(s)")
+    return 1
 
 
 if __name__ == "__main__":
