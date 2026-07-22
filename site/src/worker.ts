@@ -22,6 +22,7 @@ type Env = {
   ANSWER_RATE_LIMITER: RateLimitBinding;
   ANSWER_GLOBAL_LIMITER: RateLimitBinding;
   DAILY_ANSWER_BUDGET: DurableObjectNamespace<DailyAnswerBudget>;
+  PROVIDER_PROXY: DurableObjectNamespace<ProviderProxy>;
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
   DAILY_ANSWER_LIMIT?: string;
@@ -57,6 +58,8 @@ const MAX_REQUEST_BYTES = 4096;
 const MAX_ANSWER_LENGTH = 4000;
 // 사용자 응답에는 짧은 발췌를 유지하되, 모델에는 ADR-0003 경계(승인 공개 발췌 최대 3개) 안에서 더 긴 근거를 준다.
 const MODEL_EXCERPT_LENGTH = 1500;
+// Provider가 지원하는 지역에 호출 위치를 고정한다.
+const PROVIDER_REGION = "enam";
 
 function jsonResponse(payload: object, status = 200, headers: HeadersInit = {}): Response {
   return Response.json(payload, {
@@ -159,15 +162,14 @@ async function callOpenAIWithRetry(
 
 async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Promise<string> {
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  // Worker는 방문자와 가까운 colo에서 실행되므로 egress 위치가 매번 달라지고,
+  // provider는 그중 일부를 unsupported_country_region_territory로 거절한다.
+  // 지원 지역에 고정된 Durable Object를 거쳐 호출 위치를 일정하게 만든다.
+  const proxyId = env.PROVIDER_PROXY.idFromName(PROVIDER_REGION);
+  const proxy = env.PROVIDER_PROXY.get(proxyId, { locationHint: PROVIDER_REGION });
+  const response = await proxy.fetch("https://provider.internal/responses", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY ?? ""}`,
-      "content-type": "application/json",
-      // Discord webhook 403과 같은 층의 문제였다: provider edge가 이름 없는
-      // 기본 User-Agent를 간헐적으로 차단한다. 호출 주체를 밝히면 통과한다.
-      "user-agent": "corcoidum-os-answer-layer/1.0",
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model,
       max_output_tokens: 500,
@@ -279,6 +281,34 @@ async function answerRequest(request: Request, env: Env): Promise<Response> {
     console.warn("answer provider failed:", label);
     await refundDailyBudget(env);
     return retrievalFallback(sources, "provider_error", debugDiagnostic(env, label));
+  }
+}
+
+/**
+ * Calls the provider from one pinned region.
+ *
+ * The Worker itself runs next to the visitor, so its egress location changes
+ * per request and the provider rejected a share of them with
+ * `unsupported_country_region_territory`. A Durable Object created with a
+ * location hint stays in that region, which makes the call site constant.
+ * The key is read from the DO's own env, so it never crosses the wire.
+ */
+export class ProviderProxy extends DurableObject<Env> {
+  async fetch(request: Request): Promise<Response> {
+    if (request.method !== "POST") {
+      return new Response("Method Not Allowed", { status: 405 });
+    }
+    return fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.env.OPENAI_API_KEY ?? ""}`,
+        "content-type": "application/json",
+        // Discord webhook 403과 같은 층: 이름 없는 기본 User-Agent는 차단될 수 있다.
+        "user-agent": "corcoidum-os-answer-layer/1.0",
+      },
+      body: await request.text(),
+      signal: AbortSignal.timeout(14_000),
+    });
   }
 }
 

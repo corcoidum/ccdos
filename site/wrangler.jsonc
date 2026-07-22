@@ -38,6 +38,10 @@
       {
         "name": "DAILY_ANSWER_BUDGET",
         "class_name": "DailyAnswerBudget"
+      },
+      {
+        "name": "PROVIDER_PROXY",
+        "class_name": "ProviderProxy"
       }
     ]
   },
@@ -45,6 +49,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["DailyAnswerBudget"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ProviderProxy"]
     }
   ],
   "observability": {
