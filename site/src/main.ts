@@ -10,6 +10,7 @@ import {
   phaseDefinitions,
   phaseDefinitionsById,
   type PhaseDefinition,
+  type PhaseEvidence,
 } from "./phase-details";
 import { type PublicContent, type PublicNote, searchPublicNotes, tokenize } from "./search";
 import "./style.css";
@@ -940,6 +941,25 @@ function createPhaseListSection(title: string, items: readonly string[]): HTMLEl
   return section;
 }
 
+function createPhaseEvidenceItem(entry: PhaseEvidence): HTMLLIElement {
+  const item = createElement("li", "phase-modal-evidence-item");
+  const source = createElement("span", "phase-modal-evidence-source", `출처 · ${entry.sourceLabel}`);
+  const title = createElement("h4", "phase-modal-evidence-title", entry.label);
+  const summary = createElement("p", "phase-modal-evidence-summary", entry.summary);
+  const link = createElement(
+    "a",
+    "phase-modal-evidence-link",
+    entry.sourceLabel === "GitHub" ? "GitHub 원문 보기 →" : `${entry.sourceLabel}에서 보기 →`,
+  );
+  link.href = entry.href;
+  link.setAttribute(
+    "aria-label",
+    `${entry.label}: ${entry.sourceLabel}에서 현재 탭으로 이동해 확인`,
+  );
+  item.append(source, title, summary, link);
+  return item;
+}
+
 // 모든 Phase가 같은 dialog 구조와 keyboard·history 규칙을 공유한다.
 function openPhaseModal(
   phase: PhaseDefinition,
@@ -986,9 +1006,7 @@ function openPhaseModal(
   evidence.append(createElement("h3", undefined, "검증과 증거"));
   const evidenceList = createElement("ul", "phase-modal-evidence-list");
   for (const entry of phase.evidence) {
-    const item = createElement("li");
-    item.append(createExternalLink(entry.href, entry.label, "phase-modal-evidence-link"));
-    evidenceList.append(item);
+    evidenceList.append(createPhaseEvidenceItem(entry));
   }
   evidence.append(evidenceList);
 

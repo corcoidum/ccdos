@@ -2,6 +2,8 @@ export type PhaseStatus = "GROWING" | "PASSED" | "VALIDATED" | "VERIFIED" | "LIV
 
 export type PhaseEvidence = {
   label: string;
+  summary: string;
+  sourceLabel: string;
   href: string;
 };
 
@@ -40,10 +42,15 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 0 완료 보고서",
+        summary:
+          "정보 소유권·보안 경계와 restricted data의 외부 전송 금지 검증 결과를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-0-completion-report.md`,
       },
       {
         label: "Architecture Charter",
+        summary: "시스템 목적, Vault 경계와 승인된 데이터 흐름을 정의한 최상위 기준 문서입니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/charter.md`,
       },
     ],
@@ -68,9 +75,17 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 1 완료 보고서",
+        summary:
+          "합성 Vault, frontmatter schema와 metadata·privacy validator의 구현 및 검증을 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-1-completion-report.md`,
       },
-      { label: "Note schema", href: `${repository}/tree/main/schemas` },
+      {
+        label: "Note schema",
+        summary: "공개 노트 metadata와 관계 필드가 따라야 할 기계 검증 계약을 확인할 수 있습니다.",
+        sourceLabel: "GitHub",
+        href: `${repository}/tree/main/schemas`,
+      },
     ],
     outcome: "공개 후보가 사람 검토에 도달하기 전에 명백한 metadata·privacy 오류를 차단할 수 있게 됐습니다.",
   },
@@ -93,10 +108,15 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 2 완료 보고서",
+        summary:
+          "Privacy Review 증적과 검토 후 수정 시 이전 승인을 무효화하는 규칙의 구현을 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-2-completion-report.md`,
       },
       {
         label: "Public Content Review 정책",
+        summary: "공개 후보의 사람 검토 절차, privacy checklist와 재검토 조건을 정의합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/governance/public-content-review.md`,
       },
     ],
@@ -121,10 +141,15 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 3·4 완료 보고서",
+        summary: "Public Vault 검사와 승인 콘텐츠 index를 CI gate에 연결한 구현 결과를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-3-4-completion-report.md`,
       },
       {
         label: "Public content gate workflow",
+        summary:
+          "PR와 main에서 architecture, privacy, artifact, Python test와 site build를 실행하는 gate 정의입니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/.github/workflows/public-content-gate.yml`,
       },
     ],
@@ -149,10 +174,16 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Publishing Pipeline 정책",
+        summary:
+          "approved·published Markdown만 deterministic public artifact로 만드는 입력·출력과 CI 순서를 정의합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/governance/publishing-pipeline.md`,
       },
       {
         label: "Public content builder",
+        summary:
+          "승인된 공개 노트만 안정적 index로 생성하고 stale·duplicate 결과를 차단하는 구현입니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/automation/build_public_content.py`,
       },
     ],
@@ -177,9 +208,17 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 5 완료 보고서",
+        summary:
+          "승인된 public index만 소비하는 Vite·TypeScript UI와 mobile browser 검증 결과를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-5-completion-report.md`,
       },
-      { label: "현재 OS 화면", href: "https://openkiki.org/os" },
+      {
+        label: "현재 OS 화면",
+        summary: "현재 production에 공개된 read-only CORCOIDUM OS 화면을 직접 확인합니다.",
+        sourceLabel: "openkiki.org",
+        href: "https://openkiki.org/os",
+      },
     ],
     outcome: "검토된 기록과 구현 증거를 하나의 공개 가능한 사용자 경험으로 제공하게 됐습니다.",
   },
@@ -202,10 +241,16 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 6 완료 보고서",
+        summary:
+          "비식별 status report, 선택적 Discord notification과 운영 검증 결과를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-6-completion-report.md`,
       },
       {
         label: "Automation MVP Runbook",
+        summary:
+          "민감 본문과 Secret 없이 status report를 생성·전송하고 실패에 대응하는 절차입니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/runbooks/automation-mvp.md`,
       },
     ],
@@ -230,9 +275,17 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 7 완료 보고서",
+        summary:
+          "approved·published index만 검색하고 외부 LLM을 호출하지 않는 retrieval-only 경계를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-7-completion-report.md`,
       },
-      { label: "Lab 검색 체험", href: "https://openkiki.org/lab" },
+      {
+        label: "Lab 검색 체험",
+        summary: "현재 production에서 승인된 공개 기록만 사용하는 검색 경험을 직접 확인합니다.",
+        sourceLabel: "openkiki.org",
+        href: "https://openkiki.org/lab",
+      },
     ],
     outcome: "Grounded Answer Layer가 사용할 수 있는 승인 근거 선택과 인용 기반을 생성 없이 먼저 확보했습니다.",
   },
@@ -255,10 +308,16 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 8 완료 보고서",
+        summary:
+          "승인 출처 재선택, citation policy와 비용·provider 실패 fallback의 production 활성화를 기록합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-8-completion-report.md`,
       },
       {
         label: "OpenAI provider ADR",
+        summary:
+          "OpenAI 사용 시 허용 입력, store:false, Secret 관리와 retrieval-only fallback 경계를 결정합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/adr/0003-openai-provider-migration.md`,
       },
     ],
@@ -283,9 +342,17 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     evidence: [
       {
         label: "Phase 9 계획과 완료 기준",
+        summary:
+          "Living Values tag 운영 원칙, 사람 승인 gate와 가치별 3편 이상이라는 완료 기준을 정의합니다.",
+        sourceLabel: "GitHub",
         href: `${repository}/blob/main/docs/architecture/phase-9-plan.md`,
       },
-      { label: "Living Values 기록", href: "https://openkiki.org/garden" },
+      {
+        label: "Living Values 기록",
+        summary: "현재 승인·발행된 Living Values 기록과 tag 탐색 결과를 직접 확인합니다.",
+        sourceLabel: "openkiki.org",
+        href: "https://openkiki.org/garden",
+      },
     ],
     outcome: "네 가치마다 승인·발행 기록 3편 이상이 쌓이기 전까지 GROWING 상태를 유지합니다.",
   },
