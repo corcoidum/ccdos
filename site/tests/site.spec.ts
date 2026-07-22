@@ -155,6 +155,62 @@ test("OS의 네 가지 약속 카드는 각각의 가치 공간으로 이동한�
   }
 });
 
+test("OS의 Living Values drawer는 가치 단어와 승인 기록을 바로 펼친다", async ({ page }) => {
+  await page.goto("/os");
+  const trigger = page.locator(".living-values-trigger");
+  const drawer = page.locator("#living-values-drawer");
+  await expect(trigger).toHaveAttribute("aria-label", "가치 공간 메뉴 열기");
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(drawer).toHaveAttribute("aria-hidden", "true");
+
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(drawer).toHaveClass(/is-open/);
+
+  for (const value of valueRoutes) {
+    const toggle = drawer.getByRole("button", { name: `${value.name} 글 목록` });
+    const expectedNotes = publicNotes.filter((note) => note.tags.includes(value.tag));
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(toggle.locator(".living-values-word-tail")).toHaveCSS("opacity", "1");
+    await expect(
+      drawer.locator(`#living-values-notes-${value.tag} .living-values-note-button`),
+    ).toHaveCount(expectedNotes.length);
+  }
+
+  const loveToggle = drawer.getByRole("button", { name: "L.O.V.E 글 목록" });
+  await expect(loveToggle).toHaveAttribute("aria-expanded", "true");
+  const firstLoveNote = publicNotes.find((note) => note.tags.includes("love"));
+  if (!firstLoveNote) {
+    throw new Error("Living Values drawer 테스트에 사용할 love 기록이 없습니다.");
+  }
+  await drawer.getByRole("button", { name: firstLoveNote.title }).click();
+  await expect(page.getByRole("dialog")).toContainText(firstLoveNote.title);
+  await page.getByRole("button", { name: "닫기" }).click();
+  await expect(drawer).toHaveClass(/is-open/);
+
+  await page.keyboard.press("Escape");
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(trigger).toBeFocused();
+});
+
+test("Living Values drawer는 mobile tap으로 전체 단어와 한 목록만 연다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/os");
+  await page.getByRole("button", { name: "가치 공간 메뉴 열기" }).click();
+  const drawer = page.locator("#living-values-drawer");
+  const hopeToggle = drawer.getByRole("button", { name: "H.O.P.E 글 목록" });
+  const trustToggle = drawer.getByRole("button", { name: "T.R.U.S.T 글 목록" });
+
+  await hopeToggle.click();
+  await expect(hopeToggle.locator(".living-values-word-tail")).toHaveCSS("opacity", "1");
+  await expect(hopeToggle).toHaveAttribute("aria-expanded", "true");
+  await trustToggle.click();
+  await expect(hopeToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(trustToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(drawer).toBeInViewport();
+});
+
 test("같은 페이지 CTA는 hash target으로 이동하고 keyboard focus를 넘긴다", async ({ page }) => {
   await page.goto("/lab");
   await page.getByRole("link", { name: "검색 직접 써보기" }).click();

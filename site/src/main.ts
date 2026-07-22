@@ -1414,12 +1414,170 @@ function createBrandLogo(size: number): HTMLImageElement {
   return logo;
 }
 
+let livingValuesDrawerCleanup: (() => void) | null = null;
+
+function createLivingValuesDrawer(): { trigger: HTMLButtonElement; drawer: HTMLElement } {
+  const trigger = createElement("button", "living-values-trigger");
+  trigger.type = "button";
+  trigger.setAttribute("aria-controls", "living-values-drawer");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-label", "가치 공간 메뉴 열기");
+
+  const drawer = createElement("aside", "living-values-drawer");
+  drawer.id = "living-values-drawer";
+  drawer.setAttribute("aria-hidden", "true");
+  drawer.setAttribute("aria-labelledby", "living-values-drawer-title");
+  drawer.inert = true;
+
+  const header = createElement("div", "living-values-drawer-header");
+  const headingGroup = createElement("div");
+  const heading = createElement("h2", undefined, "가치의 문을 열어 기록으로 들어갑니다.");
+  heading.id = "living-values-drawer-title";
+  headingGroup.append(
+    createElement("p", "eyebrow", "LIVING VALUES"),
+    heading,
+  );
+  header.append(
+    headingGroup,
+    createElement("p", "living-values-drawer-hint", "글자를 선택하면 승인된 기록이 펼쳐집니다."),
+  );
+
+  const valueList = createElement("ul", "living-values-list");
+  const entries: Array<{
+    tag: string;
+    toggle: HTMLButtonElement;
+    panel: HTMLElement;
+  }> = [];
+  let expandedTag: string | null = null;
+
+  const setExpandedTag = (nextTag: string | null): void => {
+    expandedTag = nextTag;
+    for (const entry of entries) {
+      const expanded = entry.tag === expandedTag;
+      entry.toggle.setAttribute("aria-expanded", String(expanded));
+      entry.panel.classList.toggle("is-open", expanded);
+      entry.panel.setAttribute("aria-hidden", String(!expanded));
+      entry.panel.inert = !expanded;
+    }
+  };
+
+  valueSpaces.forEach((value, valueIndex) => {
+    const notes = publicContent.notes.filter((note) => note.tags.includes(value.tag));
+    const item = createElement("li", "living-values-item");
+    item.dataset.value = value.tag;
+    item.style.setProperty("--value-order", String(valueIndex));
+
+    const toggle = createElement("button", "living-values-toggle");
+    toggle.type = "button";
+    toggle.setAttribute("aria-controls", `living-values-notes-${value.tag}`);
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", `${value.name} 글 목록`);
+    const word = createElement("span", "living-values-word");
+    word.append(
+      createElement("span", "living-values-initial", value.name.charAt(0)),
+      createElement("span", "living-values-word-tail", value.name.slice(1)),
+    );
+    toggle.append(word, createElement("span", "living-values-count", `${notes.length} records`));
+
+    const panel = createElement("div", "living-values-notes");
+    panel.id = `living-values-notes-${value.tag}`;
+    panel.setAttribute("aria-hidden", "true");
+    panel.inert = true;
+    const panelInner = createElement("div", "living-values-notes-inner");
+    const noteList = createElement("ul", "living-values-note-list");
+    for (const note of notes) {
+      const noteItem = createElement("li");
+      const noteButton = createElement("button", "living-values-note-button");
+      noteButton.type = "button";
+      noteButton.dataset.noteId = note.id;
+      noteButton.setAttribute("aria-haspopup", "dialog");
+      const displayDate = note.published_at ?? note.updated;
+      const time = createElement("time", undefined, formatDate(displayDate));
+      time.dateTime = displayDate;
+      noteButton.append(createElement("span", undefined, note.title), time);
+      noteButton.addEventListener("click", () => openNoteModal(note, noteButton));
+      noteItem.append(noteButton);
+      noteList.append(noteItem);
+    }
+    const spaceLink = createRouteLink(
+      value.path,
+      `${value.name} 가치 공간 전체 보기`,
+      "living-values-space-link",
+    );
+    panelInner.append(noteList, spaceLink);
+    panel.append(panelInner);
+
+    toggle.addEventListener("click", () => {
+      setExpandedTag(expandedTag === value.tag ? null : value.tag);
+    });
+    entries.push({ tag: value.tag, toggle, panel });
+    item.append(toggle, panel);
+    valueList.append(item);
+  });
+
+  drawer.append(header, valueList);
+  const controller = new AbortController();
+  let drawerOpen = false;
+  const setDrawerOpen = (open: boolean, restoreFocus = false): void => {
+    drawerOpen = open;
+    trigger.setAttribute("aria-expanded", String(open));
+    trigger.setAttribute("aria-label", open ? "가치 공간 메뉴 닫기" : "가치 공간 메뉴 열기");
+    drawer.classList.toggle("is-open", open);
+    drawer.setAttribute("aria-hidden", String(!open));
+    drawer.inert = !open;
+    if (!open) {
+      setExpandedTag(null);
+    }
+    if (restoreFocus) {
+      trigger.focus({ preventScroll: true });
+    }
+  };
+
+  trigger.addEventListener("click", () => setDrawerOpen(!drawerOpen));
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (
+        drawerOpen &&
+        activeNoteModalId === null &&
+        event.target instanceof Node &&
+        !drawer.contains(event.target) &&
+        !trigger.contains(event.target)
+      ) {
+        setDrawerOpen(false);
+      }
+    },
+    { signal: controller.signal },
+  );
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key === "Escape" && drawerOpen && activeNoteModalId === null) {
+        event.preventDefault();
+        setDrawerOpen(false, true);
+      }
+    },
+    { signal: controller.signal },
+  );
+
+  livingValuesDrawerCleanup = () => controller.abort();
+  return { trigger, drawer };
+}
+
 function createHeader(route: Route): HTMLElement {
   const header = createElement("header", "site-header");
   const inner = createElement("div", "header-inner");
+  const leading = createElement("div", "header-leading");
   const brand = createRouteLink("/os", "", "brand");
   brand.setAttribute("aria-label", "CORCOIDUM OS 홈");
   brand.append(createBrandLogo(28), createElement("span", undefined, "CORCOIDUM OS"));
+
+  if (route === "/os") {
+    const { trigger, drawer } = createLivingValuesDrawer();
+    leading.append(trigger, drawer, brand);
+  } else {
+    leading.append(brand);
+  }
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
@@ -1431,7 +1589,7 @@ function createHeader(route: Route): HTMLElement {
     }
     nav.append(link);
   }
-  inner.append(brand, nav);
+  inner.append(leading, nav);
   header.append(inner);
   return header;
 }
@@ -1536,6 +1694,8 @@ let renderedRoute: Route | null = null;
 
 function render({ announce = false, restoreHistory = false }: RenderOptions = {}): void {
   closeActiveNoteModal?.({ syncHistory: false });
+  livingValuesDrawerCleanup?.();
+  livingValuesDrawerCleanup = null;
   const route = currentRoute();
   if (window.location.pathname !== route) {
     const url = new URL(window.location.href);
