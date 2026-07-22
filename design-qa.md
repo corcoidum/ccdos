@@ -132,3 +132,63 @@ final result: passed
 - None required for this extension.
 
 final result: passed
+
+---
+
+# OS Constellation Map — Design QA
+
+## 검수 대상
+
+- Desktop reference: `docs/design-evidence/os-constellation-map-reference.jpg`
+- Mobile reference: `docs/design-evidence/os-mobile-links-reference.jpg`
+- Source asset: `site/public/assets/constellation-os.jpg`
+- Implementation: `http://127.0.0.1:4176/os`
+- Desktop evidence: `docs/design-evidence/os-constellation-map-final.jpg`
+- Mobile evidence: `docs/design-evidence/os-mobile-links-final.png`
+- Full-view comparison: `docs/design-evidence/os-constellation-map-comparison.jpg`
+- Focused mobile comparison: `docs/design-evidence/os-mobile-links-comparison.png`
+
+## 비교 조건
+
+- Reference dimensions: 1140 × 950 px (제공된 cropped composition)
+- Desktop implementation map: 1352 × 903 px at 1440 × 900 viewport
+- Mobile reference: 702 × 1402 px device screenshot, approximately 343 CSS px at DPR 2
+- Mobile implementation map and navigation: 301 × 274 px at 343 × 800 CSS viewport, DPR 1
+- Density normalization: reference focused crop displayed at 50%; implementation captured with Playwright `scale: css`
+- State: `/os` constellation figure visible; desktop overlay links and mobile single-row navigation
+- Focus region: constellation image and OS/Garden/Lab/Projects navigation
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Typography | Passed | 기존 serif hierarchy를 유지하고 desktop에서 reference에 가까운 link scale을 적용했다. |
+| Spacing / layout | Passed | Intro band 아래에 full-width 3:2 map을 배치하고 기존 page shell 및 borders를 유지했다. |
+| Colors / tokens | Passed | 기존 ivory, orange, green-black, line tokens만 사용했다. |
+| Image quality / asset fidelity | Passed | 기존 1536 × 1024 source asset을 늘이거나 재생성하지 않고 `object-fit: contain`으로 표시했다. |
+| Copy / content | Passed | 기존 OS copy, CTA, route label을 변경하지 않았다. |
+| Responsiveness / accessibility | Passed | 1440, 1024, 768 px의 비례 overlay와 430, 390, 360, 320 px의 단일행 nav에서 no-crop, no overflow, 44 px target을 확인했다. |
+
+## Comparison history
+
+1. Pass 1 — P2: overlay link text가 reference보다 작았다. Fluid `clamp()` scale로 확대했다.
+2. Pass 1 — P2: touch viewport에서 decorative floating animation이 click 위치를 흔들 수 있었다. 1100 px 이하에서는 animation을 제거했다.
+3. Pass 1 — P2: intro copy가 map의 첫 노출을 늦췄다. Desktop intro band를 압축하고 map을 다음 full-width row로 이동했다.
+4. Pass 2 — P2: 기존 mobile nav에서 Projects가 두 번째 행으로 내려갔다. Mobile nav를 `repeat(4, minmax(0, 1fr))` grid와 compact fluid type으로 변경했다.
+5. Final pass: desktop에서는 네 link가 별자리의 비례 좌표를 유지하고, mobile에서는 네 link가 한 행에서 동일한 44 px touch target을 유지한다. Post-fix evidence는 `docs/design-evidence/os-mobile-links-comparison.png`이다.
+
+## Intentional difference
+
+Desktop reference는 1140 × 950 비율로 원본 좌우·하단 일부가 잘린 composition이다. 구현은 사용자의 “브라우저가 변경되어도 그림이 잘리지 않게” 요구에 따라 1536 × 1024 원본의 3:2 비율 전체를 유지한다. Mobile에서는 비례 좌표 overlay 대신 사용자가 요청한 4개 링크 단일 행을 지도 아래에 배치한다.
+
+## Automated evidence
+
+- Playwright: 43 passed
+- Python unittest: 67 passed
+- `npm run typecheck`: passed
+- `npm run build`: passed
+- Architecture, privacy, public content, public graph gates: passed
+- Actual mobile Projects link navigation: `/os` → `/projects` passed
+- Browser console: 0 errors, 0 warnings on `/os`
+
+final result: passed
