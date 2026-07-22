@@ -31,7 +31,12 @@ def request_answer(url: str, query: str) -> dict[str, object]:
     request = urllib.request.Request(
         url,
         data=json.dumps({"query": query}).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            # The edge answers the default Python-urllib User-Agent with 403,
+            # the same layer that once broke the Discord webhook.
+            "User-Agent": "corcoidum-os-automation/1.0",
+        },
         method="POST",
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
@@ -67,6 +72,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         payload = request_answer(args.url, args.query)
+    except urllib.error.HTTPError as error:
+        # Name the status: a bare exception class hides whether this is the
+        # edge, the route, or the Worker rejecting the request.
+        print(f"FAIL: answer layer returned HTTP {error.code}")
+        return 1
     except (urllib.error.URLError, TimeoutError, ValueError) as error:
         print(f"FAIL: cannot reach the answer layer: {type(error).__name__}")
         return 1
