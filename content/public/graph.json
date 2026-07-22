@@ -32,7 +32,12 @@
       "state": "published",
       "updated": "2026-07-20T02:24:51Z",
       "published_at": "2026-07-20T02:24:55Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "failed-qa-became-a-test",
+          "type": "demonstrates"
+        }
+      ],
       "related_notes": []
     },
     {
@@ -50,10 +55,30 @@
       "published_at": "2026-07-14T09:14:52Z",
       "backlinks": [
         {
+          "source": "only-reviewed-relations-become-graph",
+          "type": "builds_on"
+        },
+        {
           "source": "safe-automation-case-study",
           "type": "supports"
         }
       ],
+      "related_notes": []
+    },
+    {
+      "id": "failed-qa-became-a-test",
+      "type": "note",
+      "label": "실패한 검토를 테스트로 바꾸다",
+      "url": "/garden?note=failed-qa-became-a-test",
+      "tags": [
+        "design-qa",
+        "hope",
+        "learning"
+      ],
+      "state": "approved",
+      "updated": "2026-07-22T00:09:24Z",
+      "published_at": null,
+      "backlinks": [],
       "related_notes": []
     },
     {
@@ -96,6 +121,22 @@
       "related_notes": []
     },
     {
+      "id": "leave-the-constellation-uncropped",
+      "type": "note",
+      "label": "별자리를 자르지 않기로 했다",
+      "url": "/garden?note=leave-the-constellation-uncropped",
+      "tags": [
+        "design",
+        "love",
+        "sustainability"
+      ],
+      "state": "approved",
+      "updated": "2026-07-22T00:09:24Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "moonlight-and-the-name-claude",
       "type": "note",
       "label": "달빛처럼, 압도하지 않는 기술",
@@ -108,7 +149,12 @@
       "state": "published",
       "updated": "2026-07-16T06:16:00Z",
       "published_at": "2026-07-16T06:21:56Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "leave-the-constellation-uncropped",
+          "type": "demonstrates"
+        }
+      ],
       "related_notes": []
     },
     {
@@ -124,6 +170,38 @@
       "state": "published",
       "updated": "2026-07-16T06:16:00Z",
       "published_at": "2026-07-16T06:21:56Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "one-link-less-explanation",
+      "type": "note",
+      "label": "한 번 더 찾지 않게 하는 링크",
+      "url": "/garden?note=one-link-less-explanation",
+      "tags": [
+        "accessibility",
+        "mercy",
+        "navigation"
+      ],
+      "state": "approved",
+      "updated": "2026-07-22T00:09:24Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
+      "id": "only-reviewed-relations-become-graph",
+      "type": "note",
+      "label": "사람이 확인한 관계만 그래프가 된다",
+      "url": "/garden?note=only-reviewed-relations-become-graph",
+      "tags": [
+        "governance",
+        "knowledge-graph",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-07-22T00:09:24Z",
+      "published_at": null,
       "backlinks": [],
       "related_notes": []
     },
@@ -144,6 +222,10 @@
         {
           "source": "discord-webhook-403-lesson",
           "type": "related_to"
+        },
+        {
+          "source": "one-link-less-explanation",
+          "type": "demonstrates"
         }
       ],
       "related_notes": [
@@ -200,8 +282,28 @@
       "type": "builds_on"
     },
     {
+      "source": "failed-qa-became-a-test",
+      "target": "doubt-into-a-ladder",
+      "type": "demonstrates"
+    },
+    {
       "source": "from-working-site-to-trustworthy-system",
       "target": "search-that-does-not-guess",
+      "type": "builds_on"
+    },
+    {
+      "source": "leave-the-constellation-uncropped",
+      "target": "moonlight-and-the-name-claude",
+      "type": "demonstrates"
+    },
+    {
+      "source": "one-link-less-explanation",
+      "target": "safe-automation-case-study",
+      "type": "demonstrates"
+    },
+    {
+      "source": "only-reviewed-relations-become-graph",
+      "target": "empty-garden-is-a-promise",
       "type": "builds_on"
     },
     {
