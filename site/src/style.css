@@ -315,6 +315,16 @@ img {
   --value-accent: var(--coral-bright);
 }
 
+/* 지금 머무는 가치 공간을 표시해, 메뉴를 열었을 때 위치를 잃지 않게 한다. */
+.living-values-item.is-current {
+  border-left: 2px solid var(--value-accent);
+  background: var(--night-raised);
+}
+
+.living-values-item.is-current .living-values-toggle {
+  color: var(--ivory-strong);
+}
+
 .living-values-drawer.is-open .living-values-item {
   opacity: 1;
   transform: translateY(0);

@@ -233,6 +233,33 @@ test("OS의 Living Values drawer는 가치 단어와 승인 기록을 바로 펼
   await expect(trigger).toBeFocused();
 });
 
+test("가치 공간에서도 drawer로 다른 가치 공간에 바로 갈 수 있다", async ({ page }) => {
+  // 가치 공간의 상단 메뉴에는 다른 가치로 가는 길이 없어, drawer가 유일한 경로다.
+  for (const route of ["/hope", "/trust", "/mercy", "/love"] as const) {
+    await page.goto(route);
+    await expect(page.getByRole("button", { name: "가치 공간 메뉴 열기" })).toBeVisible();
+  }
+
+  await page.goto("/hope");
+  await page.getByRole("button", { name: "가치 공간 메뉴 열기" }).click();
+  const drawer = page.locator("#living-values-drawer");
+
+  // 지금 머무는 공간이 표시되어야 위치를 잃지 않는다.
+  await expect(drawer.locator(".living-values-item.is-current")).toHaveAttribute("data-value", "hope");
+  await expect(drawer.getByRole("button", { name: "H.O.P.E 글 목록 (현재 공간)" })).toBeVisible();
+
+  await drawer.getByRole("button", { name: "T.R.U.S.T 글 목록" }).click();
+  await drawer.getByRole("link", { name: "T.R.U.S.T 가치 공간 전체 보기" }).click();
+  await expect(page).toHaveURL(/\/trust$/);
+
+  // 이동한 뒤에는 표시도 함께 옮겨가야 한다.
+  await page.getByRole("button", { name: "가치 공간 메뉴 열기" }).click();
+  await expect(page.locator("#living-values-drawer .living-values-item.is-current")).toHaveAttribute(
+    "data-value",
+    "trust",
+  );
+});
+
 test("touch 기기에서는 값 이름이 접히지 않고 처음부터 전부 보인다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/os");

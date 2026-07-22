@@ -1416,7 +1416,7 @@ function createBrandLogo(size: number): HTMLImageElement {
 
 let livingValuesDrawerCleanup: (() => void) | null = null;
 
-function createLivingValuesDrawer(): { trigger: HTMLButtonElement; drawer: HTMLElement } {
+function createLivingValuesDrawer(route: Route): { trigger: HTMLButtonElement; drawer: HTMLElement } {
   const trigger = createElement("button", "living-values-trigger");
   trigger.type = "button";
   trigger.setAttribute("aria-controls", "living-values-drawer");
@@ -1466,12 +1466,20 @@ function createLivingValuesDrawer(): { trigger: HTMLButtonElement; drawer: HTMLE
     const item = createElement("li", "living-values-item");
     item.dataset.value = value.tag;
     item.style.setProperty("--value-order", String(valueIndex));
+    // 가치 공간 안에서 메뉴를 열었을 때 지금 어디에 있는지 알 수 있어야 한다.
+    const isCurrentSpace = value.path === route;
+    if (isCurrentSpace) {
+      item.classList.add("is-current");
+    }
 
     const toggle = createElement("button", "living-values-toggle");
     toggle.type = "button";
     toggle.setAttribute("aria-controls", `living-values-notes-${value.tag}`);
     toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", `${value.name} 글 목록`);
+    toggle.setAttribute(
+      "aria-label",
+      isCurrentSpace ? `${value.name} 글 목록 (현재 공간)` : `${value.name} 글 목록`,
+    );
     const word = createElement("span", "living-values-word");
     word.append(
       createElement("span", "living-values-initial", value.name.charAt(0)),
@@ -1501,9 +1509,12 @@ function createLivingValuesDrawer(): { trigger: HTMLButtonElement; drawer: HTMLE
     }
     const spaceLink = createRouteLink(
       value.path,
-      `${value.name} 가치 공간 전체 보기`,
+      isCurrentSpace ? `${value.name} 가치 공간 처음으로` : `${value.name} 가치 공간 전체 보기`,
       "living-values-space-link",
     );
+    if (isCurrentSpace) {
+      spaceLink.setAttribute("aria-current", "page");
+    }
     panelInner.append(noteList, spaceLink);
     panel.append(panelInner);
 
@@ -1572,15 +1583,10 @@ function createHeader(route: Route): HTMLElement {
   brand.setAttribute("aria-label", "CORCOIDUM OS 홈");
   brand.append(createBrandLogo(28), createElement("span", undefined, "CORCOIDUM OS"));
 
-  const hasLivingValuesNavigation = primaryRouteDefinitions.some(
-    (item) => item.path === route,
-  );
-  if (hasLivingValuesNavigation) {
-    const { trigger, drawer } = createLivingValuesDrawer();
-    leading.append(trigger, drawer, brand);
-  } else {
-    leading.append(brand);
-  }
+  // 가치 공간에는 상단 메뉴에 다른 가치로 가는 길이 없으므로, drawer는 모든
+  // route에서 제공한다. 여기가 가치 공간 사이를 오가는 유일한 경로다.
+  const { trigger, drawer } = createLivingValuesDrawer(route);
+  leading.append(trigger, drawer, brand);
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
