@@ -5,52 +5,52 @@
       "id": "only-reviewed-relations-become-graph",
       "title": "사람이 확인한 관계만 그래프가 된다",
       "updated": "2026-07-22T00:09:24Z",
-      "published_at": null,
+      "published_at": "2026-07-22T00:15:52Z",
       "tags": [
         "trust",
         "knowledge-graph",
         "governance"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "공개 기록 열 편을 처음 graph로 연결할 때, tag가 비슷한 글을 자동으로 묶거나 LLM에게 관계를 추측하게 하지 않았다. 실제로 저장한 것은 사람이 frontmatter에서 선언하고 다시 검토한 네 개의 edge뿐이었다. 관계가 없는 노드는 그대로 남겼고, 빈칸을 그럴듯한 연결로 채우지 않았다.\n\nBuilder는 승인된 공개 노트만 node로 만든다. Draft나 review 상태, 존재하지 않는 target, 자기 자신을 가리키는 관계, 중복 edge는 graph에 들어가기 전에 차단된다. Backlinks는 검증된 edge의 역방향 조회 목록으로 계산하고, Related Notes는 의미가 양방향인 `related_to`에만 만든다. 방향을 가진 관계를 편의를 위해 뒤집지 않는다.\n\n생성물에는 실행 시각도 넣지 않았다. 같은 Markdown 입력은 byte 단위로 같은 `graph.json`을 만들고, `--check`는 schema뿐 아니라 현재 승인 집합과의 일치 여부까지 검사한다. 관계의 원본은 계속 Markdown과 git history에 남고, JSON은 언제든 다시 만들 수 있는 read model일 뿐이다.\n\n신뢰할 수 있는 graph는 연결이 많은 graph가 아니었다. 누가 선언했고 어떤 검토를 통과했는지 설명할 수 있으며, 같은 입력에서 같은 결과를 다시 얻을 수 있는 graph였다. 모르는 관계를 비워 두는 선택까지 재현 가능하게 만든 것이 이 작업의 실제 성과다."
     },
     {
       "id": "one-link-less-explanation",
       "title": "한 번 더 찾지 않게 하는 링크",
       "updated": "2026-07-22T00:09:24Z",
-      "published_at": null,
+      "published_at": "2026-07-22T00:15:52Z",
       "tags": [
         "mercy",
         "navigation",
         "accessibility"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "공개 Garden의 기록을 누군가에게 알려 주려면 예전에는 첫 화면을 연 뒤 tag를 고르고 제목을 다시 찾으라고 설명해야 했다. 글은 공개되어 있었지만, 정확한 글까지 가는 경로는 함께 건넬 수 없었다. 기록이 늘수록 이 작은 안내가 계속 반복될 구조였다.\n\n각 graph node에 `/garden?note=<id>` 형식의 URL을 만들고, 그 주소로 들어오면 해당 글의 전문 modal이 바로 열리게 했다. Card에서 글을 열 때도 같은 query를 browser history에 남겨 뒤로가기로 modal과 URL이 함께 닫힌다. 존재하지 않는 ID는 빈 modal이나 오류를 보여 주지 않고 query만 조용히 제거한다.\n\n연결된 기록도 modal 안에서 바로 이동할 수 있게 했다. 이동 뒤에는 새 제목으로 keyboard focus를 넘기고, modal을 닫으면 원래 열었던 control로 focus를 돌려준다. Direct access, 뒤로가기, 잘못된 ID, relation 이동, focus 복귀를 browser test로 확인했다.\n\n사람의 부담은 거대한 업무에서만 생기지 않는다. \"어디에서 무엇을 눌러야 하나요\"를 매번 다시 설명하고, 같은 기록을 다시 찾는 작은 마찰도 쌓인다. 링크 하나가 그 안내를 대신하고 사용자가 자기 흐름을 잃지 않게 만든 것, 그것이 이 navigation 작업에서 줄인 실제 부담이다."
     },
     {
       "id": "leave-the-constellation-uncropped",
       "title": "별자리를 자르지 않기로 했다",
       "updated": "2026-07-22T00:09:24Z",
-      "published_at": null,
+      "published_at": "2026-07-22T00:15:52Z",
       "tags": [
         "love",
         "design",
         "sustainability"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "Hero 영역을 가득 채우기 위해 별자리 이미지를 `cover`로 배치했을 때 화면은 빈틈없이 찼다. 대신 원본의 3:2 frame 바깥쪽에 있던 별과 연결선이 viewport에 따라 잘렸다. 공간을 꽉 채우는 목표가 그림이 담고 있던 관계와 방향을 가리는 결과가 되었다.\n\n그래서 이미지는 `contain`으로 되돌려 원본 전체를 보여 주고, desktop에서 남는 영역만 같은 이미지의 흐린 ambient backdrop으로 채웠다. Tablet과 mobile에서는 backdrop도 없애 원본 비율에 집중하게 했다. 1440, 1306, 1280, 1120px 폭과 tablet 화면에서 이미지 비율, 모든 별자리 node의 frame 안쪽 위치, crop 부재를 browser test로 확인했다.\n\n그다음에는 H.O.P.E, T.R.U.S.T, M.E.R.C.Y, L.O.V.E 공간마다 서로 다른 1536×1024 그림을 연결했다. 네 파일이 섞이거나 기존 별자리 그림으로 되돌아가지 않는지, alt text와 intrinsic size가 유지되는지도 test에 남겼다.\n\n이 수정은 더 화려한 화면을 만들기 위한 일이 아니었다. 사람이 의미를 담아 고른 이미지를 빈 공간을 채우는 재료로만 다루지 않겠다는 선택이었다. 기술이 내용을 압도하지 않게 하고, 다시 손볼 때도 그 선택을 잊지 않도록 검증을 남기는 것. 화면을 돌보는 일에도 오래 지킬 리듬이 필요했다."
     },
     {
       "id": "failed-qa-became-a-test",
       "title": "실패한 검토를 테스트로 바꾸다",
       "updated": "2026-07-22T00:09:24Z",
-      "published_at": null,
+      "published_at": "2026-07-22T00:15:52Z",
       "tags": [
         "hope",
         "learning",
         "design-qa"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "사이트의 화면 폭을 정리한 첫 visual QA는 통과가 아니라 차단으로 끝났다. Header, hero, 본문이 서로 다른 폭 규칙을 쓰고 있었고, tablet에서는 제목이 지나치게 여러 줄로 꺾였다. 같은 페이지 안의 CTA는 목적지까지 스크롤했지만 keyboard focus를 넘기지 않아, 키보드 사용자는 이동 결과를 바로 알기 어려웠다.\n\n\"어딘가 어색하다\"는 느낌을 그대로 두지 않았다. Desktop, tablet, mobile에서 각 영역의 좌우 위치와 너비를 재고, 화면을 비교 증적으로 남겼다. 하나의 `--shell-width`가 header부터 footer까지 같은 정렬선을 맡게 했고, hero가 한 열로 바뀌는 지점을 1100px로 앞당겼다. Hash navigation에는 스크롤뿐 아니라 focus 이동도 함께 넣었다.\n\n수정 뒤에는 네 route와 세 viewport의 geometry, CTA의 URL·scroll offset·focus를 Playwright test로 고정했다. TypeScript 검사와 production build, 당시의 browser test 15개도 모두 통과했다. 처음 발견한 문제는 숨기지 않고 `design-qa.md`의 첫 pass에 남겼다.\n\n다시 배우는 과정에서 실패 판정은 실력이 없다는 결론이 아니었다. 모호했던 차이를 재현 가능한 조건으로 바꾸라는 신호였다. 한 번 막힌 검토가 다음 수정을 지켜 주는 테스트가 되었을 때, 실패는 작업을 멈추는 벽이 아니라 다음 계단이 되었다."
     },
     {
