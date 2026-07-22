@@ -5,7 +5,7 @@ created: 2026-07-22T10:46:39Z
 updated: 2026-07-22T10:46:39Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
+publish_state: published
 review_requested_at: 2026-07-22T10:50:08Z
 privacy_reviewed_by: corcoidum
 privacy_reviewed_at: 2026-07-22T10:50:09Z
@@ -13,6 +13,7 @@ privacy_review_result: passed
 reviewed_revision: 2026-07-22T10:46:39Z
 approved_by: corcoidum
 approved_at: 2026-07-22T10:50:10Z
+published_at: 2026-07-22T10:54:24Z
 tags:
   - trust
   - automation

@@ -114,9 +114,9 @@
         "debugging",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-07-22T10:46:39Z",
-      "published_at": null,
+      "published_at": "2026-07-22T10:54:24Z",
       "backlinks": [],
       "related_notes": [
         "search-that-does-not-guess"
