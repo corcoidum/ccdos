@@ -884,6 +884,167 @@ test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop�
   expect(stacked.backdropDisplay).toBe("none");
 });
 
+test("OS 지도는 큰 원본 비율을 유지하고 desktop과 tablet에서 링크 좌표를 보존한다", async ({ page }) => {
+  const expectedAreas = new Map([
+    ["OS", { x: [0.58, 0.76], y: [0, 0.24], href: "/os" }],
+    ["Garden", { x: [0.18, 0.44], y: [0.34, 0.64], href: "/garden" }],
+    ["Lab", { x: [0.78, 1], y: [0.32, 0.64], href: "/lab" }],
+    ["Projects", { x: [0.5, 0.82], y: [0.72, 1], href: "/projects" }],
+  ]);
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 900 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/os");
+    const geometry = await page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) {
+          throw new Error(`${selector} is missing`);
+        }
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+      };
+      const frame = bounds(".hero--os .hero-frame");
+      return {
+        hero: bounds(".hero--os .hero-inner"),
+        visual: bounds(".hero--os .hero-visual"),
+        frame,
+        image: bounds(".hero--os .hero-visual img"),
+        navigation: bounds(".hero--os .constellation-nav"),
+        nodes: [...document.querySelectorAll<HTMLAnchorElement>(".hero--os .constellation-node")].map(
+          (node) => {
+            const rect = node.getBoundingClientRect();
+            return {
+              label: node.textContent?.trim() ?? "",
+              href: node.getAttribute("href"),
+              x: (rect.left + rect.width / 2 - frame.left) / frame.width,
+              y: (rect.top + rect.height / 2 - frame.top) / frame.height,
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
+              height: rect.height,
+            };
+          },
+        ),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+    });
+
+    expect(geometry.visual.width).toBeGreaterThanOrEqual(geometry.hero.width - 2);
+    expect(geometry.frame.width / geometry.frame.height).toBeCloseTo(1.5, 2);
+    for (const edge of ["top", "left", "width", "height"] as const) {
+      expect(Math.abs(geometry.image[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
+      expect(Math.abs(geometry.navigation[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
+    }
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+
+    for (const node of geometry.nodes) {
+      const expected = expectedAreas.get(node.label);
+      expect(expected, `${node.label} 위치 계약이 없습니다.`).toBeDefined();
+      if (!expected) {
+        continue;
+      }
+      expect(node.href).toBe(expected.href);
+      expect(node.x).toBeGreaterThanOrEqual(expected.x[0]);
+      expect(node.x).toBeLessThanOrEqual(expected.x[1]);
+      expect(node.y).toBeGreaterThanOrEqual(expected.y[0]);
+      expect(node.y).toBeLessThanOrEqual(expected.y[1]);
+      expect(node.left).toBeGreaterThanOrEqual(geometry.frame.left - 1);
+      expect(node.right).toBeLessThanOrEqual(geometry.frame.left + geometry.frame.width + 1);
+      expect(node.top).toBeGreaterThanOrEqual(geometry.frame.top - 1);
+      expect(node.bottom).toBeLessThanOrEqual(geometry.frame.top + geometry.frame.height + 1);
+      expect(node.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
+test("모바일 OS 지도는 네 공간 링크와 Projects를 한 줄에 유지한다", async ({ page }) => {
+  for (const viewport of [
+    { width: 430, height: 900 },
+    { width: 390, height: 844 },
+    { width: 360, height: 800 },
+    { width: 320, height: 720 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/os");
+    const geometry = await page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) {
+          throw new Error(`${selector} is missing`);
+        }
+        const rect = element.getBoundingClientRect();
+        return {
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        };
+      };
+      const navigation = document.querySelector<HTMLElement>(".hero--os .constellation-nav")!;
+      return {
+        frame: bounds(".hero--os .hero-frame"),
+        image: bounds(".hero--os .hero-visual img"),
+        navigation: bounds(".hero--os .constellation-nav"),
+        navigationColumns: getComputedStyle(navigation).gridTemplateColumns.split(" ").length,
+        nodes: [...document.querySelectorAll<HTMLAnchorElement>(".hero--os .constellation-node")].map(
+          (node) => {
+            const rect = node.getBoundingClientRect();
+            return {
+              label: node.textContent?.trim() ?? "",
+              top: rect.top,
+              right: rect.right,
+              bottom: rect.bottom,
+              left: rect.left,
+              height: rect.height,
+              whiteSpace: getComputedStyle(node).whiteSpace,
+            };
+          },
+        ),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+    });
+
+    expect(geometry.image.width / geometry.image.height).toBeCloseTo(1.5, 2);
+    expect(geometry.navigation.top).toBeGreaterThanOrEqual(geometry.image.bottom - 1);
+    expect(Math.abs(geometry.frame.bottom - geometry.navigation.bottom)).toBeLessThanOrEqual(1);
+    expect(geometry.navigationColumns).toBe(4);
+    expect(geometry.nodes.map((node) => node.label)).toEqual(["OS", "Garden", "Lab", "Projects"]);
+    expect(
+      Math.max(...geometry.nodes.map((node) => node.top)) -
+        Math.min(...geometry.nodes.map((node) => node.top)),
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.max(...geometry.nodes.map((node) => node.bottom)) -
+        Math.min(...geometry.nodes.map((node) => node.bottom)),
+    ).toBeLessThanOrEqual(1);
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    for (const node of geometry.nodes) {
+      expect(node.left).toBeGreaterThanOrEqual(geometry.navigation.left - 1);
+      expect(node.right).toBeLessThanOrEqual(geometry.navigation.right + 1);
+      expect(node.height).toBeGreaterThanOrEqual(44);
+      expect(node.whiteSpace).toBe("nowrap");
+    }
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/os");
+  await page
+    .getByRole("navigation", { name: "별자리 공간 바로가기" })
+    .getByRole("link", { name: "Projects" })
+    .click();
+  await expect(page).toHaveURL(/\/projects$/);
+});
+
 test("근거 답변 API는 Secret이 없을 때 retrieval-only로 폴백한다", async ({ request }) => {
   test.skip(hasLocalOpenAIKey, "로컬 .dev.vars에 OPENAI_API_KEY가 있어 not_configured 계약을 검증할 수 없다");
   const response = await request.post("/api/answer", { data: { query: "automation" } });
