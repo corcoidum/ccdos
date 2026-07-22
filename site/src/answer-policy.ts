@@ -24,10 +24,36 @@ export class ProviderError extends Error {
   constructor(
     readonly kind: "http" | "timeout" | "network",
     readonly status?: number,
+    // Provider가 실패 이유를 본문에 담아 준다. 상태 코드만으로는 지역 제한과
+    // 키 제한과 모델 접근을 구분할 수 없어 추측이 반복된다.
+    readonly detail?: string,
   ) {
     super(`provider ${kind}${status === undefined ? "" : ` ${status}`}`);
     this.name = "ProviderError";
   }
+}
+
+const MAX_PROVIDER_DETAIL = 200;
+
+// OpenAI 오류 본문은 error.code/message를 담는다. 요청 본문(질문·출처)이나
+// Authorization 헤더는 되돌아오지 않으므로, 길이만 잘라 진단에 쓴다.
+export function summarizeProviderBody(body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as { error?: { code?: unknown; message?: unknown } };
+    const code = typeof parsed.error?.code === "string" ? parsed.error.code : "";
+    const message = typeof parsed.error?.message === "string" ? parsed.error.message : "";
+    const joined = [code, message].filter(Boolean).join(": ");
+    if (joined) {
+      return joined.slice(0, MAX_PROVIDER_DETAIL);
+    }
+  } catch {
+    // JSON이 아니면(예: edge의 HTML 차단 페이지) 앞부분만 남긴다.
+  }
+  return trimmed.replace(/\s+/g, " ").slice(0, MAX_PROVIDER_DETAIL);
 }
 
 // Provider edge가 egress 위치에 따라 403을, 과부하 시 5xx를 준다. 둘 다
@@ -44,7 +70,8 @@ export function isRetryableProviderFailure(error: unknown): boolean {
 
 export function providerFailureLabel(error: unknown): string {
   if (error instanceof ProviderError) {
-    return error.kind === "http" ? `http_${error.status}` : error.kind;
+    const base = error.kind === "http" ? `http_${error.status}` : error.kind;
+    return error.detail ? `${base} ${error.detail}` : base;
   }
   // AbortSignal.timeout()은 TimeoutError DOMException을 던진다.
   if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {

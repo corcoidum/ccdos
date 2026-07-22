@@ -9,6 +9,7 @@ import {
   isRetryableProviderFailure,
   ProviderError,
   providerFailureLabel,
+  summarizeProviderBody,
 } from "./answer-policy";
 import { excerptOf, type PublicContent, type RankedNote, searchPublicNotes, tokenize } from "./search";
 
@@ -184,7 +185,12 @@ async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Pro
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    throw new ProviderError("http", response.status);
+    // 실패 이유는 본문에 있다. 읽지 못해도 상태 코드는 남긴다.
+    const detail = await response
+      .text()
+      .then(summarizeProviderBody)
+      .catch(() => "");
+    throw new ProviderError("http", response.status, detail);
   }
   return extractOpenAIText((await response.json()) as OpenAIResponsePayload);
 }
