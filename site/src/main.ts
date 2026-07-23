@@ -162,7 +162,7 @@ const routeDefinitions: RouteDefinition[] = [
 ];
 const routes = routeDefinitions.map(({ path }) => path);
 // Knowledge Map은 내부 node와 관계를 직접 조작하므로 swipe 순환에서 제외한다.
-const gestureRoutes: Route[] = ["/os", "/garden", "/lab", "/projects"];
+const gestureRoutes: Route[] = ["/os", "/garden", "/lab", "/projects", "/graph"];
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {

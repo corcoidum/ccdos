@@ -19,6 +19,7 @@ worker-configuration.d.ts
 .wrangler/
 test-results/
 playwright-report/
+output/*.log
 
 # Private and local-only knowledge must never be versioned.
 vaults/ClinicOps-Local/

@@ -709,60 +709,13 @@ img {
   aspect-ratio: 3 / 2;
 }
 
-/* OS에서는 소개 다음에 원본 비율의 지도를 크게 펼친다. 이미지와 링크는 같은 frame을 기준으로 움직인다. */
+/* OS desktop은 메시지와 지도를 한 화면에서 함께 읽는 원래의 균형을 유지한다. */
 .hero--os .hero-inner {
-  grid-template-columns: minmax(0, 1fr);
-  min-height: 0;
-}
-
-.hero--os .hero-copy {
-  display: grid;
-  grid-template-areas:
-    "eyebrow description"
-    "credo description"
-    "title actions"
-    "title note";
-  grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
-  align-items: start;
-  padding-top: clamp(36px, 4vw, 56px);
-  padding-bottom: clamp(36px, 4vw, 56px);
-  column-gap: clamp(48px, 6vw, 96px);
-}
-
-.hero--os .hero-copy .eyebrow {
-  grid-area: eyebrow;
-}
-
-.hero--os .hero-credo {
-  grid-area: credo;
-  margin-bottom: 16px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
 }
 
 .hero--os h1 {
-  grid-area: title;
   font-size: clamp(2.55rem, 3vw, 3rem);
-}
-
-.hero--os .hero-description {
-  grid-area: description;
-  align-self: end;
-  margin-top: 0;
-}
-
-.hero--os .hero-actions {
-  grid-area: actions;
-  margin-top: 20px;
-}
-
-.hero--os .hero-note {
-  grid-area: note;
-  margin-top: 18px;
-}
-
-.hero--os .hero-visual {
-  min-height: 0;
-  border-top: 1px solid var(--line);
-  border-left: 0;
 }
 
 .hero-visual img {
@@ -784,11 +737,11 @@ img {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: clamp(5px, 0.65vw, 8px) clamp(6px, 0.8vw, 10px);
+  padding: 8px 10px;
   border-bottom: 1px solid var(--line-strong);
   color: var(--ivory);
   font-family: var(--serif);
-  font-size: clamp(0.72rem, 2.6vw, 2.25rem);
+  font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
   transition: color 160ms ease, border-color 160ms ease;
@@ -2586,15 +2539,13 @@ img {
     min-height: auto;
   }
 
+  .hero--os .hero-inner {
+    grid-template-columns: 1fr;
+  }
+
   .hero-copy {
     min-height: 0;
     padding: 64px max(32px, calc((100vw - 720px) / 2)) 56px;
-  }
-
-  .hero--os .hero-copy {
-    display: flex;
-    padding-top: 64px;
-    padding-bottom: 56px;
   }
 
   .hero-visual {
@@ -2790,10 +2741,6 @@ img {
 
   .hero-copy {
     min-height: 0;
-    padding: 48px 20px 44px;
-  }
-
-  .hero--os .hero-copy {
     padding: 48px 20px 44px;
   }
 
