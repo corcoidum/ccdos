@@ -33,6 +33,14 @@ export class ProviderError extends Error {
   }
 }
 
+type ProviderRetryOptions = {
+  attempts: number;
+  attemptTimeoutMs: number;
+  deadlineMs: number;
+  retryDelayMs: number;
+  onRetry?: (attempt: number, error: unknown) => void;
+};
+
 const MAX_PROVIDER_DETAIL = 200;
 
 // OpenAI 오류 본문은 error.code/message를 담는다. 요청 본문(질문·출처)이나
@@ -63,9 +71,36 @@ const RETRYABLE_STATUS = new Set([403, 408, 500, 502, 503, 504]);
 
 export function isRetryableProviderFailure(error: unknown): boolean {
   if (error instanceof ProviderError) {
-    return error.kind === "network" || (error.status !== undefined && RETRYABLE_STATUS.has(error.status));
+    return (
+      error.kind === "network" ||
+      error.kind === "timeout" ||
+      (error.status !== undefined && RETRYABLE_STATUS.has(error.status))
+    );
   }
   return false;
+}
+
+function providerFailureName(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("name" in error)) {
+    return undefined;
+  }
+  return typeof error.name === "string" ? error.name : undefined;
+}
+
+// Cloudflare fetch는 egress 실패를 TypeError로, timeout/abort를 DOMException으로
+// 던진다. retry 경계에 들어오기 전에 진단 가능한 최소 유형으로 정규화한다.
+export function normalizeProviderFailure(error: unknown): unknown {
+  if (error instanceof ProviderError) {
+    return error;
+  }
+  const name = providerFailureName(error);
+  if (name === "TimeoutError" || name === "AbortError") {
+    return new ProviderError("timeout");
+  }
+  if (error instanceof TypeError || name === "TypeError") {
+    return new ProviderError("network");
+  }
+  return error;
 }
 
 export function providerFailureLabel(error: unknown): string {
@@ -74,10 +109,47 @@ export function providerFailureLabel(error: unknown): string {
     return error.detail ? `${base} ${error.detail}` : base;
   }
   // AbortSignal.timeout()은 TimeoutError DOMException을 던진다.
-  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+  const name = providerFailureName(error);
+  if (name === "TimeoutError" || name === "AbortError") {
     return "timeout";
   }
   return "unknown";
+}
+
+export async function withProviderRetry<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  options: ProviderRetryOptions,
+): Promise<T> {
+  const attempts = Math.max(1, options.attempts);
+  const deadline = Date.now() + Math.max(1, options.deadlineMs);
+  let lastError: unknown = new ProviderError("timeout");
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      throw new ProviderError("timeout");
+    }
+    const attemptTimeoutMs = Math.max(1, Math.min(options.attemptTimeoutMs, remainingMs));
+    try {
+      return await operation(AbortSignal.timeout(attemptTimeoutMs));
+    } catch (caught) {
+      const error = normalizeProviderFailure(caught);
+      lastError = error;
+      const retryDelayMs = Math.max(0, options.retryDelayMs * attempt);
+      const canRetry =
+        attempt < attempts &&
+        isRetryableProviderFailure(error) &&
+        Date.now() + retryDelayMs < deadline;
+      if (!canRetry) {
+        break;
+      }
+      options.onRetry?.(attempt, error);
+      if (retryDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+  }
+  throw lastError;
 }
 
 export function extractOpenAIText(payload: OpenAIResponsePayload): string {

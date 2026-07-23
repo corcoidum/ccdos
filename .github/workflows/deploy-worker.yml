@@ -64,15 +64,18 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run deploy
       - name: Smoke-check the deployed answer layer
+        id: smoke
         if: ${{ steps.deploy.outcome == 'success' }}
         run: python automation/check_answer_layer.py
       - name: Create redacted deployment status
         if: ${{ always() }}
         env:
           DEPLOYMENT_STATUS: ${{ steps.deploy.outcome || 'skipped' }}
+          SMOKE_CHECK_STATUS: ${{ steps.smoke.outcome || 'skipped' }}
         run: >-
           python automation/create_status_report.py
           --deployment-status "$DEPLOYMENT_STATUS"
+          --smoke-check-status "$SMOKE_CHECK_STATUS"
           --output "$RUNNER_TEMP/ccdos-status.json"
       - name: Send optional Discord deployment status
         if: ${{ always() }}

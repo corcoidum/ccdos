@@ -14,7 +14,7 @@ Knowledge Graph Foundation과 ADR-0005는 사람이 선언한 공개 edge, backl
 - UI는 관계를 생성·수정·저장하지 않으며 Markdown frontmatter만 계속 권위 원천으로 둔다.
 - `related_to`만 undirected로 표시하고 나머지 relation은 선언된 `source → target` 방향을 화살표로 보존한다.
 - note별 연결 projection은 incoming, outgoing, undirected 방향과 복수 relation type을 잃지 않는 공통 model에서 계산한다. Note modal과 Knowledge Map이 같은 model을 사용한다.
-- node 위치는 ID 정렬에 따른 deterministic radial layout으로 계산한다. force-directed layout, Canvas, WebGL, 외부 graph library는 도입하지 않는다.
+- node 위치는 Garden과 같은 최신 공개 기록 순서와 공통 기록 번호를 사용해 deterministic radial layout으로 계산하고, 번호가 없는 예외에만 ID를 동률 해소 기준으로 쓴다. force-directed layout, Canvas, WebGL, 외부 graph library는 도입하지 않는다.
 - Desktop SVG는 보조 시각화이며 전체 제목을 제공하는 HTML 기록 목록과 상세 panel을 접근 가능한 canonical UI로 둔다. 작은 화면에서는 축소 SVG를 숨기고 목록을 우선한다.
 - node의 전문 읽기는 기존 note modal과 `?note=<id>` deep link를 재사용한다.
 - Living Value와 relation type 필터는 화면 표시만 바꾸며 graph artifact를 변경하지 않는다.

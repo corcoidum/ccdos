@@ -6,10 +6,10 @@ import {
   extractOpenAIText,
   hasValidCitations,
   type OpenAIResponsePayload,
-  isRetryableProviderFailure,
   ProviderError,
   providerFailureLabel,
   summarizeProviderBody,
+  withProviderRetry,
 } from "./answer-policy";
 import { excerptOf, type PublicContent, type RankedNote, searchPublicNotes, tokenize } from "./search";
 
@@ -131,6 +131,7 @@ async function refundDailyBudget(env: Env): Promise<void> {
 // 일시적 provider 실패는 폴백 전에 짧게 다시 시도한다. 사용자를 오래 기다리게
 // 하지 않도록 전체 시도를 deadline으로 묶는다.
 const PROVIDER_ATTEMPTS = 3;
+const PROVIDER_ATTEMPT_TIMEOUT_MS = 15_000;
 const PROVIDER_RETRY_DELAY_MS = 300;
 const PROVIDER_DEADLINE_MS = 24_000;
 
@@ -139,28 +140,26 @@ async function callOpenAIWithRetry(
   query: string,
   sources: AnswerSource[],
 ): Promise<string> {
-  const deadline = Date.now() + PROVIDER_DEADLINE_MS;
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= PROVIDER_ATTEMPTS; attempt += 1) {
-    try {
-      return await callOpenAI(env, query, sources);
-    } catch (error) {
-      lastError = error;
-      const canRetry =
-        attempt < PROVIDER_ATTEMPTS &&
-        isRetryableProviderFailure(error) &&
-        Date.now() + PROVIDER_RETRY_DELAY_MS < deadline;
-      if (!canRetry) {
-        break;
-      }
-      console.warn(`answer provider retry ${attempt}:`, providerFailureLabel(error));
-      await new Promise((resolve) => setTimeout(resolve, PROVIDER_RETRY_DELAY_MS * attempt));
-    }
-  }
-  throw lastError;
+  return withProviderRetry(
+    (signal) => callOpenAI(env, query, sources, signal),
+    {
+      attempts: PROVIDER_ATTEMPTS,
+      attemptTimeoutMs: PROVIDER_ATTEMPT_TIMEOUT_MS,
+      deadlineMs: PROVIDER_DEADLINE_MS,
+      retryDelayMs: PROVIDER_RETRY_DELAY_MS,
+      onRetry: (attempt, error) => {
+        console.warn(`answer provider retry ${attempt}:`, providerFailureLabel(error));
+      },
+    },
+  );
 }
 
-async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Promise<string> {
+async function callOpenAI(
+  env: Env,
+  query: string,
+  sources: AnswerSource[],
+  signal: AbortSignal,
+): Promise<string> {
   const model = env.OPENAI_MODEL || DEFAULT_MODEL;
   // Worker는 방문자와 가까운 colo에서 실행되므로 egress 위치가 매번 달라지고,
   // provider는 그중 일부를 unsupported_country_region_territory로 거절한다.
@@ -184,7 +183,7 @@ async function callOpenAI(env: Env, query: string, sources: AnswerSource[]): Pro
         "Markdown 강조·제목·목록·코드 기호 없이 3개의 짧은 plain-text 문단 이내로 답하고, 후속 질문이나 추가 작업을 제안하지 마세요.",
       input: `질문:\n${query}\n\n승인된 공개 출처:\n${JSON.stringify(sources)}`,
     }),
-    signal: AbortSignal.timeout(15_000),
+    signal,
   });
   if (!response.ok) {
     // 실패 이유는 본문에 있다. 읽지 못해도 상태 코드는 남긴다.

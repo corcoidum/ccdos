@@ -10,6 +10,7 @@ import {
   isRetryableProviderFailure,
   ProviderError,
   providerFailureLabel,
+  withProviderRetry,
 } from "../src/answer-policy";
 import {
   connectionsForNote,
@@ -1130,6 +1131,60 @@ test("일시적 provider 실패만 재시도하고 429·본문 오류는 즉시 
   expect(isRetryableProviderFailure(new ProviderError("http", 401))).toBeFalsy();
   expect(isRetryableProviderFailure(new ProviderError("http", 400))).toBeFalsy();
   expect(isRetryableProviderFailure(new Error("unexpected"))).toBeFalsy();
+});
+
+test("실제 fetch network·timeout 예외를 재시도 가능한 ProviderError로 분류한다", async () => {
+  const retryOptions = {
+    attempts: 3,
+    attemptTimeoutMs: 200,
+    deadlineMs: 1_000,
+    retryDelayMs: 0,
+  };
+  let networkAttempts = 0;
+  const networkResult = await withProviderRetry(async () => {
+    networkAttempts += 1;
+    if (networkAttempts === 1) {
+      throw new TypeError("fetch failed");
+    }
+    return "network recovered";
+  }, retryOptions);
+  expect(networkResult).toBe("network recovered");
+  expect(networkAttempts).toBe(2);
+
+  let timeoutAttempts = 0;
+  const timeoutResult = await withProviderRetry(async () => {
+    timeoutAttempts += 1;
+    if (timeoutAttempts === 1) {
+      throw new DOMException("timed out", "TimeoutError");
+    }
+    return "timeout recovered";
+  }, retryOptions);
+  expect(timeoutResult).toBe("timeout recovered");
+  expect(timeoutAttempts).toBe(2);
+});
+
+test("provider retry 전체 시도는 하나의 deadline을 넘지 않는다", async () => {
+  const startedAt = Date.now();
+  const result = withProviderRetry(
+    (signal) =>
+      new Promise<string>((_resolve, reject) => {
+        const rejectOnAbort = () => reject(signal.reason);
+        if (signal.aborted) {
+          rejectOnAbort();
+        } else {
+          signal.addEventListener("abort", rejectOnAbort, { once: true });
+        }
+      }),
+    {
+      attempts: 3,
+      attemptTimeoutMs: 1_000,
+      deadlineMs: 40,
+      retryDelayMs: 0,
+    },
+  );
+
+  await expect(result).rejects.toMatchObject({ kind: "timeout" });
+  expect(Date.now() - startedAt).toBeLessThan(500);
 });
 
 test("OpenAI Responses API의 message output만 안전하게 추출한다", () => {

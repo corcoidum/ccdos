@@ -64,6 +64,22 @@ class AutomationReportTests(unittest.TestCase):
         self.assertEqual(deployment["status"], "failed")
         self.assertNotIn("body", deployment)
 
+    def test_smoke_check_failure_marks_successful_deployment_report_failed(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        report = create_report(
+            root,
+            deployment_status="success",
+            smoke_check_status="failure",
+        )
+        deployment = next(check for check in report["checks"] if check["name"] == "deployment")
+        smoke_check = next(
+            check for check in report["checks"] if check["name"] == "post_deploy_smoke"
+        )
+        self.assertEqual(deployment["status"], "passed")
+        self.assertEqual(smoke_check["status"], "failed")
+        self.assertEqual(report["overall_status"], "failed")
+        self.assertNotIn("body", smoke_check)
+
     def test_weekly_review_extends_report_with_public_metadata_only(self) -> None:
         report = {
             "generated_at": "2026-07-13T00:00:00Z",

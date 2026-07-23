@@ -39,7 +39,11 @@ def count_approved_notes(root: Path) -> tuple[int, dict[str, str]]:
     return len(notes), {"name": "public_content_index_readable", "status": "passed", "summary": f"{len(notes)} approved public note(s)"}
 
 
-def create_report(root: Path, deployment_status: str | None = None) -> dict[str, object]:
+def create_report(
+    root: Path,
+    deployment_status: str | None = None,
+    smoke_check_status: str | None = None,
+) -> dict[str, object]:
     checks = [
         run_check("architecture", [sys.executable, "scripts/verify_phase0.py"], root),
         run_check("public_notes", [sys.executable, "automation/validate_notes.py", "vaults/CORCOIDUM-Public"], root),
@@ -54,6 +58,14 @@ def create_report(root: Path, deployment_status: str | None = None) -> dict[str,
                 "name": "deployment",
                 "status": "passed" if deployment_status == "success" else "failed",
                 "summary": f"deployment step outcome: {deployment_status}",
+            }
+        )
+    if smoke_check_status is not None:
+        checks.append(
+            {
+                "name": "post_deploy_smoke",
+                "status": "passed" if smoke_check_status == "success" else "failed",
+                "summary": f"post-deploy smoke step outcome: {smoke_check_status}",
             }
         )
     return {
@@ -72,9 +84,18 @@ def main(argv: list[str] | None = None) -> int:
         choices=("success", "failure", "cancelled", "skipped"),
         help="optional GitHub Actions deployment step outcome",
     )
+    parser.add_argument(
+        "--smoke-check-status",
+        choices=("success", "failure", "cancelled", "skipped"),
+        help="optional GitHub Actions post-deploy smoke step outcome",
+    )
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[1]
-    report = create_report(root, args.deployment_status)
+    report = create_report(
+        root,
+        deployment_status=args.deployment_status,
+        smoke_check_status=args.smoke_check_status,
+    )
     rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
