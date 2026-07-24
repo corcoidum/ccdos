@@ -1862,7 +1862,6 @@ function createLivingValuesDrawer(route: Route): { trigger: HTMLButtonElement; d
 function createHeader(route: Route): HTMLElement {
   const header = createElement("header", "site-header");
   const inner = createElement("div", "header-inner");
-  const leading = createElement("div", "header-leading");
   const brand = createRouteLink("/os", "", "brand");
   brand.setAttribute("aria-label", "CORCOIDUM OS 홈");
   brand.append(createBrandLogo(28), createElement("span", undefined, "CORCOIDUM OS"));
@@ -1870,7 +1869,6 @@ function createHeader(route: Route): HTMLElement {
   // 가치 공간에는 상단 메뉴에 다른 가치로 가는 길이 없으므로, drawer는 모든
   // route에서 제공한다. 여기가 가치 공간 사이를 오가는 유일한 경로다.
   const { trigger, drawer } = createLivingValuesDrawer(route);
-  leading.append(trigger, drawer, brand);
 
   const nav = createElement("nav", "site-nav");
   nav.setAttribute("aria-label", "주요 메뉴");
@@ -1882,8 +1880,10 @@ function createHeader(route: Route): HTMLElement {
     }
     nav.append(link);
   }
-  inner.append(leading, nav);
-  header.append(inner);
+  const actions = createElement("div", "header-actions");
+  actions.append(nav, trigger);
+  inner.append(brand, actions);
+  header.append(inner, drawer);
   return header;
 }
 

@@ -326,14 +326,14 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
   {
     id: "9",
     title: "Living Values",
-    summary: "H.O.P.E · T.R.U.S.T · M.E.R.C.Y · L.O.V.E 공개 기록 축적",
-    status: "GROWING",
+    summary: "네 가치별 승인·발행 공개 기록의 최소 기준 충족",
+    status: "PASSED",
     purpose:
-      "Phase 0–8에서 만든 공개 시스템을 네 가지 가치가 실제로 드러나는 승인 기록으로 채우고 있습니다.",
+      "Phase 0–8에서 만든 공개 시스템을 네 가지 가치가 실제로 드러나는 승인 기록으로 채웠습니다.",
     delivered: [
       "hope·trust·mercy·love 가치 tag의 의미와 적용 기준 정의",
       "Garden과 가치별 공간에서 승인 기록을 같은 tag로 탐색",
-      "주 1–2편을 목표로 하되 발행 gate를 우선하는 운영 리듬 수립",
+      "공개 index와 원본 증적에서 hope 3·trust 6·mercy 4·love 3편의 발행 기록 확인",
     ],
     boundaries: [
       "새 인프라 구축이 아니라 콘텐츠 축적 단계로 유지",
@@ -341,11 +341,11 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     ],
     evidence: [
       {
-        label: "Phase 9 계획과 완료 기준",
+        label: "Phase 9 완료 보고서",
         summary:
-          "Living Values tag 운영 원칙, 사람 승인 gate와 가치별 3편 이상이라는 완료 기준을 정의합니다.",
+          "현재 공개 index와 원본의 review·approval·publication 증적을 가치별 완료 기준과 대조합니다.",
         sourceLabel: "GitHub",
-        href: `${repository}/blob/main/docs/architecture/phase-9-plan.md`,
+        href: `${repository}/blob/main/docs/architecture/phase-9-completion-report.md`,
       },
       {
         label: "Living Values 기록",
@@ -354,7 +354,7 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
         href: "https://openkiki.org/garden",
       },
     ],
-    outcome: "네 가치마다 승인·발행 기록 3편 이상이 쌓이기 전까지 GROWING 상태를 유지합니다.",
+    outcome: "네 가치 모두 승인·발행 기록 3편 이상을 확인해 Phase 9 완료 기준을 통과했습니다.",
   },
 ];
 

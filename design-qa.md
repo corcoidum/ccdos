@@ -78,8 +78,6 @@
 
 final result: passed
 
----
-
 # Living Values Global Drawer Extension QA
 
 ## Comparison Target
@@ -132,8 +130,6 @@ final result: passed
 - None required for this extension.
 
 final result: passed
-
----
 
 # OS Constellation Map — Design QA
 
@@ -246,5 +242,87 @@ final result: passed
 
 - 현재 요청 범위에서 남은 P0/P1/P2는 없다.
 - 필요하면 별도 iteration에서 desktop hero의 copy와 image 비율을 2–3% 단위로 미세 조정할 수 있다.
+
+final result: passed
+
+---
+
+# ZIP Editorial Redesign — Design QA
+
+## 검수 대상
+
+- 사용자 제공 source: `C:/Users/user/Downloads/CCDOS 사이트 리디자인.zip`
+- Source visual truth: ZIP 내부 `.thumbnail` WebP
+- 로컬 검수 사본: `C:/Users/user/.codex/visualizations/2026/07/24/019f920c-1f2b-7d43-bc42-890d87c872b4/ccdos-redesign-reference/reference-thumbnail.webp`
+- Implementation: `http://127.0.0.1:4173/os`
+- 기준 viewport: source thumbnail과 같은 640px 폭, 구현 확인용 desktop 1440 × 900 및 mobile 390 × 844
+- State: `/os` initial route, drawer closed, motion idle
+
+## 반영 범위
+
+- ZIP의 dark editorial, warm ivory, gold accent, pill CTA, rounded constellation panel, raised evidence card 언어를 기존 Vite/TypeScript 제품에 이식했다.
+- 기존 `logo.png` 브랜드 마크, 실제 constellation asset, 공개 note/Phase source-of-truth, route/history/dialog 접근성 로직은 유지했다.
+- ZIP의 custom runtime, 외부 Babel/React loader, hard-coded Phase 상태, 복제 note 데이터는 가져오지 않았다.
+
+## 자동 검증
+
+- 브랜드 마크 source: `/assets/logo.png`
+- Mobile brand 및 Living Values trigger: 44px 이상
+- Desktop hero: 30–73px column gap, 48–56% visual 비율, 18px 이상 panel radius
+- 320–1536px 대표 viewport: global horizontal overflow 없음
+- Playwright full regression: 46 passed
+- TypeScript typecheck: passed
+- Production build: passed
+
+## 차단된 시각 비교
+
+- Codex in-app browser에서 `terminal.local:4173`은 `ERR_NAME_NOT_RESOLVED`, `127.0.0.1:4173`은 격리된 browser namespace에서 접근할 수 없었다.
+- 따라서 source thumbnail과 현재 implementation screenshot을 같은 viewport로 결합하는 mandatory visual comparison은 완료하지 못했다.
+- P0/P1/P2가 없다고 시각적으로 확정하거나 screenshot evidence를 새로 기록하지 않는다. 사용자가 로컬 preview를 확인한 뒤 시각 승인 또는 조정 의견을 주면 같은 source와 viewport로 최종 pass를 갱신한다.
+
+final result: blocked
+
+---
+
+# OS Value Card Alignment — Design QA
+
+## 검수 대상
+
+- 사용자 문제 화면: `C:/yTemp/codex-clipboard-045827aa-c11a-4059-901f-da79bb2c66bb.png`
+- Implementation: `http://127.0.0.1:4173/os#values`
+- 수정 전 screenshot: `docs/design-evidence/value-cards-alignment-before.png`
+- 수정 후 screenshot: `docs/design-evidence/value-cards-alignment-after.png`
+- 동일 크기 비교: `docs/design-evidence/value-cards-alignment-comparison.png`
+
+## 비교 조건
+
+- Source pixels: 1420 × 416 px
+- Implementation viewport: 1420 × 620 CSS px, DPR 1
+- Focused implementation crop: 1420 × 416 px
+- Comparison pixels: 2840 × 416 px (왼쪽 source, 오른쪽 implementation)
+- State: `/os#values`, reveal transition settled, pointer idle
+
+## 원인과 수정
+
+- P2 — 두 번째 카드부터 적용되던 legacy sibling selector `.value-item + .value-item`의 specificity가 `.value-item-link`보다 높아 `padding-left: 0`이 T.R.U.S.T, M.E.R.C.Y, L.O.V.E에만 남아 있었다.
+- 공통 padding을 base `.value-item`에 두고 legacy sibling/nth-child reset을 제거했다.
+- 모든 카드를 column flex layout으로 통일하고 action에 `margin-top: auto`를 적용해 copy 길이와 무관하게 CTA 기준선을 맞췄다.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Typography / copy | Passed | label, title, body, CTA copy와 type token을 변경하지 않았다. |
+| Spacing / layout | Passed | Desktop 네 카드 모두 실제 왼쪽 inset 25 px, CTA bottom 386.64 px로 일치한다. |
+| Colors / assets | Passed | 기존 night, ivory, gold token과 브랜드 마크·constellation asset을 변경하지 않았다. |
+| Tablet responsiveness | Passed | 1024 px에서 네 카드 inset 25 px, 각 행의 CTA bottom이 일치한다. |
+| Mobile responsiveness | Passed | 390 px에서 네 카드 inset 23 px, horizontal overflow 0 px를 확인했다. |
+| Interaction / console | Passed | T.R.U.S.T 카드의 `/trust` 이동이 동작하며 console error·warning은 0건이다. |
+
+## Comparison history
+
+1. Initial — P2: H.O.P.E만 정상 inset이고 나머지 세 카드는 text와 CTA가 왼쪽 border에 붙었다.
+2. Fix — 공통 card padding과 column flex layout을 base selector에 적용하고 충돌 selector를 제거했다.
+3. Final — desktop, tablet, mobile에서 네 카드의 inset과 CTA 정렬이 일치하며 남은 P0/P1/P2는 없다.
 
 final result: passed
