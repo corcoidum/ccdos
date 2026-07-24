@@ -440,3 +440,58 @@ final result: passed
 - Browser console: 0 errors, 0 warnings
 
 final result: passed
+
+---
+
+# OS Value Names and Living Values Letter Reveal — Design QA
+
+## 검수 대상
+
+- Implementation: `http://127.0.0.1:4173/os#values`, Living Values drawer
+- Desktop card evidence: `docs/design-evidence/os-value-name-colors-desktop.png`
+- Mobile card evidence: `docs/design-evidence/os-value-name-colors-mobile.png`
+- Drawer 접힌 상태: `docs/design-evidence/living-values-collapsed-desktop.png`
+- Hover 상태: `docs/design-evidence/living-values-hover-hope.png`, `living-values-hover-trust.png`, `living-values-hover-mercy.png`, `living-values-hover-love.png`
+
+## 비교 조건
+
+- Desktop: 1440 × 900 CSS px, DPR 1, `hover: hover` / `pointer: fine`
+- Mobile: 390 × 844 CSS px, DPR 1, `hover: none` / `pointer: coarse`
+- State: 카드는 기본 상태, drawer는 열린 뒤 각 머리글자에 hover
+
+## Findings
+
+- Initial P2 — 네 카드의 영문 이름이 모두 moss 한 색이어서 카드마다의 의미색을 이름이 아닌 한글 문구가 지고 있었다.
+- Final — 영문 이름이 `--value-*` 의미색을 입고, 한글 약속은 `--ivory-strong`으로 통일했다.
+- Final — 표기를 `H.O.P.E`에서 `H.OPE`로 바꿔 머리글자 하나와 나머지 낱말이라는 구조를 드러냈다. `T.RUST`, `M.ERCY`, `L.OVE`도 같다.
+- Initial P2 — 펼침 연출이 `max-width: 7em` 추정값이라 짧은 낱말이 먼저 도착해 네 줄의 속도가 어긋났다.
+- Final — `grid-template-columns: 0fr → 1fr`로 바꿔 낱말마다 제 폭까지만 정확히 열린다. drawer 목록의 기존 `grid-template-rows` 연출과 같은 방식이다.
+- Initial P2 — 머리글자 정렬용 `min-width: 0.78em`이 펼친 뒤에도 남아 좁은 T와 L에서 `T .rust`처럼 벌어져 보였다.
+- Final — 펼칠 때 그 여백을 함께 닫아 한 낱말로 읽힌다. 접힌 상태의 H/T/M/L 정렬은 그대로다.
+- 소문자 꼬리의 descender(`.ope`의 p, `.ercy`의 y)가 `line-height: 1`에서 잘리지 않도록 아래 여유를 주고 음수 margin으로 줄 높이를 되돌렸다.
+- 남은 P0/P1은 없다. P2로 `T.RUST`의 `--value-trust`(#d7c9aa)와 한글 문구의 `--ivory-strong`(#fff0dc)이 가까워, 네 카드 중 이름과 문구의 색 대비가 가장 약하다.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Fonts / typography | Passed | 카드 이름의 0.84rem·800 weight·0.14em letter-spacing과 drawer의 serif 1.85rem을 유지했다. |
+| Spacing / layout | Passed | 카드 grid와 drawer row의 min-height 72px, padding을 변경하지 않았다. 머리글자 여백은 펼친 상태에서만 닫힌다. |
+| Colors / tokens | Passed | 새 색을 만들지 않고 기존 `--value-*`와 `--ivory-strong` token만 재배치했다. |
+| Image quality / assets | Passed | image asset을 변경하지 않았다. |
+| Copy / content | Passed | 영문 표기만 `H.OPE` 형태로 바꿨다. 한글 약속·본문·CTA와 공개 기록 문구는 그대로다. |
+| Motion | Passed | 460ms `cubic-bezier(0.22, 1, 0.36, 1)`로 기존 drawer 연출과 곡선을 맞췄다. `prefers-reduced-motion`과 touch 규칙은 기존 동작을 유지한다. |
+
+## Verification evidence
+
+- `npm run typecheck`: passed
+- `npm run build`: passed
+- `npx playwright test`: 48 passed
+- `npx playwright test --grep "hover하면|약속 카드|touch 기기"`: 3 passed
+- Computed 이름 색: H `rgb(201, 178, 116)`, T `rgb(215, 201, 170)`, M `rgb(167, 182, 108)`, L `rgb(240, 139, 105)`
+- Computed 한글 문구 색: 네 카드 모두 `rgb(255, 240, 220)`
+- Contrast on card surface: H 8.26:1, T 10.49:1, M 7.81:1, L 7.03:1, 한글 문구 15.33:1
+- Contrast on drawer hover surface: H 7.94:1, T 10.08:1, M 7.50:1, L 6.76:1
+- Browser console: 0 errors, 0 warnings
+
+final result: passed

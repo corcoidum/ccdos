@@ -113,42 +113,42 @@ const valueSpaces: readonly ValueSpaceConfig[] = [
   {
     path: "/hope",
     tag: "hope",
-    name: "H.O.P.E",
+    name: "H.OPE",
     meaning: "성장 · 재시작 · 학습",
     description:
       "배움의 공백과 실패를 끝으로 보지 않습니다. 다시 시작한 학습과 새 기술, 다시 시도한 기록을 다음 성장의 발판으로 남깁니다.",
     image: "/assets/value-hope.webp",
-    imageAlt: "갈라진 땅에서 책장 계단이 새벽 별을 향해 다시 오르는 H.O.P.E 별자리",
+    imageAlt: "갈라진 땅에서 책장 계단이 새벽 별을 향해 다시 오르는 H.OPE 별자리",
   },
   {
     path: "/trust",
     tag: "trust",
-    name: "T.R.U.S.T",
+    name: "T.RUST",
     meaning: "명확한 사고 · 시스템 · 기술",
     description:
       "설명할 수 있고 다시 검증할 수 있는 시스템을 만듭니다. 구축과 검증, 디버깅의 근거를 남겨 기술 위에 신뢰를 쌓습니다.",
     image: "/assets/value-trust.webp",
-    imageAlt: "빛이 투명한 프리즘과 검증 관문을 통과하는 정밀한 T.R.U.S.T 천체 장치",
+    imageAlt: "빛이 투명한 프리즘과 검증 관문을 통과하는 정밀한 T.RUST 천체 장치",
   },
   {
     path: "/mercy",
     tag: "mercy",
-    name: "M.E.R.C.Y",
+    name: "M.ERCY",
     meaning: "사람의 부담을 줄이는 기술",
     description:
       "현장의 마찰을 먼저 보고 반복 업무와 불필요한 부담을 줄이는 자동화를 만듭니다. 기능 수보다 사람이 되찾은 여유를 성과로 봅니다.",
     image: "/assets/value-mercy.webp",
-    imageAlt: "도르래가 무거운 돌을 들어 올리고 열린 손에는 깃털이 놓인 M.E.R.C.Y 별자리",
+    imageAlt: "도르래가 무거운 돌을 들어 올리고 열린 손에는 깃털이 놓인 M.ERCY 별자리",
   },
   {
     path: "/love",
     tag: "love",
-    name: "L.O.V.E",
+    name: "L.OVE",
     meaning: "가족 · 일상 · 지속 가능성",
     description:
       "가족과 일상, 건강을 희생하지 않아도 이어 갈 수 있는 기술을 선택합니다. 일과 삶을 함께 지키는 지속 가능한 리듬을 기록합니다.",
     image: "/assets/value-love.webp",
-    imageAlt: "집과 가족의 식탁을 달과 계절의 순환이 감싸는 L.O.V.E 별자리",
+    imageAlt: "집과 가족의 식탁을 달과 계절의 순환이 감싸는 L.OVE 별자리",
   },
 ];
 const valueRouteDefinitions: RouteDefinition[] = valueSpaces.map(({ path, name, meaning }) => ({
@@ -1764,11 +1764,16 @@ function createLivingValuesDrawer(route: Route): { trigger: HTMLButtonElement; d
       "aria-label",
       isCurrentSpace ? `${value.name} 글 목록 (현재 공간)` : `${value.name} 글 목록`,
     );
-    const word = createElement("span", "living-values-word");
-    word.append(
-      createElement("span", "living-values-initial", value.name.charAt(0)),
-      createElement("span", "living-values-word-tail", value.name.slice(1)),
+    // 접힌 상태에서는 머리글자만 남고, hover·focus·펼침에서 나머지가 밀려 나온다.
+    // 꼬리를 소문자로 두어 "H" 뒤에 ".ope"가 이어붙는 한 낱말로 읽히게 한다.
+    // 안쪽 span은 자기 폭을 유지해, 바깥 span이 0fr에서 1fr로 자라는 동안 글자가
+    // 눌리지 않고 왼쪽부터 차례로 드러난다.
+    const wordTail = createElement("span", "living-values-word-tail");
+    wordTail.append(
+      createElement("span", "living-values-word-tail-inner", value.name.slice(1).toLowerCase()),
     );
+    const word = createElement("span", "living-values-word");
+    word.append(createElement("span", "living-values-initial", value.name.charAt(0)), wordTail);
     toggle.append(word, createElement("span", "living-values-count", `${notes.length} records`));
 
     const panel = createElement("div", "living-values-notes");

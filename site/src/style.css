@@ -383,27 +383,44 @@ img {
   white-space: nowrap;
 }
 
+/* 접혀 있을 때는 네 머리글자의 폭을 맞춰 목록이 한 줄에 정렬되어 보이게 한다.
+   펼칠 때는 그 여백을 닫아야 좁은 T와 L도 ".rust", ".ove"와 붙어 한 낱말로 읽힌다. */
 .living-values-initial {
   display: inline-block;
   min-width: 0.78em;
+  transition: min-width 460ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.living-values-toggle:hover .living-values-initial,
+.living-values-toggle:focus-visible .living-values-initial,
+.living-values-toggle[aria-expanded="true"] .living-values-initial {
+  min-width: 0;
+}
+
+/* 꼬리를 0fr에서 1fr로 열어 낱말이 제 폭만큼만 정확히 펼쳐지게 한다.
+   max-width 추정값을 쓰면 짧은 낱말이 먼저 도착해 네 줄의 속도가 어긋난다. */
 .living-values-word-tail {
-  display: inline-block;
-  max-width: 0;
-  overflow: hidden;
+  display: inline-grid;
+  grid-template-columns: 0fr;
   opacity: 0;
-  transform: translateX(-0.22em);
-  transition: max-width 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease,
-    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: grid-template-columns 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+}
+
+.living-values-word-tail-inner {
+  min-width: 0;
+  overflow: hidden;
+  /* line-height가 1이라 .ope와 .ercy의 descender가 잘린다. 아래로 여유를 주고
+     같은 크기의 음수 margin으로 줄 높이는 그대로 되돌린다. */
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+  white-space: nowrap;
 }
 
 .living-values-toggle:hover .living-values-word-tail,
 .living-values-toggle:focus-visible .living-values-word-tail,
 .living-values-toggle[aria-expanded="true"] .living-values-word-tail {
-  max-width: 7em;
+  grid-template-columns: 1fr;
   opacity: 1;
-  transform: translateX(0);
 }
 
 .living-values-count {
@@ -1017,9 +1034,10 @@ img {
   background: var(--surface-hover);
 }
 
+/* 가치 이름이 그 가치의 색을 입고, 한글 약속은 흰색으로 읽힌다. */
 .value-name {
   margin: 0;
-  color: var(--moss);
+  color: var(--value-accent);
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -1028,7 +1046,7 @@ img {
 .value-item h3 {
   min-height: 56px;
   margin: 20px 0 14px;
-  color: var(--value-accent);
+  color: var(--ivory-strong);
   font-family: var(--serif);
   font-size: 1.28rem;
   font-weight: 600;
@@ -3217,9 +3235,14 @@ img {
   /* 터치 기기에는 hover 예고가 없어 접힌 상태가 "H·T·M·L" 한 글자로만 보인다.
      desktop의 펼침 연출 대신 값 이름을 처음부터 전부 노출한다. */
   .living-values-word-tail {
-    max-width: 7em;
+    grid-template-columns: 1fr;
     opacity: 1;
-    transform: none;
+    transition: none;
+  }
+
+  /* 이미 펼쳐진 상태이므로 머리글자 정렬 여백도 처음부터 닫아 둔다. */
+  .living-values-initial {
+    min-width: 0;
     transition: none;
   }
 }
