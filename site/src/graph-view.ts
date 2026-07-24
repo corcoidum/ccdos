@@ -48,6 +48,8 @@ type GraphPosition = {
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const VALUE_TAGS = ["hope", "trust", "mercy", "love"] as const;
+const INDEX_PAGE_SIZE = 4;
+type ValueTag = (typeof VALUE_TAGS)[number];
 const RELATION_TYPES: readonly RelationType[] = [
   "related_to",
   "builds_on",
@@ -199,6 +201,10 @@ function directionSymbol(direction: RelationDirection): string {
   return direction === "incoming" ? "←" : direction === "outgoing" ? "→" : "↔";
 }
 
+function valueTagFor(tags: readonly string[]): ValueTag | null {
+  return VALUE_TAGS.find((value) => tags.includes(value)) ?? null;
+}
+
 export function createKnowledgeMap({
   graph,
   notes,
@@ -307,6 +313,10 @@ export function createKnowledgeMap({
     const group = createSvgElement("g");
     group.classList.add("knowledge-map-node");
     group.dataset.nodeId = node.id;
+    const valueTag = valueTagFor(node.tags);
+    if (valueTag) {
+      group.dataset.value = valueTag;
+    }
     group.setAttribute("transform", `translate(${position.x} ${position.y})`);
     group.setAttribute("role", "button");
     group.setAttribute("tabindex", "0");
@@ -340,6 +350,7 @@ export function createKnowledgeMap({
 
   const indexHeading = createElement("h3", "knowledge-map-index-title", "공개 기록 목록");
   const indexList = createElement("ol", "knowledge-map-index");
+  indexList.id = "knowledge-map-index-list";
   const indexButtons = new Map<string, HTMLButtonElement>();
   graphNodes.forEach((node, index) => {
     const recordNumber = recordNumberFor(node, index);
@@ -347,6 +358,10 @@ export function createKnowledgeMap({
     const button = createElement("button", "knowledge-map-index-button");
     button.type = "button";
     button.dataset.nodeId = node.id;
+    const valueTag = valueTagFor(node.tags);
+    if (valueTag) {
+      button.dataset.value = valueTag;
+    }
     button.append(
       createElement("span", "knowledge-map-index-number", String(recordNumber).padStart(2, "0")),
       createElement("span", "knowledge-map-index-label", node.label),
@@ -355,7 +370,14 @@ export function createKnowledgeMap({
     indexList.append(item);
     indexButtons.set(node.id, button);
   });
-  visualColumn.append(canvas, legend, indexHeading, indexList);
+  const indexFooter = createElement("div", "knowledge-map-index-footer");
+  const indexProgress = createElement("p", "knowledge-map-index-progress");
+  indexProgress.setAttribute("aria-live", "polite");
+  const indexMoreButton = createElement("button", "knowledge-map-index-more");
+  indexMoreButton.type = "button";
+  indexMoreButton.setAttribute("aria-controls", indexList.id);
+  indexFooter.append(indexProgress, indexMoreButton);
+  visualColumn.append(canvas, legend, indexHeading, indexList, indexFooter);
 
   const details = createElement("aside", "knowledge-map-details");
   details.setAttribute("aria-live", "polite");
@@ -365,13 +387,12 @@ export function createKnowledgeMap({
   let activeValue = "all";
   let activeRelation: "all" | RelationType = "all";
   let selectedId: string | null = graphNodes[0]?.id ?? null;
+  let visibleIndexCount = INDEX_PAGE_SIZE;
 
-  const visibleNodeIds = (): Set<string> =>
-    new Set(
-      graphNodes
-        .filter((node) => activeValue === "all" || node.tags.includes(activeValue))
-        .map((node) => node.id),
-    );
+  const visibleNodes = (): PublicGraphNode[] =>
+    graphNodes.filter((node) => activeValue === "all" || node.tags.includes(activeValue));
+
+  const visibleNodeIds = (): Set<string> => new Set(visibleNodes().map((node) => node.id));
 
   const renderDetails = (visibleIds: Set<string>): void => {
     const note = selectedId ? notesById.get(selectedId) : undefined;
@@ -454,8 +475,9 @@ export function createKnowledgeMap({
         visibleIds.has(source) &&
         visibleIds.has(target) &&
         (activeRelation === "all" || type === activeRelation);
+      const active = visible && (source === selectedId || target === selectedId);
       line.classList.toggle("is-hidden", !visible);
-      line.classList.toggle("is-active", visible && (source === selectedId || target === selectedId));
+      line.classList.toggle("is-active", active);
       line.classList.toggle("is-muted", visible && source !== selectedId && target !== selectedId);
       if (visible) {
         visibleEdgeCount += 1;
@@ -476,11 +498,32 @@ export function createKnowledgeMap({
       group.setAttribute("aria-hidden", String(!visible));
       group.setAttribute("tabindex", visible ? "0" : "-1");
     }
+    const filteredNodes = visibleNodes();
+    const revealedIds = new Set(
+      filteredNodes.slice(0, visibleIndexCount).map((node) => node.id),
+    );
     for (const [nodeId, button] of indexButtons) {
       const visible = visibleIds.has(nodeId);
-      button.closest("li")!.hidden = !visible;
+      button.closest("li")!.hidden = !visible || !revealedIds.has(nodeId);
       button.classList.toggle("is-selected", nodeId === selectedId);
       button.setAttribute("aria-pressed", String(nodeId === selectedId));
+    }
+    const shownCount = Math.min(visibleIndexCount, filteredNodes.length);
+    const remainingCount = Math.max(filteredNodes.length - shownCount, 0);
+    indexProgress.textContent =
+      filteredNodes.length === 0
+        ? "표시할 공개 기록이 없습니다."
+        : remainingCount > 0
+          ? `최신 기록 ${shownCount} / ${filteredNodes.length}개 표시`
+          : `공개 기록 ${filteredNodes.length}개 모두 표시`;
+    indexMoreButton.hidden = remainingCount === 0;
+    if (remainingCount > 0) {
+      const nextCount = Math.min(INDEX_PAGE_SIZE, remainingCount);
+      indexMoreButton.textContent = `다음 ${nextCount}개 기록 보기`;
+      indexMoreButton.setAttribute(
+        "aria-label",
+        `공개 기록 ${nextCount}개 더 보기, ${remainingCount}개 남음`,
+      );
     }
     status.textContent = `승인된 공개 기록 ${visibleIds.size}개 · 표시 관계 ${visibleEdgeCount}개`;
     renderDetails(visibleIds);
@@ -510,8 +553,18 @@ export function createKnowledgeMap({
   for (const [nodeId, button] of indexButtons) {
     button.addEventListener("click", () => selectNode(nodeId, true));
   }
+  indexMoreButton.addEventListener("click", (event) => {
+    const firstNewNode = visibleNodes()[visibleIndexCount];
+    const moveFocusToNewItem = event.detail === 0;
+    visibleIndexCount += INDEX_PAGE_SIZE;
+    renderState();
+    if (moveFocusToNewItem && firstNewNode) {
+      indexButtons.get(firstNewNode.id)?.focus({ preventScroll: true });
+    }
+  });
   valueSelect.addEventListener("change", () => {
     activeValue = valueSelect.value;
+    visibleIndexCount = INDEX_PAGE_SIZE;
     renderState();
   });
   relationSelect.addEventListener("change", () => {

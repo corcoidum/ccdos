@@ -326,3 +326,68 @@ final result: blocked
 3. Final — desktop, tablet, mobile에서 네 카드의 inset과 CTA 정렬이 일치하며 남은 P0/P1/P2는 없다.
 
 final result: passed
+
+---
+
+# Knowledge Map Progressive List and Value Colors — Design QA
+
+## 검수 대상
+
+- 공개 기록 목록 source: `C:/yTemp/codex-clipboard-9b61b10a-aec9-4692-afa0-2b0e46e7b14c.png`
+- node 선택 source: `C:/yTemp/codex-clipboard-193469da-0e26-4f0b-ae08-6eedc1608410.png`
+- Living Values color source: `C:/yTemp/codex-clipboard-c103b1e1-5eba-409f-af35-dd74089a0026.png`
+- Implementation: `http://127.0.0.1:4173/graph`
+- 목록 implementation: `docs/design-evidence/graph-progressive-list-initial.png`
+- node color implementation: `docs/design-evidence/graph-node-value-colors.png`
+- mobile implementation: `docs/design-evidence/graph-progressive-list-mobile.png`
+
+## 비교 조건
+
+- 목록 source: 1280 × 850 px, browser chrome를 제외한 1280 × 770 px region 비교
+- 목록 implementation: 1280 × 900 CSS px viewport, DPR 1. 저장 PNG는 browser viewport crop 뒤 1265 × 889 px이며, 같은 폭의 1280 × 770 px region으로 비교
+- 목록 combined comparison: `docs/design-evidence/graph-progressive-list-comparison.png` (왼쪽 source, 오른쪽 implementation)
+- node source: 798 × 510 px
+- node implementation: 1280 × 900 CSS px에서 canvas 805 × 515 px crop을 798 × 510 px로 정규화
+- node combined comparison: `docs/design-evidence/graph-node-color-comparison.png` (왼쪽 source, 오른쪽 implementation)
+- mobile implementation: 390 × 844 CSS px viewport, DPR 1. 저장 PNG는 browser viewport crop 뒤 375 × 812 px
+- State: `/graph`, 모든 가치·모든 관계, 최신 기록 4개 노출; node color 비교는 T.R.U.S.T 기록 15 선택
+
+## Findings
+
+- Initial P2 — 공개 기록 16개가 한 번에 노출되어 graph와 상세 panel보다 목록의 시각 밀도가 높았다.
+- Initial P2 — 선택 node와 active edge가 note의 가치와 무관하게 coral로 고정되어, T.R.U.S.T 기록 15·03·07도 서로 다른 의미색처럼 보였다.
+- Final — 최신 4개만 먼저 보이고 `다음 4개 기록 보기`로 4 → 8 → 12 → 16 순서가 유지된다.
+- Final — generic active edge·focus·관계 방향은 gold로 통일하고, selected/connected node는 H.O.P.E·T.R.U.S.T·M.E.R.C.Y·L.O.V.E token을 사용한다. L.O.V.E의 coral은 value 의미색으로만 유지하며 임의 선택 효과에는 사용하지 않는다.
+- 남은 P0/P1/P2는 없다.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Typography | Passed | 기존 serif/sans hierarchy와 기록 제목의 크기·행간을 변경하지 않았다. |
+| Spacing / layout | Passed | Desktop은 2열 4개, mobile은 1열 4개를 먼저 표시하고 progress와 48px reveal button을 분리했다. |
+| Colors / tokens | Passed | 번호는 `--gold-soft`; edge·focus는 gold; active node는 `--value-hope`, `--value-trust`, `--value-mercy`, `--value-love`를 drawer와 공유한다. |
+| Image quality / assets | Passed | 브랜드 마크, constellation image와 graph 배경 asset을 변경하거나 재생성하지 않았다. |
+| Copy / content | Passed | 공개 기록 제목·번호·상세 copy는 유지하고, 남은 기록 수와 다음 batch 크기만 명시했다. |
+| Interaction / accessibility | Passed | 4→8→12→16 reveal, 가치 filter 시 4개 reset, `aria-controls`, live progress, mobile 48px target, horizontal overflow 0을 확인했다. |
+
+## Comparison history
+
+1. Pass 1 — 전체 16개 목록과 임의 coral 선택 상태를 source에서 확인했다.
+2. Fix — map node visibility와 목록 pagination state를 분리하고, value tag를 각 SVG node의 `data-value`에 연결했다.
+3. Pass 2 — combined comparison에서 최신 4개 hierarchy와 T.R.U.S.T 15·03·07의 동일 ivory-gold 상태를 확인했다.
+4. Responsive pass — 390 px에서 4개 초기 노출, 48 px reveal control, overflow 0을 확인했다.
+
+## Verification evidence
+
+- `npm run typecheck`: passed
+- `npm run build`: passed
+- In-app browser reveal counts: 4, 8, 12, 16
+- T.R.U.S.T filter: 4 / 6 initial, next batch 2
+- active edge stroke: `rgb(216, 189, 131)` (`--gold-soft`)
+- selected/connected T.R.U.S.T: `rgb(215, 201, 170)` (`--value-trust`)
+- selected node contrast: H 9.21:1, T 11.69:1, M 8.70:1, L 7.84:1
+- gold list number contrast: 9.43:1
+- Browser console: 0 errors, 0 warnings
+
+final result: passed
