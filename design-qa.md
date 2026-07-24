@@ -391,3 +391,52 @@ final result: passed
 - Browser console: 0 errors, 0 warnings
 
 final result: passed
+
+---
+
+# OS Value Card Title Colors — Design QA
+
+## 검수 대상
+
+- Source palette: `C:/yTemp/codex-clipboard-6c517ec7-dbb0-4039-8721-71c5d716b5bc.png`
+- Source card layout: `C:/yTemp/codex-clipboard-6eaf0892-6994-490c-91e4-0495c36fbb5c.png`
+- Implementation: `http://127.0.0.1:4173/os#values`
+- Desktop evidence: `docs/design-evidence/os-value-title-colors-desktop.png`
+- Mobile evidence: `docs/design-evidence/os-value-title-colors-mobile.png`
+- Combined comparison: `docs/design-evidence/os-value-title-colors-comparison.png`
+
+## 비교 조건
+
+- Source palette: 473 × 377 px
+- Desktop implementation: 1470 × 900 CSS px, DPR 1
+- Mobile implementation: 390 × 844 CSS px, DPR 1
+- State: `/os`의 `FOUR HUMAN PROMISES` section, 기본 상태
+
+## Findings
+
+- Initial P2 — 네 카드의 큰 제목이 모두 ivory여서 Living Values drawer의 H/T/M/L 의미색과 연결되지 않았다.
+- Final — H.O.P.E는 gold, T.R.U.S.T는 ivory, M.E.R.C.Y는 moss, L.O.V.E는 coral token을 사용한다.
+- 카드 grid, 본문, CTA, hover state와 공개 문구는 변경하지 않았다.
+- 남은 P0/P1/P2는 없다.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Fonts / typography | Passed | 기존 serif family, 1.28rem size, 600 weight, 1.45 line-height를 유지했다. |
+| Spacing / layout | Passed | Desktop 4열과 mobile 1열, card padding·높이·간격을 변경하지 않았다. |
+| Colors / tokens | Passed | 기존 `--value-hope`, `--value-trust`, `--value-mercy`, `--value-love`를 재사용해 drawer·graph와 같은 의미색을 공유한다. |
+| Image quality / assets | Passed | 브랜드 마크와 기존 image asset을 변경하거나 대체하지 않았다. |
+| Copy / content | Passed | 카드 제목·본문·CTA 문구를 그대로 유지했다. |
+
+## Verification evidence
+
+- `npm run typecheck`: passed
+- `npm run build`: passed
+- `npm test -- --grep "OS의 네 가지 약속 카드"`: 1 passed
+- Computed title colors: H `rgb(201, 178, 116)`, T `rgb(215, 201, 170)`, M `rgb(167, 182, 108)`, L `rgb(240, 139, 105)`
+- Contrast on card surface: H 8.26:1, T 10.49:1, M 7.81:1, L 7.03:1
+- Mobile horizontal overflow: 0 px
+- Browser console: 0 errors, 0 warnings
+
+final result: passed

@@ -973,6 +973,7 @@ img {
 }
 
 .value-item {
+  --value-accent: var(--value-hope);
   display: flex;
   flex-direction: column;
   min-height: 260px;
@@ -985,6 +986,18 @@ img {
   text-decoration: none;
   transition: border-color 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 220ms ease;
+}
+
+.value-item[data-value="trust"] {
+  --value-accent: var(--value-trust);
+}
+
+.value-item[data-value="mercy"] {
+  --value-accent: var(--value-mercy);
+}
+
+.value-item[data-value="love"] {
+  --value-accent: var(--value-love);
 }
 
 .value-item:hover {
@@ -1015,7 +1028,7 @@ img {
 .value-item h3 {
   min-height: 56px;
   margin: 20px 0 14px;
-  color: var(--ivory-strong);
+  color: var(--value-accent);
   font-family: var(--serif);
   font-size: 1.28rem;
   font-weight: 600;
