@@ -26,6 +26,13 @@ vaults/ClinicOps-Local/
 vaults/CORCOIDUM-Core/.obsidian/workspace*.json
 vaults/ClinicOps-Local.example/**/real-data/
 
+# Local-only agent and design-audit scratch output.
+# Evidence that must be kept belongs in docs/design-evidence/.
+.claude/launch.json
+.claude/settings.local.json
+.codex-audit/
+site/output/
+
 # Editor and OS files
 .DS_Store
 Thumbs.db
