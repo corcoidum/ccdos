@@ -409,10 +409,10 @@ img {
 .living-values-word-tail-inner {
   min-width: 0;
   overflow: hidden;
-  /* line-height가 1이라 .ope와 .ercy의 descender가 잘린다. 아래로 여유를 주고
+  /* line-height가 1이라 대문자 꼬리의 cap height 위아래가 잘린다. 여유를 주고
      같은 크기의 음수 margin으로 줄 높이는 그대로 되돌린다. */
-  padding-bottom: 0.2em;
-  margin-bottom: -0.2em;
+  padding-block: 0.14em 0.14em;
+  margin-block: -0.14em -0.14em;
   white-space: nowrap;
 }
 

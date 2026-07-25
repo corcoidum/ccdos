@@ -495,3 +495,52 @@ final result: passed
 - Browser console: 0 errors, 0 warnings
 
 final result: passed
+
+---
+
+# Living Values Drawer Uppercase Word Reveal — Design QA
+
+## 검수 대상
+
+- Implementation: `http://127.0.0.1:4173/os` Living Values drawer
+- Drawer 접힌 상태: `docs/design-evidence/living-values-uppercase-collapsed-desktop.png`
+- Hover 상태: `docs/design-evidence/living-values-uppercase-hover-hope.png`, `living-values-uppercase-hover-trust.png`, `living-values-uppercase-hover-mercy.png`, `living-values-uppercase-hover-love.png`
+- Touch 상태: `docs/design-evidence/living-values-uppercase-mobile.png`
+
+## 비교 조건
+
+- Desktop: 1440 × 900 CSS px, DPR 1, `hover: hover` / `pointer: fine`
+- Mobile: 390 × 844 CSS px, DPR 1, `hover: none` / `pointer: coarse`
+- State: drawer를 연 뒤 각 머리글자에 hover, 연출이 멎은 시점
+- 직전 pass(`OS Value Names and Living Values Letter Reveal`)의 소문자 꼬리 evidence는 이력으로 남기고 새 파일명으로 기록했다
+
+## Findings
+
+- Initial P2 — 펼쳐지는 꼬리만 소문자라 drawer의 `H.ope`가 카드·문서의 `H.OPE` 표기와 어긋났다. 같은 이름이 자리마다 다르게 보였다.
+- Final — 꼬리도 `value.name`의 대문자를 그대로 써 `H.OPE`, `T.RUST`, `M.ERCY`, `L.OVE`로 읽힌다. 데이터의 이름과 `aria-label`이 이미 대문자였으므로 표기가 한 곳으로 모였다.
+- 슬라이드 연출은 그대로다. `grid-template-columns: 0fr → 1fr`이 낱말의 실제 폭을 따라가므로, 대문자가 넓어져도 460ms `cubic-bezier(0.22, 1, 0.36, 1)` 안에서 네 줄이 같은 속도로 열린다.
+- 소문자 descender를 위한 아래쪽 여유는 대문자 cap height 기준의 상하 대칭 여유로 바꿨다. `line-height: 1`에서 글자가 잘리지 않고 줄 높이도 그대로다.
+- 남은 P0/P1/P2는 없다.
+
+## Fidelity surfaces
+
+| Surface | Result | Evidence |
+| --- | --- | --- |
+| Fonts / typography | Passed | serif 1.85rem, 600 weight, 0.05em letter-spacing을 유지했다. 대소문자 표기만 바뀌었다. |
+| Spacing / layout | Passed | row min-height 72px와 padding은 그대로다. 접힌 상태의 H/T/M/L 정렬 여백(`min-width: 0.78em`)도 유지된다. |
+| Colors / tokens | Passed | 새 색을 만들지 않았다. 네 낱말은 기존 `--value-*` 의미색을 그대로 쓴다. |
+| Image quality / assets | Passed | image asset을 변경하지 않았다. |
+| Copy / content | Passed | 표기 대소문자 외에 공개 문구·기록 제목·날짜·count를 변경하지 않았다. |
+| Motion | Passed | 460ms 곡선과 hover·focus·펼침 trigger를 유지했다. touch 규칙과 `prefers-reduced-motion` 동작도 그대로다. |
+| Accessibility | Passed | `aria-label`은 이전부터 `H.OPE 글 목록` 형태였다. 화면 표기가 이제 label과 일치한다. |
+
+## Verification evidence
+
+- `npm run typecheck`: passed
+- `npx playwright test`: 48 passed
+- `npx playwright test --grep "hover하면|touch 기기|mobile tap"`: 3 passed
+- Desktop hover 후 꼬리 text: `.OPE`, `.RUST`, `.ERCY`, `.OVE`
+- 접힌 상태 꼬리 폭: 1px 미만 (네 낱말 모두)
+- Touch viewport: 네 낱말 모두 처음부터 `opacity: 1`로 노출
+
+final result: passed

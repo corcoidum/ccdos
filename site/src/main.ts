@@ -1765,13 +1765,11 @@ function createLivingValuesDrawer(route: Route): { trigger: HTMLButtonElement; d
       isCurrentSpace ? `${value.name} 글 목록 (현재 공간)` : `${value.name} 글 목록`,
     );
     // 접힌 상태에서는 머리글자만 남고, hover·focus·펼침에서 나머지가 밀려 나온다.
-    // 꼬리를 소문자로 두어 "H" 뒤에 ".ope"가 이어붙는 한 낱말로 읽히게 한다.
+    // 꼬리도 대문자로 두어 "H" 뒤에 ".OPE"가 이어붙는 한 낱말로 읽히게 한다.
     // 안쪽 span은 자기 폭을 유지해, 바깥 span이 0fr에서 1fr로 자라는 동안 글자가
     // 눌리지 않고 왼쪽부터 차례로 드러난다.
     const wordTail = createElement("span", "living-values-word-tail");
-    wordTail.append(
-      createElement("span", "living-values-word-tail-inner", value.name.slice(1).toLowerCase()),
-    );
+    wordTail.append(createElement("span", "living-values-word-tail-inner", value.name.slice(1)));
     const word = createElement("span", "living-values-word");
     word.append(createElement("span", "living-values-initial", value.name.charAt(0)), wordTail);
     toggle.append(word, createElement("span", "living-values-count", `${notes.length} records`));

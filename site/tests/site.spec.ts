@@ -311,15 +311,15 @@ test.describe("pointer가 있는 화면", () => {
         .evaluate((node) => node.getBoundingClientRect().width);
 
     for (const [name, tail] of [
-      ["H.OPE", ".ope"],
-      ["T.RUST", ".rust"],
-      ["M.ERCY", ".ercy"],
-      ["L.OVE", ".ove"],
+      ["H.OPE", ".OPE"],
+      ["T.RUST", ".RUST"],
+      ["M.ERCY", ".ERCY"],
+      ["L.OVE", ".OVE"],
     ] as const) {
       const toggle = drawer.getByRole("button", { name: `${name} 글 목록` });
       const tailNode = toggle.locator(".living-values-word-tail");
 
-      // 펼쳐지는 꼬리는 소문자여야 "H" 뒤에 ".ope"가 이어붙는 한 낱말로 읽힌다.
+      // 펼쳐지는 꼬리도 대문자여야 "H" 뒤에 ".OPE"가 이어붙는 한 낱말로 읽힌다.
       await expect(tailNode).toHaveText(tail);
       await expect(tailNode).toHaveCSS("opacity", "0");
       const collapsed = await tailWidth(name);
