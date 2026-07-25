@@ -134,7 +134,12 @@
       "state": "published",
       "updated": "2026-07-22T10:46:39Z",
       "published_at": "2026-07-22T10:54:24Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "when-automation-creates-new-work",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "search-that-does-not-guess"
       ]
@@ -271,6 +276,10 @@
         {
           "source": "one-link-less-explanation",
           "type": "demonstrates"
+        },
+        {
+          "source": "when-automation-creates-new-work",
+          "type": "builds_on"
         }
       ],
       "related_notes": [
@@ -317,8 +326,33 @@
       "state": "published",
       "updated": "2026-07-14T09:12:12Z",
       "published_at": "2026-07-14T09:14:52Z",
+      "backlinks": [
+        {
+          "source": "when-automation-creates-new-work",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "when-automation-creates-new-work"
+      ]
+    },
+    {
+      "id": "when-automation-creates-new-work",
+      "type": "note",
+      "label": "자동화가 새로운 일을 만들 때",
+      "url": "/garden?note=when-automation-creates-new-work",
+      "tags": [
+        "automation",
+        "mercy",
+        "operations"
+      ],
+      "state": "approved",
+      "updated": "2026-07-25T22:18:34Z",
+      "published_at": null,
       "backlinks": [],
-      "related_notes": []
+      "related_notes": [
+        "value-of-invisible-work"
+      ]
     }
   ],
   "edges": [
@@ -376,6 +410,21 @@
       "source": "safe-automation-case-study",
       "target": "empty-garden-is-a-promise",
       "type": "supports"
+    },
+    {
+      "source": "when-automation-creates-new-work",
+      "target": "graceful-fallback-hid-the-outage",
+      "type": "builds_on"
+    },
+    {
+      "source": "when-automation-creates-new-work",
+      "target": "safe-automation-case-study",
+      "type": "builds_on"
+    },
+    {
+      "source": "when-automation-creates-new-work",
+      "target": "value-of-invisible-work",
+      "type": "related_to"
     }
   ]
 }
