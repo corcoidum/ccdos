@@ -1414,6 +1414,11 @@ function createWikiSearch(): HTMLElement {
 }
 
 function renderLab(): HTMLElement {
+  // 실험 원장이 로드맵보다 뒤처지지 않도록, 최신 Phase의 상태는 Projects와 같은 정의에서 읽는다.
+  const livingValuesPhase = phaseDefinitionsById.get("9");
+  if (!livingValuesPhase) {
+    throw new Error("Lab 실험 원장이 참조하는 Phase 9 정의를 찾을 수 없습니다.");
+  }
   const page = createElement("div", "page page--lab");
   page.append(
     createHero({
@@ -1471,6 +1476,22 @@ function renderLab(): HTMLElement {
       title: "Grounded Answer Layer",
       question: "어떤 provider와 비용·외부 전송 경계가 이 세계관에 맞는가?",
       result: "ADR-0003에 따라 승인된 공개 근거와 질문만 OpenAI Responses API에 전달하며, 비용·남용 방어와 인용 검증을 코드로 강제합니다.",
+    },
+    {
+      phase: "KNOWLEDGE MAP",
+      status: "LIVE",
+      title: "Public Knowledge Graph",
+      question: "자동 추론 없이, 사람이 선언한 관계만으로 지식 지도가 쓸모 있는가?",
+      result:
+        "ADR-0004·0007에 따라 frontmatter에 사람이 직접 선언한 관계만 edge가 됩니다. Map은 결정론적 graph.json을 읽기만 하며, 연결이 없는 기록도 숨기지 않습니다.",
+    },
+    {
+      phase: `PHASE ${livingValuesPhase.id}`,
+      status: livingValuesPhase.status,
+      title: livingValuesPhase.title,
+      question: "가치를 슬로건이 아니라 승인된 기록으로 증명할 수 있는가?",
+      result:
+        "네 가치 모두 승인·발행 증적을 갖춘 기록이 최소 기준인 3편 이상 쌓인 것을 확인했습니다. Garden의 가치 태그와 각 가치 공간에서 직접 열람할 수 있습니다.",
     },
   ]) {
     const row = createElement("article", "experiment-row");

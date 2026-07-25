@@ -845,6 +845,28 @@ test("가치 공간을 제외한 touch swipe와 trackpad wheel 순환은 기존 
   await expect(page).toHaveURL(/\/love$/);
 });
 
+test("Lab 실험 원장은 로드맵의 최신 Phase까지 따라간다", async ({ page }) => {
+  // 원장이 Phase 8B에서 멈춰 Projects와 다른 진도를 말한 적이 있다.
+  // 최신 Phase가 원장에 없거나 상태가 어긋나면 실패해야 한다.
+  const latestPhase = phaseDefinitions[phaseDefinitions.length - 1];
+  await page.goto("/lab");
+  const rows = page.locator(".experiment-row");
+  const latestRow = rows.filter({ hasText: `PHASE ${latestPhase.id}` });
+  await expect(latestRow).toHaveCount(1);
+  await expect(latestRow.locator(".experiment-status")).toHaveText(latestPhase.status);
+  await expect(latestRow.locator("h3")).toHaveText(latestPhase.title);
+
+  // 읽기 전용 지식 지도도 검증한 실험으로 기록되어야 한다.
+  await expect(rows.filter({ hasText: "KNOWLEDGE MAP" })).toHaveCount(1);
+
+  // 각 행은 질문과 결과를 함께 남긴다는 Lab의 서술 규칙을 지킨다.
+  const count = await rows.count();
+  for (let index = 0; index < count; index += 1) {
+    await expect(rows.nth(index).locator(".experiment-question")).not.toBeEmpty();
+    await expect(rows.nth(index).locator(".experiment-result")).not.toBeEmpty();
+  }
+});
+
 test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다", async ({ page }) => {
   await page.goto("/projects");
   const legend = page.locator(".phase-legend");
