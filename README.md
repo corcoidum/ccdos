@@ -2,121 +2,121 @@
 
 > Where hearts and codes coexist, the future of technology is human.
 
-CORCOIDUM OS는 의료 현장에서 얻은 **비식별 운영 인사이트**와 개인의 학습·개발 경험을 안전한 지식, 재사용 가능한 소프트웨어, 공개 사례 연구로 연결하는 1인용 운영체제입니다.
+**민감한 현장 기록에서 공개해도 되는 것만, 사람의 승인을 거쳐 내보내는 발행 하네스(human-in-the-loop publishing harness).**
 
-현재 저장소는 **Phase 9 — Living Values** 완료 기준을 통과했습니다. 승인된 공개 기록만 검색·인용하고, 생성 계층이 사용할 수 없으면 retrieval-only로 안전하게 폴백합니다.
+의료기관 원무 행정 실무자가 만들었습니다. 다루는 기록의 대부분은 공개할 수 없고, 공개 가능한 인사이트는 그 안에 섞여 있습니다. 이 저장소는 그 경계를 사람의 조심성이 아니라 **기계가 강제하는 파이프라인**으로 구현한 것이며, 그 결과물로 공개 지식 정원과 사례 연구 사이트가 나옵니다.
 
-네 가지 약속(H.O.P.E · T.R.U.S.T · M.E.R.C.Y · L.O.V.E)마다 승인·발행 증적이 있는 공개 기록 3편 이상을 확인했습니다. 판정 근거는 [Phase 9 완료 보고서](docs/architecture/phase-9-completion-report.md)에 있습니다.
+공개 사이트: <https://ccdos.corcoidum.workers.dev>
 
-## 원칙
+---
 
-- `ClinicOps-Local`은 로컬 전용이며 GitHub, Discord, 클라우드 동기화·LLM으로 절대 전송하지 않습니다.
-- 공개물은 `CORCOIDUM-Public`의 `approved` 콘텐츠만 사용합니다.
-- Obsidian은 지식, GitHub는 코드·변경 이력, Discord는 상태·승인 제어의 단일 권위 원천입니다.
-- 실제 환자·직원 식별 정보와 비밀값은 저장소에 넣지 않습니다.
+## 왜 이렇게 만들었나
 
-## 현재 구조
+현장 기록은 그대로 두면 사장되고, 그대로 내보내면 사고가 됩니다. "조심해서 쓰기"는 정책이 아니라 희망입니다. 그래서 다음 세 가지를 시스템의 전제로 삼았습니다.
+
+- **사람의 승인 없이는 아무것도 밖으로 나가지 않는다.** 자동 발행은 없습니다.
+- **기계는 명백한 위반만 잡고, 판단은 사람이 한다.** 검증기는 안전을 보장하지 않으며, 사람 검토를 대체하지 않습니다.
+- **발행된 모든 것은 사후에 감사할 수 있어야 한다.** 승인 증적과 결정론적 산출물이 git 히스토리에 남습니다.
+
+## 하네스 구조
 
 ```text
-docs/                 아키텍처, 거버넌스, ADR, 운영 문서
-vaults/               합성 예시만 포함한 안전한 Vault 구조
+  기록 작성            기계 검증           사람 검토·승인          결정론적 빌드          자동 집행
+ ┌──────────┐      ┌───────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────┐
+ │ Obsidian │─────▶│ validate_ │─────▶│ publish_state│─────▶│ build_public │─────▶│ CI gate  │
+ │  Vault   │      │ notes.py  │      │  + 검토 증적  │      │ content/graph│      │ + 배포   │
+ └──────────┘      └───────────┘      └──────────────┘      └──────────────┘      └──────────┘
+   draft            필수 필드         checklist 완료         approved만 수집        --check 회귀
+                    민감 패턴 차단     증적 frontmatter 기록   index/graph.json      통과해야 배포
+```
+
+| 단계 | 구현 | 하는 일 | 하지 않는 일 |
+| --- | --- | --- | --- |
+| 기계 검증 | `automation/validate_notes.py` | 필수 frontmatter, Vault별 보안 분류, 주민등록번호·전화·이메일·비밀값 등 고신뢰 민감 패턴 차단 | 완전한 비식별 보장 |
+| 사람 승인 | `docs/governance/public-content-review.md` | 재식별 가능성·맥락 판단, checklist 완료 후 증적 기록 | 자동화 |
+| 증적 무효화 | 검증기 규칙 | 승인 후 수정된 노트의 이전 검토 증적 재사용 차단 | — |
+| 결정론적 빌드 | `build_public_content.py`, `build_public_graph.py` | `approved`·`published`만 `index.json`·`graph.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
+| 자동 집행 | GitHub Actions | 위 규칙을 통과하지 못하면 배포 차단 | — |
+
+같은 원칙이 답변 계층에도 적용됩니다. `/api/answer`는 승인된 공개 출처만 근거로 전달하고, 비밀값 부재·근거 부재·rate limit·일일 예산 초과·provider 오류·잘못된 인용 중 어느 하나라도 발생하면 **생성 없이 retrieval-only로 폴백**합니다. 지식 그래프도 사람이 frontmatter에 직접 선언한 관계만 edge가 되며, 자동 관계 추론은 하지 않습니다.
+
+## 안전 경계
+
+- `ClinicOps-Local`은 로컬 전용이며 GitHub·Discord·클라우드 동기화·LLM으로 절대 전송하지 않습니다. 이 저장소에는 존재하지 않고, 구조 예시인 `ClinicOps-Local.example`만 둡니다.
+- 공개물은 `CORCOIDUM-Public`의 `approved` 이상 콘텐츠만 사용합니다. 이 Vault에는 사람이 검토·승인한 발행 기록만 들어갑니다.
+- 실제 환자·직원 식별 정보와 비밀값은 저장소에 넣지 않습니다.
+- 정보 유형별 단일 권위 원천: 지식은 Obsidian, 코드·변경 이력은 GitHub, 상태·승인 제어는 Discord.
+
+## 이 패턴이 향하는 곳
+
+발행 하네스의 구조 — **자동 검증 → 사람 승인 → 감사 증적 → 재현 검증 → 자동 집행** — 는 공개 노트가 아닌 대상에도 그대로 적용됩니다. 의료기관 행정 워크플로에서 자동화가 어려운 이유는 기술이 아니라 책임 소재이며, 사람의 승인 지점과 감사 기록을 구조에 내장하면 그 장벽이 낮아집니다. 이 저장소는 그 패턴을 가장 안전한 대상(공개해도 되는 자신의 기록)으로 먼저 구현한 것입니다.
+
+## 현재 상태
+
+| 항목 | 수 |
+| --- | --- |
+| 발행된 공개 기록 | 16 |
+| 아키텍처 결정 기록(ADR) | 7 |
+| 거버넌스 정책 문서 | 7 |
+| 자동화 스크립트 | 10 |
+| 테스트 | 8개 모듈 · 68개 |
+
+`Phase 9 — Living Values`까지 완료했습니다. 네 가지 약속(H.OPE · T.RUST · M.ERCY · L.OVE) 각각에 승인·발행 증적이 있는 공개 기록이 3편 이상 쌓인 것을 2026-07-24에 확인했습니다. 판정 근거는 [Phase 9 완료 보고서](docs/architecture/phase-9-completion-report.md)에, 완료 기준은 [Phase 9 계획](docs/architecture/phase-9-plan.md)에 있습니다.
+
+## 검증하기
+
+Python 3.12 이상, Node.js가 필요합니다.
+
+```powershell
+# 아키텍처 불변식 — 컴포넌트 소유자 존재, S3_RESTRICTED 외부 유출 경로 부재
+python scripts/verify_phase0.py
+
+# 노트 검증 — frontmatter, 보안 분류, 승인 메타데이터, 민감 패턴
+python automation/validate_notes.py
+
+# 결정론적 산출물 — 재생성 결과가 커밋본과 다르면 실패
+python automation/build_public_content.py --check
+python automation/build_public_graph.py --check
+
+# 전체 테스트와 lint
+python -m unittest discover -s tests -v
+ruff check
+
+# 승인된 공개 index만 대상으로 하는 검색 (외부 LLM 호출 없음)
+python rag/search_public_wiki.py "automation"
+
+# 사이트
+cd site && npm ci && npm run typecheck && npm test && npm run build
+npm exec wrangler -- deploy --dry-run
+```
+
+## 저장소 구조
+
+```text
+docs/                 아키텍처, 거버넌스, ADR, 런북
+vaults/               Vault 구조 — 승인된 공개 기록과 로컬 Vault 구조 예시
 schemas/              공통 메타데이터 스키마
 templates/            Obsidian 노트 템플릿
-content/              승인된 공개 콘텐츠 원본
+content/              승인된 공개 콘텐츠 산출물 (index.json, graph.json)
 site/                 Cloudflare Worker API + 정적 웹 애플리케이션
-automation/           검증·발행·Discord·주간 검토 자동화
-rag/                  승인된 문서만 검색하는 RAG MVP
+automation/           검증·발행·그래프·Discord·주간 검토 자동화
+rag/                  승인된 문서만 검색하는 RAG
 tests/ fixtures/      합성 테스트 데이터와 검증
 scripts/              저장소 수준 검증 도구
 ```
 
-## Phase 0 검증
+주요 화면: `/garden`(공개 기록), `/graph`(사람이 선언한 관계만 표시하는 읽기 전용 지식 지도), `/lab`(승인된 index만 검색하는 공개 위키 검색), `/projects`(Phase별 목적·구현·안전 경계·검증 증거). 네 가치 공간 `/hope` · `/trust` · `/mercy` · `/love`는 각 약속에 속한 기록을 모아 보여 줍니다.
 
-Python 3.12 이상에서 다음 명령을 실행합니다.
+## 설계 결정
 
-```powershell
-python scripts/verify_phase0.py
-```
+| ADR | 결정 |
+| --- | --- |
+| [0001](docs/adr/0001-small-maintainable-stack.md) | 작은 교체 가능한 스택 — 유지보수·보안 검토 범위 최소화 |
+| [0002](docs/adr/0002-grounded-answer-layer.md) | 근거 없으면 답하지 않는 답변 계층 |
+| [0003](docs/adr/0003-openai-provider-migration.md) | 생성 provider 이관 |
+| [0004](docs/adr/0004-public-knowledge-graph-foundation.md) | 사람이 선언한 관계만 그래프가 된다 |
+| [0005](docs/adr/0005-derived-note-navigation.md) | 파생 노트 내비게이션 |
+| [0006](docs/adr/0006-content-scaling-ladder.md) | git이 DB다 — 실측 트리거 전까지 DB 도입 금지 |
+| [0007](docs/adr/0007-read-only-knowledge-map.md) | 읽기 전용 지식 지도 |
 
-이 검증은 필수 아키텍처 컴포넌트의 소유자 존재와 `S3_RESTRICTED` 데이터의 외부 유출 경로 부재를 확인합니다. 이후 Phase에서 테스트와 CI로 확장합니다.
-
-## Phase 1 검증
-
-Python 3.12 이상에서 다음 명령을 실행합니다.
-
-```powershell
-python automation/validate_notes.py
-python -m unittest discover -s tests -v
-```
-
-검증기는 `vaults/`의 예시 노트가 필수 frontmatter, Vault별 보안 분류, 승인 메타데이터 규칙을 지키는지 확인합니다. 또한 주민등록번호·휴대전화 번호·이메일·비밀값처럼 고신뢰 민감 패턴을 차단합니다. 완전한 비식별화를 보장하는 도구는 아니므로, 공개 전 사람의 검토가 항상 필요합니다.
-
-## Phase 2 검증
-
-`CORCOIDUM-Public`에서 `review` 이상 상태를 사용하려면 [공개 콘텐츠 검토 규칙](docs/governance/public-content-review.md)의 checklist를 완료하고 review 증적을 frontmatter에 기록합니다. 검증기는 승인 후 수정된 노트의 이전 review 증적 재사용을 차단합니다.
-
-## Phase 3·4 검증
-
-공개 콘텐츠 빌드는 `approved`·`published` 노트만 `content/public/index.json`으로 생성합니다. CI workflow도 같은 규칙을 검사합니다.
-
-```powershell
-python automation/build_public_content.py
-python automation/build_public_content.py --check
-```
-
-## Knowledge Graph Foundation 검증
-
-승인된 Public 노트의 사람이 선언한 관계만 결정론적 `content/public/graph.json`으로 생성합니다. 이 artifact는 `index.json` gate가 통과해야 만들 수 있으며, 현재 단계에서는 note-to-note 관계와 그 edge에서 계산한 backlinks·Related Notes만 포함합니다.
-
-```powershell
-python automation/build_public_graph.py
-python automation/build_public_graph.py --check
-```
-
-관계 계약과 검토 규칙은 [Public Knowledge Graph 정책](docs/governance/public-knowledge-graph.md)을 따릅니다.
-
-### Read-only Knowledge Map
-
-`/graph`는 승인된 공개 node와 사람이 선언한 edge만 정적으로 표시합니다. 방향 관계는 화살표로, `related_to`는 양방향 의미로 보여 주며, node를 선택하면 기존 공개 note modal에서 전문을 읽을 수 있습니다. 외부 graph library, API, database, LLM 또는 자동 관계 추론은 사용하지 않습니다.
-
-관계 의미와 접근성 결정은 [ADR-0007](docs/adr/0007-read-only-knowledge-map.md)을 따릅니다.
-
-## Phase 5 실행
-
-`/projects`는 Phase 0–9의 요약을 유지하면서 하나의 공통 상세 dialog로 목적, 구현, 안전 경계, 공개 검증 증거와 결과를 제공합니다. Phase deep link는 `/projects?phase=<id>#roadmap` 형식이며, Phase 0–9는 Foundation 여정으로 유지하고 이후 횡단 기능은 별도 initiative로 분리합니다.
-
-```powershell
-cd site
-npm ci
-npm run build
-npm run dev
-```
-
-## Phase 7 Public Wiki 검색
-
-```powershell
-python rag/search_public_wiki.py "automation"
-```
-
-이 CLI와 기본 Browser 검색은 승인된 Public index만 대상으로 하며 외부 LLM을 호출하지 않습니다. 자세한 경계와 사용 방법은 [RAG README](rag/README.md)를 참조하세요.
-
-## Phase 8 UI·Grounded Answer 검증
-
-```powershell
-cd site
-npm ci
-npm run typecheck
-npm test
-npm exec wrangler -- deploy --dry-run
-```
-
-- Garden은 처음 2개 기록과 접근 가능한 더보기·접기를 제공한다.
-- 네 route는 touch와 trackpad 수평 gesture로 인접 페이지를 이동한다.
-- `/api/answer`는 Worker가 선택한 승인 공개 출처만 OpenAI Responses API에 전달한다.
-- Secret 부재, 근거 부재, rate limit, 일일 budget, provider 오류, 잘못된 인용은 retrieval-only로 폴백한다.
-
-## 다음 단계
-
-Production 생성은 Cloudflare Worker의 `OPENAI_API_KEY` Secret과 OpenAI project 사용량 한도를 함께 설정해 활성화합니다. 이후 실제 사용량, 429, provider fallback, 인용 실패율을 관찰해 경계를 조정합니다. 자세한 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)을 따릅니다.
-
-Cloudflare Workers Static Assets 배포 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)을 따릅니다. Worker 이름은 `ccdos`이며, 계정 서브도메인 기준 공개 주소는 `https://ccdos.corcoidum.workers.dev`입니다.
+거버넌스 정책은 [`docs/governance/`](docs/governance/)에, 배포 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)에 있습니다. Worker 이름은 `ccdos`입니다.
