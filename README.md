@@ -35,7 +35,7 @@
 | 기계 검증 | `automation/validate_notes.py` | 필수 frontmatter, Vault별 보안 분류, 주민등록번호·전화·이메일·비밀값 등 고신뢰 민감 패턴 차단 | 완전한 비식별 보장 |
 | 사람 승인 | `docs/governance/public-content-review.md` | 재식별 가능성·맥락 판단, checklist 완료 후 증적 기록 | 자동화 |
 | 증적 무효화 | 검증기 규칙 | 승인 후 수정된 노트의 이전 검토 증적 재사용 차단 | — |
-| 결정론적 빌드 | `build_public_content.py`, `build_public_graph.py` | `approved`·`published`만 `index.json`·`graph.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
+| 결정론적 빌드 | `automation/build_public_content.py`, `automation/build_public_graph.py` | `approved`·`published`만 `content/public/index.json`·`content/public/graph.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
 | 자동 집행 | GitHub Actions | 위 규칙을 통과하지 못하면 배포 차단 | — |
 
 같은 원칙이 답변 계층에도 적용됩니다. `/api/answer`는 승인된 공개 출처만 근거로 전달하고, 비밀값 부재·근거 부재·rate limit·일일 예산 초과·provider 오류·잘못된 인용 중 어느 하나라도 발생하면 **생성 없이 retrieval-only로 폴백**합니다. 지식 그래프도 사람이 frontmatter에 직접 선언한 관계만 edge가 되며, 자동 관계 추론은 하지 않습니다.

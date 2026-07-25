@@ -537,7 +537,7 @@ final result: passed
 ## Verification evidence
 
 - `npm run typecheck`: passed
-- `npx playwright test`: 48 passed
+- `npx playwright test`: 49 passed (이 문서 작성 시점 48개, 이후 Lab 원장 회귀 테스트 1개 추가)
 - `npx playwright test --grep "hover하면|touch 기기|mobile tap"`: 3 passed
 - Desktop hover 후 꼬리 text: `.OPE`, `.RUST`, `.ERCY`, `.OVE`
 - 접힌 상태 꼬리 폭: 1px 미만 (네 낱말 모두)

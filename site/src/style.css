@@ -411,8 +411,8 @@ img {
   overflow: hidden;
   /* line-height가 1이라 대문자 꼬리의 cap height 위아래가 잘린다. 여유를 주고
      같은 크기의 음수 margin으로 줄 높이는 그대로 되돌린다. */
-  padding-block: 0.14em 0.14em;
-  margin-block: -0.14em -0.14em;
+  padding-block: 0.14em;
+  margin-block: -0.14em;
   white-space: nowrap;
 }
 

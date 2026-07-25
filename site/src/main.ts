@@ -1415,10 +1415,9 @@ function createWikiSearch(): HTMLElement {
 
 function renderLab(): HTMLElement {
   // 실험 원장이 로드맵보다 뒤처지지 않도록, 최신 Phase의 상태는 Projects와 같은 정의에서 읽는다.
+  // 정의를 찾지 못하면 그 행만 빠지고 나머지 원장은 계속 읽힌다. 공개 route 하나를
+  // 통째로 잃는 것보다 낫고, 누락 자체는 회귀 테스트가 배포 전에 잡는다.
   const livingValuesPhase = phaseDefinitionsById.get("9");
-  if (!livingValuesPhase) {
-    throw new Error("Lab 실험 원장이 참조하는 Phase 9 정의를 찾을 수 없습니다.");
-  }
   const page = createElement("div", "page page--lab");
   page.append(
     createHero({
@@ -1485,14 +1484,18 @@ function renderLab(): HTMLElement {
       result:
         "ADR-0004·0007에 따라 frontmatter에 사람이 직접 선언한 관계만 edge가 됩니다. Map은 결정론적 graph.json을 읽기만 하며, 연결이 없는 기록도 숨기지 않습니다.",
     },
-    {
-      phase: `PHASE ${livingValuesPhase.id}`,
-      status: livingValuesPhase.status,
-      title: livingValuesPhase.title,
-      question: "가치를 슬로건이 아니라 승인된 기록으로 증명할 수 있는가?",
-      result:
-        "네 가치 모두 승인·발행 증적을 갖춘 기록이 최소 기준인 3편 이상 쌓인 것을 확인했습니다. Garden의 가치 태그와 각 가치 공간에서 직접 열람할 수 있습니다.",
-    },
+    ...(livingValuesPhase
+      ? [
+          {
+            phase: `PHASE ${livingValuesPhase.id}`,
+            status: livingValuesPhase.status,
+            title: livingValuesPhase.title,
+            question: "가치를 슬로건이 아니라 승인된 기록으로 증명할 수 있는가?",
+            result:
+              "네 가치 모두 승인·발행 증적을 갖춘 기록이 최소 기준인 3편 이상 쌓인 것을 확인했습니다. Garden의 가치 태그와 각 가치 공간에서 직접 열람할 수 있습니다.",
+          },
+        ]
+      : []),
   ]) {
     const row = createElement("article", "experiment-row");
     const meta = createElement("div", "experiment-meta");

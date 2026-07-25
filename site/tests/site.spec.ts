@@ -848,6 +848,12 @@ test("가치 공간을 제외한 touch swipe와 trackpad wheel 순환은 기존 
 test("Lab 실험 원장은 로드맵의 최신 Phase까지 따라간다", async ({ page }) => {
   // 원장이 Phase 8B에서 멈춰 Projects와 다른 진도를 말한 적이 있다.
   // 최신 Phase가 원장에 없거나 상태가 어긋나면 실패해야 한다.
+  //
+  // renderLab은 Phase 9를 이름으로 찾는데 이 테스트는 마지막 Phase를 본다. 이 어긋남은
+  // 의도한 것이다. 원장의 질문 문구는 Phase마다 고유해서 새 Phase에 자동으로 옮겨 붙일 수
+  // 없다. Phase 10이 생기면 이 테스트가 실패하고, 사람이 새 문구를 쓰게 된다.
+  // 코드를 "마지막 Phase"로 바꿔 이 실패를 없애지 말 것 — 그러면 새 Phase 제목에
+  // 옛 질문이 조용히 붙는다.
   const latestPhase = phaseDefinitions[phaseDefinitions.length - 1];
   await page.goto("/lab");
   const rows = page.locator(".experiment-row");
