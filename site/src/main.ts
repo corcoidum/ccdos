@@ -930,6 +930,14 @@ function openNoteModal(
   appRoot.setAttribute("aria-hidden", "true");
   appRoot.inert = true;
 
+  // 용어 상세로 들어온 경로를 기억해, 닫기와 Esc가 읽던 기록으로 되돌아오게 한다.
+  const noteTrail: string[] = [];
+  const syncCloseButtonLabel = (): void => {
+    const returning = noteTrail.length > 0;
+    closeButton.setAttribute("aria-label", returning ? "읽던 기록으로 돌아가기" : "닫기");
+    closeButton.textContent = returning ? "←" : "✕";
+  };
+
   const showNote = (
     nextNote: PublicNote,
     nextHistoryMode: NoteModalHistoryMode,
@@ -973,12 +981,25 @@ function openNoteModal(
     }
   };
 
+  // 용어 상세는 새 history 항목으로 쌓는다. 닫기 버튼과 브라우저 뒤로가기가 같은 곳으로 간다.
   function openTermNote(term: GlossaryTerm): void {
     const termNote = glossaryTermNotesById.get(term.id);
-    if (termNote) {
-      showNote(termNote, "replace", true);
+    if (!termNote || activeNoteModalId === null || activeNoteModalId === termNote.id) {
+      return;
     }
+    noteTrail.push(activeNoteModalId);
+    showNote(termNote, "push", true);
+    syncCloseButtonLabel();
   }
+
+  const closeOrReturn = (): void => {
+    if (noteTrail.length > 0) {
+      // popstate가 syncNoteModalFromLocation을 거쳐 이전 기록을 같은 모달에 다시 그린다.
+      window.history.back();
+      return;
+    }
+    close();
+  };
 
   const close = ({ restoreFocus = true, syncHistory = true }: NoteModalCloseOptions = {}): void => {
     if (closeActiveNoteModal !== close) {
@@ -1030,7 +1051,7 @@ function openNoteModal(
           return;
         }
       }
-      close();
+      closeOrReturn();
       return;
     }
     if (event.key !== "Tab") {
@@ -1052,15 +1073,23 @@ function openNoteModal(
     }
   };
 
-  closeButton.addEventListener("click", () => close());
+  closeButton.addEventListener("click", () => closeOrReturn());
   overlay.addEventListener("click", (event) => {
     if (event.target === overlay) {
-      close();
+      closeOrReturn();
     }
   });
   document.addEventListener("keydown", onKeydown, true);
   activeNoteModalReturnFocus = previousFocus;
-  showActiveNoteModal = (nextNote, nextHistoryMode) => showNote(nextNote, nextHistoryMode, false);
+  showActiveNoteModal = (nextNote, nextHistoryMode) => {
+    // 뒤로가기로 돌아온 기록이 방금 떠나온 곳이면 경로에서 지우고 제목으로 focus를 옮긴다.
+    const returning = noteTrail[noteTrail.length - 1] === nextNote.id;
+    if (returning) {
+      noteTrail.pop();
+    }
+    showNote(nextNote, nextHistoryMode, returning);
+    syncCloseButtonLabel();
+  };
   closeActiveNoteModal = close;
   showNote(note, historyMode);
   window.requestAnimationFrame(() => closeButton.focus({ preventScroll: true }));

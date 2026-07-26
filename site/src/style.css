@@ -2405,19 +2405,16 @@ img {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
-  transition: border-color 180ms ease, transform 220ms ease, background 180ms ease;
+  transition: border-color 180ms ease, transform 220ms ease, background 180ms ease,
+    box-shadow 220ms ease;
 }
 
+/* 기록 카드와 같은 강조. 네 변이 함께 금색이 되고 같은 금색 glow가 깔린다. */
 .phase-item:hover {
   border-color: var(--gold-soft);
   background: var(--night-raised);
+  box-shadow: 0 24px 60px -38px rgba(216, 189, 131, 0.72);
   transform: translateX(6px);
-}
-
-.phase-item:nth-child(even) {
-  padding-right: 26px;
-  padding-left: 26px;
-  border-left: 1px solid var(--line);
 }
 
 .phase-item h3 {
@@ -3279,12 +3276,10 @@ img {
     left: -12px;
   }
 
-  .phase-item,
-  .phase-item:nth-child(even) {
+  .phase-item {
     grid-template-columns: 1fr;
     min-height: 0;
     padding: 24px 22px;
-    border-left: 1px solid var(--line);
   }
 
   .phase-item h3,
