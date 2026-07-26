@@ -1,0 +1,47 @@
+[
+  {
+    "id": "grounded-01",
+    "kind": "grounded-answerable",
+    "query": "공개 위키 검색의 첫 버전은 답변을 생성하나요?",
+    "provided_sources": [
+      "search-that-does-not-guess"
+    ],
+    "expect": {
+      "mode": "generated"
+    }
+  },
+  {
+    "id": "oos-01",
+    "kind": "out-of-scope",
+    "query": "합성 예시: 달 기지의 산소 재활용 주기는 얼마인가요?",
+    "provided_sources": [
+      "search-that-does-not-guess"
+    ],
+    "expect": {
+      "mode": "retrieval",
+      "reason": "no_sources"
+    }
+  },
+  {
+    "id": "partial-01",
+    "kind": "partial-evidence",
+    "query": "공개 답변 계층은 어떤 데이터 경계와 비용 상한을 사용하나요?",
+    "provided_sources": [
+      "from-working-site-to-trustworthy-system",
+      "search-that-does-not-guess"
+    ],
+    "expect": {
+      "mode": "generated"
+    }
+  },
+  {
+    "id": "empty-01",
+    "kind": "empty-index",
+    "query": "합성 예시: 제공된 공개 근거가 하나도 없을 때 답할 수 있나요?",
+    "provided_sources": [],
+    "expect": {
+      "mode": "retrieval",
+      "reason": "no_sources"
+    }
+  }
+]
