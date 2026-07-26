@@ -5,6 +5,7 @@ on:
     paths:
       - "automation/**"
       - "content/**"
+      - "evals/**"
       - "schemas/**"
       - "site/**"
       - "tests/**"
@@ -41,6 +42,8 @@ jobs:
         run: python automation/build_public_glossary.py --check
       - name: Run automation tests
         run: python -m unittest discover -s tests -v
+      - name: Gate on grounding eval pass rate
+        run: python evals/grounding_eval.py --min-pass 1.0
 
   build-site:
     needs: validate-public-content
