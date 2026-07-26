@@ -203,6 +203,24 @@
       "related_notes": []
     },
     {
+      "id": "moving-recheck-dates-out-of-memory",
+      "type": "note",
+      "label": "재검일을 사람의 기억에서 꺼내는 법",
+      "url": "/garden?note=moving-recheck-dates-out-of-memory",
+      "tags": [
+        "automation",
+        "healthcare-ops",
+        "hope",
+        "mercy",
+        "project-log"
+      ],
+      "state": "published",
+      "updated": "2026-07-26T14:43:32Z",
+      "published_at": "2026-07-26T14:53:48Z",
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "night-comfort-with-my-son",
       "type": "note",
       "label": "아들과 함께 듣는 밤의 위로",
@@ -272,6 +290,10 @@
         {
           "source": "discord-webhook-403-lesson",
           "type": "related_to"
+        },
+        {
+          "source": "moving-recheck-dates-out-of-memory",
+          "type": "builds_on"
         },
         {
           "source": "one-link-less-explanation",
@@ -349,7 +371,12 @@
       "state": "published",
       "updated": "2026-07-25T22:18:34Z",
       "published_at": "2026-07-25T22:37:00Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "moving-recheck-dates-out-of-memory",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "value-of-invisible-work"
       ]
@@ -395,6 +422,16 @@
       "source": "leave-the-constellation-uncropped",
       "target": "moonlight-and-the-name-claude",
       "type": "demonstrates"
+    },
+    {
+      "source": "moving-recheck-dates-out-of-memory",
+      "target": "safe-automation-case-study",
+      "type": "builds_on"
+    },
+    {
+      "source": "moving-recheck-dates-out-of-memory",
+      "target": "when-automation-creates-new-work",
+      "type": "builds_on"
     },
     {
       "source": "one-link-less-explanation",
