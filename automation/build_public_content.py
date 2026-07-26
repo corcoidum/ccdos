@@ -8,9 +8,11 @@ import sys
 from pathlib import Path
 
 try:
-    from automation.public_content import ParsedNote, load_public_notes, publishable_notes
+    from automation.public_content import ParsedNote, glossary_notes, load_public_notes, record_notes
 except ModuleNotFoundError:  # Direct execution: python automation/build_public_content.py
-    from public_content import ParsedNote, load_public_notes, publishable_notes
+    from public_content import ParsedNote, glossary_notes, load_public_notes, record_notes
+
+INDEX_VERSION = 2
 
 
 def build_payload(source: Path) -> dict[str, object]:
@@ -18,28 +20,37 @@ def build_payload(source: Path) -> dict[str, object]:
     return build_payload_from_notes(load_public_notes(source))
 
 
-def build_payload_from_notes(parsed_notes: list[ParsedNote]) -> dict[str, object]:
-    """Preserve the version 1 index contract while reusing parsed notes."""
-    notes: list[dict[str, object]] = []
-    for note in publishable_notes(parsed_notes):
-        metadata, body = note.metadata, note.body
-        notes.append(
-            {
-                "id": metadata["id"],
-                "title": metadata["title"],
-                "updated": metadata["updated"],
-                "published_at": metadata.get("published_at"),
-                "tags": metadata["tags"],
-                "state": metadata["publish_state"],
-                "body": body.strip(),
-            }
-        )
+def note_entry(note: ParsedNote) -> dict[str, object]:
+    metadata = note.metadata
+    return {
+        "id": metadata["id"],
+        "title": metadata["title"],
+        "updated": metadata["updated"],
+        "published_at": metadata.get("published_at"),
+        "tags": metadata["tags"],
+        "state": metadata["publish_state"],
+        "body": note.body.strip(),
+    }
 
-    notes.sort(
+
+def sort_by_recency(entries: list[dict[str, object]]) -> None:
+    entries.sort(
         key=lambda note: (str(note.get("published_at") or note["updated"]), str(note["updated"]), str(note["id"])),
         reverse=True,
     )
-    return {"version": 1, "notes": notes}
+
+
+def build_payload_from_notes(parsed_notes: list[ParsedNote]) -> dict[str, object]:
+    """Split records from glossary terms so reading surfaces never mix the two."""
+    notes = [note_entry(note) for note in record_notes(parsed_notes)]
+    glossary = [
+        {**note_entry(note), "aliases": sorted({str(alias) for alias in note.metadata["aliases"]})}
+        for note in glossary_notes(parsed_notes)
+    ]
+
+    sort_by_recency(notes)
+    sort_by_recency(glossary)
+    return {"version": INDEX_VERSION, "notes": notes, "glossary": glossary}
 
 
 def render_payload(payload: dict[str, object]) -> str:
@@ -74,8 +85,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(rendered, encoding="utf-8")
-    count = len(payload["notes"])
-    print(f"PASS: wrote {count} approved public note(s) to {args.output}")
+    notes, glossary = payload["notes"], payload["glossary"]
+    print(f"PASS: wrote {len(notes)} approved public note(s) and {len(glossary)} glossary term(s) to {args.output}")
     return 0
 
 

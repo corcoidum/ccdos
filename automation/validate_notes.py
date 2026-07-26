@@ -15,6 +15,12 @@ VISIBILITIES = {"local", "private", "public"}
 PUBLISH_STATES = {"draft", "review", "approved", "published", "archived"}
 PUBLISHABLE_STATES = {"approved", "published"}
 RELATION_TYPES = {"related_to", "builds_on", "supports", "demonstrates", "implemented_by", "uses"}
+NOTE_KINDS = {"glossary"}
+GLOSSARY_KIND = "glossary"
+# Korean technical terms are commonly two syllables (폴백, 검증). One character would match
+# almost anything, so the floor is two and wrong matches are caught by reviewing the context
+# snippet that build_public_glossary.py records for every mention.
+MIN_ALIAS_LENGTH = 2
 ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 ISO_UTC_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 PUBLIC_REVIEW_FIELDS = {"review_requested_at", "privacy_reviewed_by", "privacy_reviewed_at", "privacy_review_result", "reviewed_revision"}
@@ -214,6 +220,43 @@ def validate_relations(note: ParsedNote) -> list[ValidationIssue]:
     return issues
 
 
+def validate_glossary_fields(note: ParsedNote) -> list[ValidationIssue]:
+    """Keep note_kind a closed set and aliases usable by deterministic substring matching."""
+    path, metadata = note.path, note.metadata
+    issues: list[ValidationIssue] = []
+    note_kind = metadata.get("note_kind")
+    is_glossary = note_kind == GLOSSARY_KIND
+    if note_kind is not None and note_kind not in NOTE_KINDS:
+        issues.append(ValidationIssue(path, f"note_kind is not allowed: {note_kind}"))
+    if is_glossary and vault_name(path) != "CORCOIDUM-Public":
+        issues.append(ValidationIssue(path, "glossary notes are only allowed in CORCOIDUM-Public"))
+
+    if "aliases" not in metadata:
+        if is_glossary:
+            issues.append(ValidationIssue(path, "glossary note requires aliases"))
+        return issues
+    if not is_glossary:
+        issues.append(ValidationIssue(path, "aliases are only allowed on note_kind: glossary"))
+
+    aliases = metadata["aliases"]
+    if not isinstance(aliases, list) or not aliases:
+        return [*issues, ValidationIssue(path, "aliases must be a non-empty YAML list")]
+
+    seen: set[str] = set()
+    for alias in aliases:
+        if not isinstance(alias, str) or not alias.strip():
+            issues.append(ValidationIssue(path, "aliases entries must be non-empty strings"))
+            continue
+        if alias != alias.strip():
+            issues.append(ValidationIssue(path, f"alias must not have surrounding whitespace: {alias!r}"))
+        if len(alias.strip()) < MIN_ALIAS_LENGTH:
+            issues.append(ValidationIssue(path, f"alias must be at least {MIN_ALIAS_LENGTH} characters: {alias}"))
+        if alias in seen:
+            issues.append(ValidationIssue(path, f"duplicate alias: {alias}"))
+        seen.add(alias)
+    return issues
+
+
 def validate_parsed_note(note: ParsedNote) -> list[ValidationIssue]:
     path, metadata, body, text = note.path, note.metadata, note.body, note.text
 
@@ -296,6 +339,7 @@ def validate_parsed_note(note: ParsedNote) -> list[ValidationIssue]:
     if metadata.get("classification") == "S3_RESTRICTED" or "S3_RESTRICTED" in body:
         issues.append(ValidationIssue(path, "S3_RESTRICTED material must not be stored in this repository"))
     issues.extend(validate_relations(note))
+    issues.extend(validate_glossary_fields(note))
     return issues
 
 
@@ -369,6 +413,29 @@ def collect_relation_target_issues(notes: list[ParsedNote]) -> list[ValidationIs
     return issues
 
 
+def collect_duplicate_alias_issues(notes: list[ParsedNote]) -> list[ValidationIssue]:
+    """One alias must resolve to one term; a shared alias makes the matched term ambiguous."""
+    owners_by_alias: dict[str, list[ParsedNote]] = {}
+    for note in notes:
+        if note.metadata.get("note_kind") != GLOSSARY_KIND:
+            continue
+        aliases = note.metadata.get("aliases")
+        if not isinstance(aliases, list):
+            continue
+        for alias in aliases:
+            if isinstance(alias, str) and alias.strip():
+                owners_by_alias.setdefault(alias.strip(), []).append(note)
+
+    issues: list[ValidationIssue] = []
+    for alias, owners in sorted(owners_by_alias.items()):
+        if len(owners) < 2:
+            continue
+        claimed_by = ", ".join(sorted(str(owner.metadata.get("id")) for owner in owners))
+        for owner in sorted(owners, key=lambda item: str(item.path)):
+            issues.append(ValidationIssue(owner.path, f"alias {alias} is claimed by more than one term: {claimed_by}"))
+    return issues
+
+
 def load_and_validate_notes(files: list[Path]) -> tuple[list[ParsedNote], list[ValidationIssue]]:
     """Read every note once, then run file-level and cross-note validation."""
     notes: list[ParsedNote] = []
@@ -383,6 +450,7 @@ def load_and_validate_notes(files: list[Path]) -> tuple[list[ParsedNote], list[V
         issues.extend(validate_parsed_note(note))
     issues.extend(collect_duplicate_id_issues_from_notes(notes))
     issues.extend(collect_relation_target_issues(notes))
+    issues.extend(collect_duplicate_alias_issues(notes))
     return notes, issues
 
 

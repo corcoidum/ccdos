@@ -8,9 +8,13 @@ export type PublicNote = {
   body: string;
 };
 
+export type GlossaryNote = PublicNote & { aliases: string[] };
+
 export type PublicContent = {
   version: number;
   notes: PublicNote[];
+  // 용어는 읽기 목록과 검색에서 분리해 둔다. ADR-0008.
+  glossary: GlossaryNote[];
 };
 
 export type RankedNote = {

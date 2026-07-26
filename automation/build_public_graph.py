@@ -9,11 +9,11 @@ from pathlib import Path
 
 try:
     from automation import build_public_content
-    from automation.public_content import ParsedNote, load_public_notes, publishable_notes
+    from automation.public_content import ParsedNote, load_public_notes, record_notes
     from automation.validate_notes import ID_PATTERN, PUBLISHABLE_STATES, RELATION_TYPES, is_utc_timestamp
 except ModuleNotFoundError:  # Direct execution: python automation/build_public_graph.py
     import build_public_content
-    from public_content import ParsedNote, load_public_notes, publishable_notes
+    from public_content import ParsedNote, load_public_notes, record_notes
     from validate_notes import ID_PATTERN, PUBLISHABLE_STATES, RELATION_TYPES, is_utc_timestamp
 
 GRAPH_VERSION = 2
@@ -38,7 +38,7 @@ def build_payload_from_notes(notes: list[ParsedNote]) -> dict[str, object]:
     """Create stable graph nodes and human-declared directed edges."""
     nodes: list[dict[str, object]] = []
     edges: list[dict[str, str]] = []
-    approved_notes = publishable_notes(notes)
+    approved_notes = record_notes(notes)
     for note in approved_notes:
         metadata = note.metadata
         note_id = str(metadata["id"])
@@ -204,7 +204,7 @@ def validate_graph_payload(payload: object, expected_node_ids: set[str] | None =
 def collect_graph_warnings(notes: list[ParsedNote]) -> list[str]:
     """Report graph quality signals without blocking publication."""
     warnings: list[str] = []
-    for note in sorted(publishable_notes(notes), key=lambda item: str(item.metadata["id"])):
+    for note in sorted(record_notes(notes), key=lambda item: str(item.metadata["id"])):
         note_id = str(note.metadata["id"])
         relations = note.metadata.get("relations", [])
         if not relations:

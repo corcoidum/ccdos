@@ -6,6 +6,7 @@ from pathlib import Path
 
 try:
     from automation.validate_notes import (
+        GLOSSARY_KIND,
         PUBLISHABLE_STATES,
         ParsedNote,
         format_issue,
@@ -13,7 +14,14 @@ try:
         markdown_files,
     )
 except ModuleNotFoundError:  # Direct execution through a sibling automation script.
-    from validate_notes import PUBLISHABLE_STATES, ParsedNote, format_issue, load_and_validate_notes, markdown_files
+    from validate_notes import (
+        GLOSSARY_KIND,
+        PUBLISHABLE_STATES,
+        ParsedNote,
+        format_issue,
+        load_and_validate_notes,
+        markdown_files,
+    )
 
 
 def load_public_notes(source: Path) -> list[ParsedNote]:
@@ -31,3 +39,12 @@ def load_public_notes(source: Path) -> list[ParsedNote]:
 
 def publishable_notes(notes: list[ParsedNote]) -> list[ParsedNote]:
     return [note for note in notes if note.metadata.get("publish_state") in PUBLISHABLE_STATES]
+
+
+def record_notes(notes: list[ParsedNote]) -> list[ParsedNote]:
+    """Approved reading records: everything that is not a glossary term."""
+    return [note for note in publishable_notes(notes) if note.metadata.get("note_kind") != GLOSSARY_KIND]
+
+
+def glossary_notes(notes: list[ParsedNote]) -> list[ParsedNote]:
+    return [note for note in publishable_notes(notes) if note.metadata.get("note_kind") == GLOSSARY_KIND]

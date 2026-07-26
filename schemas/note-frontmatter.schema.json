@@ -13,6 +13,13 @@
     "visibility": {"enum": ["local", "private", "public"]},
     "publish_state": {"enum": ["draft", "review", "approved", "published", "archived"]},
     "tags": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "note_kind": {"enum": ["glossary"]},
+    "aliases": {
+      "description": "Glossary notes only. Substring matched against approved note bodies; each alias needs at least 3 characters.",
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 3}
+    },
     "relations": {
       "type": "array",
       "items": {
