@@ -1678,3 +1678,73 @@ test("용어 기록은 Garden 목록과 지식 지도에 섞이지 않는다", a
     expect(publicGraph.nodes.map((node) => node.id)).not.toContain(term.id);
   }
 });
+
+// 기본 project는 Pixel 7(touch)이라 CSS :hover가 적용되지 않고, 2열 grid도 680px 초과에서만
+// 생긴다. 이 회귀는 오른쪽 열 카드에서만 재현되므로 desktop 포인터 조건을 따로 준다.
+test.describe("데스크톱 포인터", () => {
+  test.use({
+    viewport: { width: 1280, height: 900 },
+    isMobile: false,
+    hasTouch: false,
+    reducedMotion: "reduce",
+  });
+
+  const borderSides = [
+    "borderTopColor",
+    "borderRightColor",
+    "borderBottomColor",
+    "borderLeftColor",
+  ] as const;
+
+  test("기록 카드 hover 테두리는 열 위치와 무관하게 네 변이 모두 강조색이 된다", async ({ page }) => {
+    await page.goto("/garden");
+    const cards = page.locator("#public-note-list .note-entry");
+    expect(await cards.count()).toBeGreaterThan(1);
+    const columns = await cards.first().evaluate((element) =>
+      getComputedStyle(element.parentElement as HTMLElement).gridTemplateColumns.split(" ").length,
+    );
+    expect(columns, "이 회귀는 2열 배치에서만 재현된다").toBe(2);
+
+    // border-color transition이 끝난 뒤 읽어야 하므로 재시도하는 단언을 쓴다.
+    const sidesOf = (index: number) =>
+      cards.nth(index).evaluate((element, keys) => {
+        const style = getComputedStyle(element);
+        return keys.map((key) => style[key as keyof CSSStyleDeclaration] as string).join("|");
+      }, borderSides);
+
+    const settle = async (index: number) => {
+      const card = cards.nth(index);
+      await card.scrollIntoViewIfNeeded();
+      await expect(card).toHaveClass(/is-visible/);
+    };
+
+    // 기준색은 팔레트에서 직접 뽑는다. 다른 카드에서 읽으면 transition 도중 값을 집을 수 있다.
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = getComputedStyle(document.documentElement)
+        .getPropertyValue("--gold-soft")
+        .trim();
+      document.body.append(probe);
+      const resolved = getComputedStyle(probe).color;
+      probe.remove();
+      return resolved;
+    });
+    const allGold = [accent, accent, accent, accent].join("|");
+
+    // 왼쪽 열(홀수)과 오른쪽 열(짝수)을 모두 확인한다. 예전에는 짝수 카드의 왼쪽 변만 어둡게 남았다.
+    for (const index of [0, 1]) {
+      await settle(index);
+      const resting = await sidesOf(index);
+      expect(new Set(resting.split("|")).size, `카드 ${index}의 기본 테두리는 네 변이 같다`).toBe(1);
+
+      await cards.nth(index).hover();
+      await expect
+        .poll(() => sidesOf(index), { message: `카드 ${index}의 hover 테두리는 네 변이 모두 금색` })
+        .toBe(allGold);
+      await expect(cards.nth(index), `카드 ${index}에 hover glow가 있어야 한다`).not.toHaveCSS(
+        "box-shadow",
+        "none",
+      );
+    }
+  });
+});

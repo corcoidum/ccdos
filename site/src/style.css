@@ -1288,19 +1288,16 @@ img {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--surface);
-  transition: border-color 180ms ease, transform 220ms ease, background 180ms ease;
+  transition: border-color 180ms ease, transform 220ms ease, background 180ms ease,
+    box-shadow 220ms ease;
 }
 
+/* 네 변이 함께 금색으로 바뀌고 카드 아래에 같은 금색 glow가 깔린다. Value 카드와 같은 모양. */
 .note-entry:hover {
   border-color: var(--gold-soft);
   background: var(--night-raised);
+  box-shadow: 0 24px 60px -38px rgba(216, 189, 131, 0.72);
   transform: translateY(-5px);
-}
-
-.note-entry:nth-child(even) {
-  padding-right: 26px;
-  padding-left: 26px;
-  border-left: 1px solid var(--line);
 }
 
 .note-meta {
@@ -3226,10 +3223,8 @@ img {
     padding: 40px 0;
   }
 
-  .note-entry,
-  .note-entry:nth-child(even) {
+  .note-entry {
     padding: 24px 22px;
-    border-left: 1px solid var(--line);
   }
 
   .note-modal-overlay {
