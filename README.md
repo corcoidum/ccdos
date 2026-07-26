@@ -77,6 +77,7 @@ python automation/validate_notes.py
 # 결정론적 산출물 — 재생성 결과가 커밋본과 다르면 실패
 python automation/build_public_content.py --check
 python automation/build_public_graph.py --check
+python automation/build_public_glossary.py --check
 
 # 전체 테스트와 lint
 python -m unittest discover -s tests -v

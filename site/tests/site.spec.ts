@@ -18,6 +18,13 @@ import {
   type PublicGraph,
   type PublicGraphNode,
 } from "../src/graph-view";
+import {
+  glossarySegments,
+  isTermSegment,
+  termsByNote,
+  type GlossaryTerm,
+  type PublicGlossary,
+} from "../src/glossary";
 import { phaseDefinitions } from "../src/phase-details";
 import { publicRecordNumbers, type PublicNote } from "../src/search";
 
@@ -27,6 +34,16 @@ const publicNotes = (
 ).notes;
 const graphPath = fileURLToPath(new URL("../../content/public/graph.json", import.meta.url));
 const publicGraph = JSON.parse(readFileSync(graphPath, "utf8")) as PublicGraph;
+const glossaryPath = fileURLToPath(new URL("../../content/public/glossary.json", import.meta.url));
+const publicGlossary = JSON.parse(readFileSync(glossaryPath, "utf8")) as PublicGlossary;
+// 승인된 용어가 있을 때만 화면 회귀를 돌린다. 규칙 자체는 아래 순수 함수 test가 항상 검증한다.
+const firstGlossaryMention = publicGlossary.mentions[0];
+const syntheticTerm = (id: string, aliases: string[]): GlossaryTerm => ({
+  id,
+  title: `용어 ${id}`,
+  summary: `${id} 설명`,
+  aliases,
+});
 const publicNotesById = new Map(publicNotes.map((note) => [note.id, note]));
 const firstPublicNote = publicNotes[0];
 const primaryRoutes = ["os", "garden", "lab", "projects", "graph"] as const;
@@ -1513,4 +1530,136 @@ test("OpenAI Responses API의 message output만 안전하게 추출한다", () =
     }),
   ).toBe("승인된 근거입니다. [approved-source]");
   expect(extractOpenAIText({ output: [{ type: "message", content: [{ type: "refusal" }] }] })).toBe("");
+});
+
+test("용어 표시는 조사를 구간 밖에 남기고 alias까지만 덮는다", () => {
+  const terms = new Map([["t-fallback", syntheticTerm("t-fallback", ["폴백"])]]);
+  const mentions = [{ note: "r", term: "t-fallback", alias: "폴백", context: "[폴백]이" }];
+  const segments = glossarySegments("폴백이 정상인지 확인했다.", mentions, terms, new Set());
+
+  expect(segments.map((segment) => segment.text)).toEqual(["폴백", "이 정상인지 확인했다."]);
+  expect(segments.filter(isTermSegment)).toHaveLength(1);
+});
+
+test("한 기록 안에서 같은 용어는 한 번만 표시한다", () => {
+  const terms = new Map([["t-fallback", syntheticTerm("t-fallback", ["폴백"])]]);
+  const mentions = [{ note: "r", term: "t-fallback", alias: "폴백", context: "[폴백]" }];
+  const consumed = new Set<string>();
+
+  const first = glossarySegments("폴백을 만들었다.", mentions, terms, consumed);
+  const second = glossarySegments("폴백은 눈을 가린다.", mentions, terms, consumed);
+
+  expect(first.filter(isTermSegment)).toHaveLength(1);
+  expect(second.filter(isTermSegment)).toHaveLength(0);
+  expect(second.map((segment) => segment.text)).toEqual(["폴백은 눈을 가린다."]);
+});
+
+test("긴 용어가 먼저 구간을 차지하고 짧은 용어는 겹치지 않는 다음 등장을 쓴다", () => {
+  const terms = new Map([
+    ["t-build", syntheticTerm("t-build", ["결정론적 빌드"])],
+    ["t-short", syntheticTerm("t-short", ["빌드"])],
+  ]);
+  const mentions = [
+    { note: "r", term: "t-build", alias: "결정론적 빌드", context: "[결정론적 빌드]" },
+    { note: "r", term: "t-short", alias: "빌드", context: "[빌드]" },
+  ];
+  const segments = glossarySegments("결정론적 빌드는 재현된다. 빌드 로그를 본다.", mentions, terms, new Set());
+  const highlighted = segments.filter(isTermSegment);
+
+  expect(highlighted.map((segment) => segment.text)).toEqual(["결정론적 빌드", "빌드"]);
+  expect(highlighted[0].term.id).toBe("t-build");
+  expect(highlighted[1].term.id).toBe("t-short");
+});
+
+test("본문에 없는 용어는 문단을 통째로 그대로 남긴다", () => {
+  const terms = new Map([["t-fallback", syntheticTerm("t-fallback", ["폴백"])]]);
+  const mentions = [{ note: "r", term: "t-fallback", alias: "폴백", context: "[폴백]" }];
+  const segments = glossarySegments("관련 없는 문장이다.", mentions, terms, new Set());
+
+  expect(segments).toEqual([{ text: "관련 없는 문장이다." }]);
+  expect(segments.filter(isTermSegment)).toHaveLength(0);
+});
+
+test("mention은 기록별로 묶여 해당 기록에만 적용된다", () => {
+  const grouped = termsByNote({
+    version: 1,
+    terms: [],
+    mentions: [
+      { note: "r-one", term: "t-a", alias: "가나", context: "[가나]" },
+      { note: "r-two", term: "t-a", alias: "가나", context: "[가나]" },
+      { note: "r-one", term: "t-b", alias: "다라", context: "[다라]" },
+    ],
+  });
+
+  expect(grouped.get("r-one")?.map((mention) => mention.term)).toEqual(["t-a", "t-b"]);
+  expect(grouped.get("r-two")?.map((mention) => mention.term)).toEqual(["t-a"]);
+  expect(grouped.get("r-three")).toBeUndefined();
+});
+
+test("Garden 본문의 용어는 hover와 keyboard focus 양쪽에서 설명을 연다", async ({ page }) => {
+  test.skip(!firstGlossaryMention, "승인된 용어가 아직 없다");
+  await page.goto(`/garden?note=${firstGlossaryMention.note}`);
+  const term = page.locator(".glossary-term").first();
+  const popup = page.locator(".glossary-popup").first();
+
+  await expect(term).toHaveAttribute("aria-expanded", "false");
+  await expect(popup).toBeHidden();
+
+  await term.hover();
+  await expect(popup).toBeVisible();
+  await expect(term).toHaveAttribute("aria-expanded", "true");
+
+  await page.mouse.move(0, 0);
+  await expect(popup).toBeHidden();
+
+  await term.focus();
+  await expect(popup).toBeVisible();
+});
+
+test("용어 설명은 저절로 사라지지 않고 Esc는 설명만 닫는다", async ({ page }) => {
+  test.skip(!firstGlossaryMention, "승인된 용어가 아직 없다");
+  await page.goto(`/garden?note=${firstGlossaryMention.note}`);
+  const term = page.locator(".glossary-term").first();
+  const popup = page.locator(".glossary-popup").first();
+
+  await term.focus();
+  await expect(popup).toBeVisible();
+  await page.waitForTimeout(1500);
+  await expect(popup).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(popup).toBeHidden();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("포인터 없이 탭만으로 설명을 열고 상세 기록까지 들어간다", async ({ page }) => {
+  test.skip(!firstGlossaryMention, "승인된 용어가 아직 없다");
+  await page.goto(`/garden?note=${firstGlossaryMention.note}`);
+  const term = page.locator(".glossary-term").first();
+
+  await term.click();
+  const more = page.locator(".glossary-popup-more").first();
+  await expect(more).toBeVisible();
+  await more.click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { level: 2 })).toContainText(
+    publicGlossary.terms.find((term) => term.id === firstGlossaryMention.term)?.title ?? "",
+  );
+  expect(new URL(page.url()).searchParams.get("note")).toBe(firstGlossaryMention.term);
+});
+
+test("용어 기록은 Garden 목록과 지식 지도에 섞이지 않는다", async ({ page }) => {
+  await page.goto("/garden");
+  const listedIds = await page
+    .locator("#public-note-list [data-note-id]")
+    .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-note-id")));
+
+  for (const term of publicGlossary.terms) {
+    expect(listedIds).not.toContain(term.id);
+    expect(publicGraph.nodes.map((node) => node.id)).not.toContain(term.id);
+  }
 });

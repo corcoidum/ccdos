@@ -1438,6 +1438,104 @@ img {
   margin-bottom: 0;
 }
 
+/* 용어 표시 — 본문 흐름을 끊지 않도록 밑줄만 쓰고 배경은 hover·focus에서만 올린다. */
+.glossary-anchor {
+  position: relative;
+  display: inline;
+}
+
+.glossary-term {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed var(--value-mercy);
+  border-radius: 2px;
+  background: none;
+  color: var(--value-mercy);
+  font: inherit;
+  line-height: inherit;
+  cursor: help;
+}
+
+.glossary-term:hover,
+.glossary-term[aria-expanded="true"] {
+  border-bottom-style: solid;
+  background: rgba(167, 182, 108, 0.14);
+}
+
+.glossary-term:focus-visible {
+  outline: 2px solid var(--value-mercy);
+  outline-offset: 2px;
+}
+
+.glossary-popup {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 10px);
+  left: 0;
+  display: flex;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 48px));
+  flex-direction: column;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  background: var(--night-raised);
+  box-shadow: 0 18px 38px rgba(2, 18, 17, 0.55);
+  gap: 8px;
+  text-align: left;
+  white-space: normal;
+}
+
+.glossary-popup[hidden] {
+  display: none;
+}
+
+.glossary-popup-title {
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.glossary-popup-summary {
+  color: var(--muted-strong);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.glossary-popup-more {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--value-mercy);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.glossary-popup-more:hover {
+  color: var(--ivory-strong);
+}
+
+.glossary-popup-more:focus-visible {
+  outline: 2px solid var(--value-mercy);
+  outline-offset: 2px;
+}
+
+/* 아래 공간이 부족하면 위로 뒤집는다. 가로 위치는 열릴 때 본문 폭 안으로 가둔다. */
+.glossary-popup-above {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+
+@media (max-width: 640px) {
+  .glossary-popup {
+    max-width: min(300px, calc(100vw - 40px));
+  }
+}
+
 .note-relations {
   margin-top: 38px;
   padding-top: 30px;

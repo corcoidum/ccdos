@@ -1,5 +1,13 @@
 import content from "../../content/public/index.json";
+import glossaryArtifact from "../../content/public/glossary.json";
 import graph from "../../content/public/graph.json";
+import {
+  glossarySegments,
+  isTermSegment,
+  termsByNote,
+  type GlossaryTerm,
+  type PublicGlossary,
+} from "./glossary";
 import {
   connectionsForNote,
   createKnowledgeMap,
@@ -100,6 +108,17 @@ type ViewTransitionDocument = Document & {
 const publicContent = content as PublicContent;
 const publicGraph = graph as PublicGraph;
 const publicNotesById = new Map(publicContent.notes.map((note) => [note.id, note]));
+const publicGlossary = glossaryArtifact as PublicGlossary;
+const glossaryTermsById = new Map(publicGlossary.terms.map((term) => [term.id, term]));
+const glossaryTermNotesById = new Map(
+  publicContent.glossary.map((term) => [term.id, term as PublicNote]),
+);
+const glossaryMentionsByNote = termsByNote(publicGlossary);
+// 용어는 Garden 목록에 섞이지 않지만 modal과 ?note= deep link로는 읽을 수 있어야 한다.
+const readableNotesById = new Map<string, PublicNote>([
+  ...publicNotesById,
+  ...glossaryTermNotesById,
+]);
 const NOTE_MODAL_HISTORY_KEY = "corcoidumNoteModal";
 const PHASE_MODAL_HISTORY_KEY = "corcoidumPhaseModal";
 const primaryRouteDefinitions: RouteDefinition[] = [
@@ -708,9 +727,124 @@ function noteParagraphs(body: string): string[] {
     .filter(Boolean);
 }
 
-function appendNoteBody(container: HTMLElement, note: PublicNote): void {
+let closeActiveGlossaryPopup: (() => void) | null = null;
+
+// 짧은 설명 안에 이동 control이 들어가므로 role="tooltip"이 아니라 disclosure로 구현한다.
+// hover와 focus 양쪽에서 열리고, 포인터가 설명 위로 이동해도 유지되며, Esc로만 닫힌다.
+function createGlossaryAnchor(
+  text: string,
+  term: GlossaryTerm,
+  onOpenTerm: (term: GlossaryTerm, trigger: HTMLElement) => void,
+): HTMLElement {
+  const anchor = createElement("span", "glossary-anchor");
+  const trigger = createElement("button", "glossary-term", text);
+  trigger.type = "button";
+  trigger.setAttribute("aria-expanded", "false");
+  const popupId = `glossary-popup-${term.id}-${(glossaryAnchorSequence += 1)}`;
+  trigger.setAttribute("aria-controls", popupId);
+
+  const popup = createElement("span", "glossary-popup");
+  popup.id = popupId;
+  popup.hidden = true;
+  const title = createElement("span", "glossary-popup-title", term.title);
+  const summary = createElement("span", "glossary-popup-summary", term.summary);
+  const more = createElement("button", "glossary-popup-more", "자세히 읽기");
+  more.type = "button";
+  popup.append(title, summary, more);
+  anchor.append(trigger, popup);
+
+  // 본문 오른쪽 끝의 용어에서 설명이 modal 밖으로 잘리지 않도록 열릴 때마다 가둔다.
+  const clampToReadingArea = (): void => {
+    popup.style.left = "0px";
+    popup.classList.remove("glossary-popup-above");
+    const container = anchor.closest(".note-modal-scroll") ?? document.documentElement;
+    const bounds = container.getBoundingClientRect();
+    const rect = popup.getBoundingClientRect();
+    const margin = 16;
+
+    let shift = 0;
+    if (rect.right > bounds.right - margin) {
+      shift = bounds.right - margin - rect.right;
+    }
+    if (rect.left + shift < bounds.left + margin) {
+      shift = bounds.left + margin - rect.left;
+    }
+    popup.style.left = `${Math.round(shift)}px`;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const spaceBelow = bounds.bottom - triggerRect.bottom;
+    if (rect.height > spaceBelow && triggerRect.top - bounds.top > spaceBelow) {
+      popup.classList.add("glossary-popup-above");
+    }
+  };
+
+  const open = (): void => {
+    if (!popup.hidden) {
+      return;
+    }
+    if (closeActiveGlossaryPopup !== close) {
+      closeActiveGlossaryPopup?.();
+    }
+    popup.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    clampToReadingArea();
+    closeActiveGlossaryPopup = close;
+  };
+
+  function close(): void {
+    if (popup.hidden) {
+      return;
+    }
+    popup.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    if (closeActiveGlossaryPopup === close) {
+      closeActiveGlossaryPopup = null;
+    }
+  }
+
+  anchor.addEventListener("mouseenter", open);
+  anchor.addEventListener("mouseleave", close);
+  trigger.addEventListener("focus", open);
+  // 탭은 mouseenter(열기) 다음에 click이 오므로 toggle이면 열자마자 닫힌다. click은 열기만 한다.
+  // 닫기는 Esc, 포인터 이탈, 포커스 이동이 담당한다.
+  trigger.addEventListener("click", open);
+  anchor.addEventListener("focusout", (event) => {
+    const next = event.relatedTarget;
+    if (!(next instanceof Node) || !anchor.contains(next)) {
+      close();
+    }
+  });
+  more.addEventListener("click", () => {
+    close();
+    onOpenTerm(term, trigger);
+  });
+  return anchor;
+}
+
+let glossaryAnchorSequence = 0;
+
+function appendNoteBody(
+  container: HTMLElement,
+  note: PublicNote,
+  onOpenTerm?: (term: GlossaryTerm, trigger: HTMLElement) => void,
+): void {
+  const mentions = onOpenTerm ? (glossaryMentionsByNote.get(note.id) ?? []) : [];
+  const consumed = new Set<string>();
   for (const paragraph of noteParagraphs(note.body)) {
-    container.append(createElement("p", undefined, paragraph));
+    const element = createElement("p");
+    if (mentions.length === 0) {
+      element.textContent = paragraph;
+      container.append(element);
+      continue;
+    }
+    for (const segment of glossarySegments(paragraph, mentions, glossaryTermsById, consumed)) {
+      if (isTermSegment(segment) && onOpenTerm) {
+        element.append(createGlossaryAnchor(segment.text, segment.term, onOpenTerm));
+      } else {
+        element.append(document.createTextNode(segment.text));
+      }
+    }
+    container.append(element);
   }
 }
 
@@ -820,7 +954,11 @@ function openNoteModal(
       tags.append(createElement("span", "tag", `#${tag}`));
     }
     const body = createElement("div", "note-modal-body");
-    appendNoteBody(body, nextNote);
+    // 이전 본문의 anchor가 사라지므로 열려 있던 설명 참조도 함께 버린다.
+    closeActiveGlossaryPopup = null;
+    // ADR-0008: 최초 도입 범위는 /garden 본문이다.
+    const glossaryEnabled = currentRoute() === "/garden";
+    appendNoteBody(body, nextNote, glossaryEnabled ? openTermNote : undefined);
     const connections = createNoteConnectionsSection(nextNote, (target) =>
       showNote(target, "replace", true),
     );
@@ -835,6 +973,13 @@ function openNoteModal(
     }
   };
 
+  function openTermNote(term: GlossaryTerm): void {
+    const termNote = glossaryTermNotesById.get(term.id);
+    if (termNote) {
+      showNote(termNote, "replace", true);
+    }
+  }
+
   const close = ({ restoreFocus = true, syncHistory = true }: NoteModalCloseOptions = {}): void => {
     if (closeActiveNoteModal !== close) {
       return;
@@ -846,6 +991,7 @@ function openNoteModal(
     activeNoteModalReturnFocus = null;
     document.removeEventListener("keydown", onKeydown, true);
     overlay.remove();
+    closeActiveGlossaryPopup = null;
     document.body.style.overflow = scrollLock;
     appRoot.removeAttribute("aria-hidden");
     appRoot.inert = false;
@@ -872,6 +1018,11 @@ function openNoteModal(
   const onKeydown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
       event.preventDefault();
+      // 용어 설명이 열려 있으면 그것만 닫는다. 읽던 기록을 Esc 한 번에 잃지 않게 한다.
+      if (closeActiveGlossaryPopup) {
+        closeActiveGlossaryPopup();
+        return;
+      }
       close();
       return;
     }
@@ -914,7 +1065,7 @@ function syncNoteModalFromLocation(): void {
     return;
   }
   const noteId = noteIdFromLocation() ?? "";
-  const note = publicNotesById.get(noteId);
+  const note = readableNotesById.get(noteId);
   if (!note) {
     closeActiveNoteModal?.({ syncHistory: false });
     updateNoteQuery(null, "replace");
