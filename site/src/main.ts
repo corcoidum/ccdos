@@ -1018,10 +1018,17 @@ function openNoteModal(
   const onKeydown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
       event.preventDefault();
-      // 용어 설명이 열려 있으면 그것만 닫는다. 읽던 기록을 Esc 한 번에 잃지 않게 한다.
+      // 용어에 focus를 두고 연 설명은 Esc로 설명만 닫아 읽던 기록을 잃지 않게 한다.
+      // 포인터가 우연히 용어 위에 놓여 열린 설명은 기록과 함께 닫는다. 두 경우 모두
+      // Esc 한 번으로 설명이 사라지므로 hover 콘텐츠는 dismissible로 남는다.
+      const focusInsideTerm =
+        document.activeElement instanceof Element &&
+        document.activeElement.closest(".glossary-anchor") !== null;
       if (closeActiveGlossaryPopup) {
         closeActiveGlossaryPopup();
-        return;
+        if (focusInsideTerm) {
+          return;
+        }
       }
       close();
       return;
