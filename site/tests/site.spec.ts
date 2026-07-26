@@ -1635,6 +1635,21 @@ test("용어 설명은 저절로 사라지지 않고 Esc는 설명만 닫는다"
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("포인터만 얹혀 열린 설명은 Esc 한 번에 기록과 함께 닫힌다", async ({ page }) => {
+  test.skip(!firstGlossaryMention, "승인된 용어가 아직 없다");
+  await page.goto(`/garden?note=${firstGlossaryMention.note}`);
+  const term = page.locator(".glossary-term").first();
+  const popup = page.locator(".glossary-popup").first();
+
+  // 기록을 읽던 중 커서가 용어 위에 놓인 상태. focus는 용어에 없다.
+  await term.hover();
+  await expect(popup).toBeVisible();
+  await page.locator(".note-modal-close").focus();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("포인터 없이 탭만으로 설명을 열고 상세 기록까지 들어간다", async ({ page }) => {
   test.skip(!firstGlossaryMention, "승인된 용어가 아직 없다");
   await page.goto(`/garden?note=${firstGlossaryMention.note}`);

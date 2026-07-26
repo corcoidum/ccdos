@@ -5,7 +5,14 @@ created: 2026-07-25T23:05:00Z
 updated: 2026-07-25T23:05:00Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: draft
+publish_state: approved
+review_requested_at: 2026-07-26T01:53:11Z
+privacy_reviewed_by: corcoidum
+privacy_reviewed_at: 2026-07-26T01:53:12Z
+privacy_review_result: passed
+reviewed_revision: 2026-07-25T23:05:00Z
+approved_by: corcoidum
+approved_at: 2026-07-26T01:53:13Z
 note_kind: glossary
 aliases:
   - 검토 증적
