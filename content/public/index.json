@@ -231,12 +231,12 @@
       "id": "term-sensitive-pattern",
       "title": "민감 패턴",
       "updated": "2026-07-25T23:05:00Z",
-      "published_at": null,
+      "published_at": "2026-07-26T02:02:19Z",
       "tags": [
         "glossary",
         "privacy"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "기계가 확실하게 알아볼 수 있는 형태의 민감 정보 표기다. 주민등록번호, 휴대전화번호, 이메일 주소, 비밀값 대입처럼 모양이 정해진 것만 대상으로 삼는다.\n\n검사는 이런 명백한 위반만 차단하고 안전을 보장하지는 않는다. 이름이 없어도 시기와 사건의 조합으로 사람이 좁혀지는 경우는 패턴으로 잡히지 않으므로, 판단은 사람 검토에 남겨 둔다.",
       "aliases": [
         "민감 패턴",
@@ -247,12 +247,12 @@
       "id": "term-review-evidence",
       "title": "검토 증적",
       "updated": "2026-07-25T23:05:00Z",
-      "published_at": null,
+      "published_at": "2026-07-26T02:02:19Z",
       "tags": [
         "glossary",
         "governance"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "공개 기록이 사람의 검토와 승인을 실제로 거쳤다는 것을 남기는 frontmatter 기록이다. 검토 요청 시각, 검토자, 검토 결과, 검토한 문서 버전, 승인자와 승인 시각으로 이루어진다.\n\n증적은 특정 버전에 묶인다. 승인 뒤 본문이나 frontmatter가 바뀌면 검토한 버전과 현재 버전이 어긋나므로 이전 증적은 재사용할 수 없고, 문서는 다시 검토 대상으로 돌아간다. 승인이 형식적인 도장이 되지 않게 하는 장치다.",
       "aliases": [
         "검토 증적",
@@ -263,12 +263,12 @@
       "id": "term-fallback",
       "title": "폴백",
       "updated": "2026-07-25T23:05:00Z",
-      "published_at": null,
+      "published_at": "2026-07-26T02:02:19Z",
       "tags": [
         "glossary",
         "reliability"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "기능이 실패했을 때 오류 대신 미리 정해 둔 대체 동작을 보여 주는 설계다. 이 저장소에서는 답변 생성이 실패하면 승인된 근거 목록만 대신 보여 준다.\n\n폴백은 사용자를 지켜 주지만 운영자의 눈도 가린다. 정상 동작과 폴백 상태를 구분하지 않으면 멈춘 기능이 정상으로 보인 채 오래 남는다. 그래서 폴백을 만들 때는 폴백이 작동 중이라는 사실 자체를 감지하는 검사를 함께 둔다.",
       "aliases": [
         "폴백"
@@ -278,12 +278,12 @@
       "id": "term-ci-gate",
       "title": "게이트",
       "updated": "2026-07-25T23:05:00Z",
-      "published_at": null,
+      "published_at": "2026-07-26T02:02:19Z",
       "tags": [
         "glossary",
         "automation"
       ],
-      "state": "approved",
+      "state": "published",
       "body": "배포 전에 통과해야 하는 자동 검사 묶음이다. 아키텍처 경계, 노트 메타데이터와 민감 패턴, 공개 산출물의 최신 여부, 테스트가 모두 통과해야 사이트가 갱신된다.\n\n게이트의 값은 막은 횟수가 아니라 사람이 더 이상 기억하지 않아도 되는 확인의 수에 있다. 하나라도 실패하면 배포는 멈추고 실패 요약만 남는다.",
       "aliases": [
         "게이트"
