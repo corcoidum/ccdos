@@ -1,5 +1,83 @@
 {
   "version": 1,
-  "terms": [],
-  "mentions": []
+  "terms": [
+    {
+      "id": "term-ci-gate",
+      "title": "게이트",
+      "summary": "배포 전에 통과해야 하는 자동 검사 묶음이다. 아키텍처 경계, 노트 메타데이터와 민감 패턴, 공개 산출물의 최신 여부, 테스트가 모두 통과해야 사이트가 갱신된다.",
+      "aliases": [
+        "게이트"
+      ]
+    },
+    {
+      "id": "term-fallback",
+      "title": "폴백",
+      "summary": "기능이 실패했을 때 오류 대신 미리 정해 둔 대체 동작을 보여 주는 설계다. 이 저장소에서는 답변 생성이 실패하면 승인된 근거 목록만 대신 보여 준다.",
+      "aliases": [
+        "폴백"
+      ]
+    },
+    {
+      "id": "term-review-evidence",
+      "title": "검토 증적",
+      "summary": "공개 기록이 사람의 검토와 승인을 실제로 거쳤다는 것을 남기는 frontmatter 기록이다. 검토 요청 시각, 검토자, 검토 결과, 검토한 문서 버전, 승인자와 승인 시각으로 이루어진다.",
+      "aliases": [
+        "검토 증적",
+        "승인 증적"
+      ]
+    },
+    {
+      "id": "term-sensitive-pattern",
+      "title": "민감 패턴",
+      "summary": "기계가 확실하게 알아볼 수 있는 형태의 민감 정보 표기다. 주민등록번호, 휴대전화번호, 이메일 주소, 비밀값 대입처럼 모양이 정해진 것만 대상으로 삼는다.",
+      "aliases": [
+        "민감 패턴",
+        "민감패턴"
+      ]
+    }
+  ],
+  "mentions": [
+    {
+      "note": "empty-garden-is-a-promise",
+      "term": "term-ci-gate",
+      "alias": "게이트",
+      "context": "…이 시스템의 유일한 약속이 깨진다. 공개[게이트]는 세 가지를 검사한다. 필수 메타데이터와…"
+    },
+    {
+      "note": "empty-garden-is-a-promise",
+      "term": "term-review-evidence",
+      "alias": "검토 증적",
+      "context": "…는 세 가지를 검사한다. 필수 메타데이터와[검토 증적]이 모두 있는지, 주민등록번호나 전화번호 같…"
+    },
+    {
+      "note": "empty-garden-is-a-promise",
+      "term": "term-sensitive-pattern",
+      "alias": "민감 패턴",
+      "context": "…모두 있는지, 주민등록번호나 전화번호 같은[민감 패턴]이 없는지, 검토한 버전과 공개하려는 버전이…"
+    },
+    {
+      "note": "graceful-fallback-hid-the-outage",
+      "term": "term-fallback",
+      "alias": "폴백",
+      "context": "…했다. 두 가지를 배웠다. 하나는 우아한[폴백]이 사용자를 지켜 주는 만큼 운영자의 눈도…"
+    },
+    {
+      "note": "safe-automation-case-study",
+      "term": "term-sensitive-pattern",
+      "alias": "민감 패턴",
+      "context": "…. 아키텍처 경계 검사, 노트 메타데이터와[민감 패턴]검사, 공개 index의 최신 여부 확인이…"
+    },
+    {
+      "note": "value-of-invisible-work",
+      "term": "term-ci-gate",
+      "alias": "게이트",
+      "context": "…업의 가치는 미래형으로만 증명된다. 실수가[게이트]에 도달하기 전에 걸러지는 횟수만큼, 그 하…"
+    },
+    {
+      "note": "when-automation-creates-new-work",
+      "term": "term-fallback",
+      "alias": "폴백",
+      "context": "…패하면 승인된 근거 목록을 대신 보여 주는[폴백]을 만들어 두었다. 방문자에게는 성공한 화면…"
+    }
+  ]
 }
