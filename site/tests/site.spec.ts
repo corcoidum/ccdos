@@ -411,7 +411,7 @@ test("Garden은 처음 두 기록만 보여 주고 펼치기·필터를 지원�
     }
   }
   const [rarestTag, rarestCount] = [...tagCounts.entries()].sort((a, b) => a[1] - b[1])[0];
-  await page.getByRole("button", { name: `#${rarestTag}` }).click();
+  await page.getByRole("button", { name: `#${rarestTag}`, exact: true }).click();
   await expect(notes).toHaveCount(Math.min(rarestCount, initialLimit));
   if (rarestCount <= initialLimit) {
     await expect(toggle).toBeHidden();
