@@ -444,6 +444,27 @@ test("노트 딥링크로 직접 접속하면 해당 전문 모달을 연다", a
   expect(new URL(page.url()).searchParams.get("note")).toBe(firstPublicNote.id);
 });
 
+test("Garden 본문은 승인된 최소 Markdown 구조를 안전한 DOM으로 렌더링한다", async ({ page }) => {
+  const note = publicNotes.find(({ id }) => id === "proving-grounded-answers");
+  test.skip(!note, "Markdown 구조를 확인할 공개 노트가 아직 없다");
+  await page.goto(`/garden?note=${note.id}`);
+
+  const body = page.locator(".note-modal-body");
+  await expect(body.getByRole("heading", { level: 3, name: "어떻게 측정했나" })).toBeVisible();
+  await expect(body.locator(".note-body-list > li")).toHaveCount(4);
+  await expect(body.locator("strong").first()).toHaveText("확신에 찬 틀린 안내");
+  await expect(body.locator("code").filter({ hasText: "--min-pass 1.0" })).toBeVisible();
+
+  const sourceLink = body.getByRole("link", { name: "building_evals" });
+  await expect(sourceLink).toHaveAttribute(
+    "href",
+    "https://github.com/anthropics/claude-cookbooks/blob/main/misc/building_evals.ipynb",
+  );
+  await expect(sourceLink).toHaveAttribute("target", "_blank");
+  await expect(sourceLink).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(body).not.toContainText("](https://");
+});
+
 test("노트 모달을 연 뒤 브라우저 뒤로가기를 하면 모달과 query가 함께 닫힌다", async ({ page }) => {
   await page.goto("/garden");
   const opener = page.locator(

@@ -1435,6 +1435,63 @@ img {
   margin-bottom: 0;
 }
 
+.note-body-heading {
+  margin: 30px 0 12px;
+  color: var(--ivory-strong);
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.note-body-heading:first-child {
+  margin-top: 0;
+}
+
+.note-body-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding-left: 1.25rem;
+  color: var(--muted-strong);
+}
+
+.note-body-list li {
+  padding-left: 4px;
+  line-height: 1.75;
+}
+
+.note-modal-body strong {
+  color: var(--ivory-strong);
+  font-weight: 650;
+}
+
+.note-modal-body code {
+  padding: 0.12em 0.32em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--night-soft);
+  color: var(--ivory);
+  font-size: 0.9em;
+}
+
+.note-inline-link {
+  color: var(--coral-bright);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 138, 116, 0.55);
+  text-underline-offset: 0.18em;
+}
+
+.note-inline-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.note-inline-link:focus-visible {
+  outline: 2px solid var(--coral-bright);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 /* 용어 표시 — 본문 흐름을 끊지 않도록 밑줄만 쓰고 배경은 hover·focus에서만 올린다. */
 .glossary-anchor {
   position: relative;
