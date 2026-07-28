@@ -5,7 +5,7 @@ created: 2026-07-28T05:13:47Z
 updated: 2026-07-28T05:46:21Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
+publish_state: published
 review_requested_at: 2026-07-28T05:46:21Z
 privacy_reviewed_by: corcoidum
 privacy_reviewed_at: 2026-07-28T05:46:21Z
@@ -13,6 +13,7 @@ privacy_review_result: passed
 reviewed_revision: 2026-07-28T05:46:21Z
 approved_by: corcoidum
 approved_at: 2026-07-28T05:46:21Z
+published_at: 2026-07-28T05:51:58Z
 tags:
   - trust
   - ai-safety
