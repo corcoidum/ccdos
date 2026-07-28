@@ -2,18 +2,17 @@
 id: proving-grounded-answers
 title: 내 AI 답변 계층이 지어내지 않는다는 걸 어떻게 증명했나
 created: 2026-07-28T05:13:47Z
-updated: 2026-07-28T05:13:47Z
+updated: 2026-07-28T05:46:21Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: published
-review_requested_at: 2026-07-28T05:13:52Z
+publish_state: approved
+review_requested_at: 2026-07-28T05:46:21Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-07-28T05:13:53Z
+privacy_reviewed_at: 2026-07-28T05:46:21Z
 privacy_review_result: passed
-reviewed_revision: 2026-07-28T05:13:47Z
+reviewed_revision: 2026-07-28T05:46:21Z
 approved_by: corcoidum
-approved_at: 2026-07-28T05:13:54Z
-published_at: 2026-07-28T05:33:15Z
+approved_at: 2026-07-28T05:46:21Z
 tags:
   - trust
   - ai-safety
@@ -28,7 +27,7 @@ relations:
 
 ## 조용한 실패가 가장 위험하다
 
-원무 데스크에서 9년을 일하며 배운 것이 하나 있다. 가장 위험한 안내는 틀린 안내가 아니라 **확신에 찬 틀린 안내**다. "모르겠습니다, 확인해 드릴게요"는 시간을 쓰게 하지만 사고를 내지는 않는다. 반면 그럴듯하게 들리는 오답은 환자를 움직이게 만들고, 잘못된 방향으로 움직인 뒤에야 틀렸다는 게 드러난다.
+원무 데스크에서 10년을 일하며 배운 것이 하나 있다. 가장 위험한 안내는 틀린 안내가 아니라 **확신에 찬 틀린 안내**다. "모르겠습니다, 확인해 드릴게요"는 시간을 쓰게 하지만 사고를 내지는 않는다. 반면 그럴듯하게 들리는 오답은 환자를 움직이게 만들고, 잘못된 방향으로 움직인 뒤에야 틀렸다는 게 드러난다.
 
 AI 답변 시스템의 환각(hallucination)이 정확히 이 구조다. 근거가 없는 질문에 시스템이 조용히 그럴듯한 답을 지어내면, 사용자는 그것이 실패인지조차 모른다. 그래서 내 사이트의 답변 계층은 처음부터 한 가지 원칙 위에 설계했다: **근거가 없으면 답하지 않는다.** 승인된 공개 노트만 근거로 쓰고, 근거를 찾지 못하면 생성 없이 검색 결과만 보여주는 폴백(retrieval-only fallback)으로 내려간다.
 
