@@ -136,6 +136,10 @@
       "published_at": "2026-07-22T10:54:24Z",
       "backlinks": [
         {
+          "source": "proving-grounded-answers",
+          "type": "builds_on"
+        },
+        {
           "source": "when-automation-creates-new-work",
           "type": "builds_on"
         }
@@ -274,6 +278,23 @@
       "related_notes": []
     },
     {
+      "id": "proving-grounded-answers",
+      "type": "note",
+      "label": "내 AI 답변 계층이 지어내지 않는다는 걸 어떻게 증명했나",
+      "url": "/garden?note=proving-grounded-answers",
+      "tags": [
+        "ai-safety",
+        "ci",
+        "eval",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-07-28T05:13:47Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "safe-automation-case-study",
       "type": "note",
       "label": "안전한 운영 자동화의 작은 시작",
@@ -329,6 +350,10 @@
         {
           "source": "graceful-fallback-hid-the-outage",
           "type": "related_to"
+        },
+        {
+          "source": "proving-grounded-answers",
+          "type": "builds_on"
         }
       ],
       "related_notes": [
@@ -441,6 +466,16 @@
     {
       "source": "only-reviewed-relations-become-graph",
       "target": "empty-garden-is-a-promise",
+      "type": "builds_on"
+    },
+    {
+      "source": "proving-grounded-answers",
+      "target": "graceful-fallback-hid-the-outage",
+      "type": "builds_on"
+    },
+    {
+      "source": "proving-grounded-answers",
+      "target": "search-that-does-not-guess",
       "type": "builds_on"
     },
     {

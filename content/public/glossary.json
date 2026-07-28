@@ -62,6 +62,18 @@
       "context": "…했다. 두 가지를 배웠다. 하나는 우아한[폴백]이 사용자를 지켜 주는 만큼 운영자의 눈도…"
     },
     {
+      "note": "proving-grounded-answers",
+      "term": "term-ci-gate",
+      "alias": "게이트",
+      "context": "…8개와 함께 `--min-pass 1.0`[게이트]로 CI에 편입됐다. 이제 답변 계층의 판단…"
+    },
+    {
+      "note": "proving-grounded-answers",
+      "term": "term-fallback",
+      "alias": "폴백",
+      "context": "…지 못하면 생성 없이 검색 결과만 보여주는[폴백](retrieval-only fallback…"
+    },
+    {
       "note": "safe-automation-case-study",
       "term": "term-sensitive-pattern",
       "alias": "민감 패턴",
