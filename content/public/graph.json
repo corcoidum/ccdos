@@ -288,9 +288,9 @@
         "eval",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-07-28T05:46:21Z",
-      "published_at": null,
+      "published_at": "2026-07-28T05:51:58Z",
       "backlinks": [],
       "related_notes": []
     },
