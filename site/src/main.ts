@@ -5,6 +5,7 @@ import {
   glossarySegments,
   isTermSegment,
   termsByNote,
+  type GlossaryMention,
   type GlossaryTerm,
   type PublicGlossary,
 } from "./glossary";
@@ -720,11 +721,42 @@ function createLifecycle(): HTMLElement {
   return section;
 }
 
-function noteParagraphs(body: string): string[] {
+type NoteBodyBlock =
+  | { kind: "heading"; text: string }
+  | { kind: "list"; items: string[] }
+  | { kind: "paragraph"; text: string };
+
+function noteBodyBlocks(body: string): NoteBodyBlock[] {
   return body
     .split(/\n\s*\n/)
-    .map((paragraph) => paragraph.replace(/^#+\s*/, "").trim())
-    .filter(Boolean);
+    .map((rawBlock): NoteBodyBlock | null => {
+      const lines = rawBlock
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (lines.length === 0) {
+        return null;
+      }
+
+      const heading = lines.length === 1 ? lines[0].match(/^#{1,6}\s+(.+)$/) : null;
+      if (heading) {
+        return { kind: "heading", text: heading[1].trim() };
+      }
+
+      const listItems = lines.map((line) => line.match(/^[-*]\s+(.+)$/)?.[1]?.trim());
+      if (listItems.every((item): item is string => Boolean(item))) {
+        return { kind: "list", items: listItems };
+      }
+
+      return { kind: "paragraph", text: lines.join(" ").replace(/^#+\s*/, "").trim() };
+    })
+    .filter((block): block is NoteBodyBlock => block !== null);
+}
+
+function noteParagraphs(body: string): string[] {
+  return noteBodyBlocks(body).flatMap((block) =>
+    block.kind === "list" ? block.items : [block.text],
+  );
 }
 
 let closeActiveGlossaryPopup: (() => void) | null = null;
@@ -823,6 +855,62 @@ function createGlossaryAnchor(
 
 let glossaryAnchorSequence = 0;
 
+function appendGlossaryAwareText(
+  container: HTMLElement,
+  text: string,
+  mentions: readonly GlossaryMention[],
+  consumed: Set<string>,
+  onOpenTerm?: (term: GlossaryTerm, trigger: HTMLElement) => void,
+): void {
+  if (!onOpenTerm || mentions.length === 0) {
+    container.append(document.createTextNode(text));
+    return;
+  }
+
+  for (const segment of glossarySegments(text, mentions, glossaryTermsById, consumed)) {
+    if (isTermSegment(segment)) {
+      container.append(createGlossaryAnchor(segment.text, segment.term, onOpenTerm));
+    } else {
+      container.append(document.createTextNode(segment.text));
+    }
+  }
+}
+
+function appendNoteInlineContent(
+  container: HTMLElement,
+  text: string,
+  mentions: readonly GlossaryMention[],
+  consumed: Set<string>,
+  onOpenTerm?: (term: GlossaryTerm, trigger: HTMLElement) => void,
+): void {
+  const inlinePattern =
+    /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|`([^`\n]+)`/g;
+  let cursor = 0;
+
+  for (const match of text.matchAll(inlinePattern)) {
+    const index = match.index;
+    appendGlossaryAwareText(container, text.slice(cursor, index), mentions, consumed, onOpenTerm);
+
+    if (match[1] && match[2]) {
+      const link = createElement("a", "note-inline-link");
+      link.href = match[2];
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      appendNoteInlineContent(link, match[1], mentions, consumed, onOpenTerm);
+      container.append(link);
+    } else if (match[3]) {
+      const strong = createElement("strong");
+      appendGlossaryAwareText(strong, match[3], mentions, consumed, onOpenTerm);
+      container.append(strong);
+    } else if (match[4]) {
+      container.append(createElement("code", undefined, match[4]));
+    }
+    cursor = index + match[0].length;
+  }
+
+  appendGlossaryAwareText(container, text.slice(cursor), mentions, consumed, onOpenTerm);
+}
+
 function appendNoteBody(
   container: HTMLElement,
   note: PublicNote,
@@ -830,20 +918,23 @@ function appendNoteBody(
 ): void {
   const mentions = onOpenTerm ? (glossaryMentionsByNote.get(note.id) ?? []) : [];
   const consumed = new Set<string>();
-  for (const paragraph of noteParagraphs(note.body)) {
-    const element = createElement("p");
-    if (mentions.length === 0) {
-      element.textContent = paragraph;
-      container.append(element);
+  for (const block of noteBodyBlocks(note.body)) {
+    if (block.kind === "list") {
+      const list = createElement("ul", "note-body-list");
+      for (const item of block.items) {
+        const listItem = createElement("li");
+        appendNoteInlineContent(listItem, item, mentions, consumed, onOpenTerm);
+        list.append(listItem);
+      }
+      container.append(list);
       continue;
     }
-    for (const segment of glossarySegments(paragraph, mentions, glossaryTermsById, consumed)) {
-      if (isTermSegment(segment) && onOpenTerm) {
-        element.append(createGlossaryAnchor(segment.text, segment.term, onOpenTerm));
-      } else {
-        element.append(document.createTextNode(segment.text));
-      }
-    }
+
+    const element =
+      block.kind === "heading"
+        ? createElement("h3", "note-body-heading")
+        : createElement("p");
+    appendNoteInlineContent(element, block.text, mentions, consumed, onOpenTerm);
     container.append(element);
   }
 }
