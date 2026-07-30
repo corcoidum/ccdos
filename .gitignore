@@ -36,3 +36,8 @@ site/output/
 # Editor and OS files
 .DS_Store
 Thumbs.db
+
+# Obsidian per-machine editor state. Vault content and templates are versioned,
+# app config and workspace layout are not.
+/.obsidian/
+vaults/CORCOIDUM-Public/.obsidian/
