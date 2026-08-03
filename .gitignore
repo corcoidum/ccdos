@@ -41,3 +41,10 @@ Thumbs.db
 # app config and workspace layout are not.
 /.obsidian/
 vaults/CORCOIDUM-Public/.obsidian/
+
+# This repository sits inside a personal Obsidian vault, so daily notes can be
+# created at the repository root. Private drafts must never reach the public
+# repository; approved public content lives under vaults/CORCOIDUM-Public/.
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*.md
+/00_Inbox/
+/01_Daily/
