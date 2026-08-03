@@ -404,9 +404,9 @@
         "healthcare-ops",
         "mercy"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-08-03T05:39:29Z",
-      "published_at": null,
+      "published_at": "2026-08-03T06:25:20Z",
       "backlinks": [],
       "related_notes": [
         "moving-recheck-dates-out-of-memory"
