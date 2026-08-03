@@ -1696,6 +1696,7 @@ function renderLab(): HTMLElement {
   // 정의를 찾지 못하면 그 행만 빠지고 나머지 원장은 계속 읽힌다. 공개 route 하나를
   // 통째로 잃는 것보다 낫고, 누락 자체는 회귀 테스트가 배포 전에 잡는다.
   const livingValuesPhase = phaseDefinitionsById.get("9");
+  const fieldCaseStudyPhase = phaseDefinitionsById.get("10");
   const page = createElement("div", "page page--lab");
   page.append(
     createHero({
@@ -1771,6 +1772,18 @@ function renderLab(): HTMLElement {
             question: "가치를 슬로건이 아니라 승인된 기록으로 증명할 수 있는가?",
             result:
               "네 가치 모두 승인·발행 증적을 갖춘 기록이 최소 기준인 3편 이상 쌓인 것을 확인했습니다. Garden의 가치 태그와 각 가치 공간에서 직접 열람할 수 있습니다.",
+          },
+        ]
+      : []),
+    ...(fieldCaseStudyPhase
+      ? [
+          {
+            phase: `PHASE ${fieldCaseStudyPhase.id}`,
+            status: fieldCaseStudyPhase.status,
+            title: fieldCaseStudyPhase.title,
+            question: "현장에서 관찰한 부담을, 환자 정보 없이 공개할 수 있는 사례로 만들 수 있는가?",
+            result:
+              "관찰·경계·검증·연결 네 단계를 각각 승인 기록으로 남기는 중입니다. 공개물은 합성 데이터만 쓰고 실제 데이터는 로컬 경계 안에 둡니다.",
           },
         ]
       : []),

@@ -356,6 +356,40 @@ export const phaseDefinitions: readonly PhaseDefinition[] = [
     ],
     outcome: "네 가치 모두 승인·발행 기록 3편 이상을 확인해 Phase 9 완료 기준을 통과했습니다.",
   },
+  {
+    id: "10",
+    title: "Field Case Study",
+    summary: "현장 마찰에서 시작한 내부 도구를 공개 사례로 연결",
+    status: "GROWING",
+    purpose:
+      "현장에서 관찰한 마찰이 어떻게 안전 경계를 지킨 소프트웨어가 되는지, 관찰부터 검증까지 한 프로젝트의 과정을 공개 사례로 남깁니다.",
+    delivered: [
+      "예약 한 건에 딸려 오는 확인과 부담을 비식별 관찰 기록으로 발행",
+      "데이터 최소화·감사 로그·권한 분리 같은 안전 결정을 공개 근거로 정리",
+      "합성 데이터 테스트와 운영 전 보안 점검 결과를 기록",
+    ],
+    boundaries: [
+      "실제 환자·직원 정보는 공개물에 넣지 않고 합성 데이터만 사용",
+      "위치·기관을 특정할 수 있는 표현은 공개판에서 일반화",
+      "도구는 진단·치료 판단을 하지 않고 운영 업무 누락만 드러냄",
+    ],
+    evidence: [
+      {
+        label: "Phase 10 계획",
+        summary: "사례 연구의 목적, 경계, 네 단계와 완료 기준을 정의합니다.",
+        sourceLabel: "GitHub",
+        href: `${repository}/blob/main/docs/architecture/phase-10-plan.md`,
+      },
+      {
+        label: "M.ERCY 기록",
+        summary: "현장 부담을 줄이는 기술로 분류된 승인·발행 기록을 확인합니다.",
+        sourceLabel: "openkiki.org",
+        href: "https://openkiki.org/mercy",
+      },
+    ],
+    outcome:
+      "관찰·경계·검증·연결 네 단계가 승인 기록으로 남고 Projects에서 하나의 사례로 이어지면 완료를 검증합니다.",
+  },
 ];
 
 export const phaseDefinitionsById: ReadonlyMap<string, PhaseDefinition> = new Map(

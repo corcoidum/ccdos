@@ -930,7 +930,7 @@ test("Projects 로드맵은 네 가지 상태의 뜻을 범례로 설명한다",
   }
 });
 
-test("Phase 0–9 상세 데이터는 공개 증거와 필수 설명을 모두 가진다", () => {
+test("Phase 0–10 상세 데이터는 공개 증거와 필수 설명을 모두 가진다", () => {
   expect(phaseDefinitions.map(({ id }) => id)).toEqual([
     "0",
     "1",
@@ -942,6 +942,7 @@ test("Phase 0–9 상세 데이터는 공개 증거와 필수 설명을 모두 �
     "7",
     "8",
     "9",
+    "10",
   ]);
   for (const phase of phaseDefinitions) {
     expect(phase.purpose.length).toBeGreaterThan(20);
