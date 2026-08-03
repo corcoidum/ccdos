@@ -58,6 +58,10 @@
         {
           "source": "failed-qa-became-a-test",
           "type": "demonstrates"
+        },
+        {
+          "source": "what-comes-with-one-appointment",
+          "type": "builds_on"
         }
       ],
       "related_notes": []
@@ -221,8 +225,15 @@
       "state": "published",
       "updated": "2026-07-26T14:43:32Z",
       "published_at": "2026-07-26T14:53:48Z",
-      "backlinks": [],
-      "related_notes": []
+      "backlinks": [
+        {
+          "source": "what-comes-with-one-appointment",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "what-comes-with-one-appointment"
+      ]
     },
     {
       "id": "night-comfort-with-my-son",
@@ -384,6 +395,24 @@
       ]
     },
     {
+      "id": "what-comes-with-one-appointment",
+      "type": "note",
+      "label": "예약 한 건에 딸려 오는 것들",
+      "url": "/garden?note=what-comes-with-one-appointment",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "mercy"
+      ],
+      "state": "approved",
+      "updated": "2026-08-03T05:39:29Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "moving-recheck-dates-out-of-memory"
+      ]
+    },
+    {
       "id": "when-automation-creates-new-work",
       "type": "note",
       "label": "자동화가 새로운 일을 만들 때",
@@ -482,6 +511,16 @@
       "source": "safe-automation-case-study",
       "target": "empty-garden-is-a-promise",
       "type": "supports"
+    },
+    {
+      "source": "what-comes-with-one-appointment",
+      "target": "doubt-into-a-ladder",
+      "type": "builds_on"
+    },
+    {
+      "source": "what-comes-with-one-appointment",
+      "target": "moving-recheck-dates-out-of-memory",
+      "type": "related_to"
     },
     {
       "source": "when-automation-creates-new-work",
