@@ -69,6 +69,11 @@ def build_payload_from_notes(notes: list[ParsedNote]) -> dict[str, object]:
     edges.sort(key=lambda edge: (edge["source"], edge["target"], edge["type"]))
     backlinks_by_id: dict[str, list[dict[str, str]]] = {str(node["id"]): [] for node in nodes}
     related_by_id: dict[str, set[str]] = {str(node["id"]): set() for node in nodes}
+    # validate_notes.py already rejects these, but a stray edge must fail as a readable
+    # message rather than a KeyError traceback from the backlink index below.
+    unknown = sorted({edge["target"] for edge in edges} - backlinks_by_id.keys())
+    if unknown:
+        raise ValueError("relations point outside the public graph: " + ", ".join(unknown))
     for edge in edges:
         backlinks_by_id[edge["target"]].append({"source": edge["source"], "type": edge["type"]})
         if edge["type"] == "related_to":

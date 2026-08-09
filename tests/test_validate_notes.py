@@ -4,7 +4,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from automation.validate_notes import collect_duplicate_id_issues, parse_frontmatter, validate_note
+from automation.validate_notes import (
+    collect_duplicate_id_issues,
+    load_and_validate_notes,
+    parse_frontmatter,
+    validate_note,
+)
 
 VALID_NOTE = """---
 id: safe-test-note
@@ -154,3 +159,103 @@ reviewed_revision: 2026-07-10T00:00:00Z""",
 
 if __name__ == "__main__":
     unittest.main()
+
+
+APPROVAL_LINES = """review_requested_at: 2026-07-10T00:10:00Z
+privacy_reviewed_by: synthetic-reviewer
+privacy_reviewed_at: 2026-07-10T00:20:00Z
+privacy_review_result: passed
+reviewed_revision: 2026-07-10T00:00:00Z
+approved_by: synthetic-owner
+approved_at: 2026-07-10T00:30:00Z"""
+
+
+def approved_record(note_id: str, *, relations: list[tuple[str, str]] | None = None) -> str:
+    lines = [
+        "---",
+        f"id: {note_id}",
+        f"title: Record {note_id}",
+        "created: 2026-07-10T00:00:00Z",
+        "updated: 2026-07-10T00:00:00Z",
+        "classification: S0_PUBLIC",
+        "visibility: public",
+        "publish_state: approved",
+        APPROVAL_LINES,
+        "tags:",
+        "  - test",
+    ]
+    if relations:
+        lines.append("relations:")
+        for target, relation_type in relations:
+            lines.extend([f"  - target: {target}", f"    type: {relation_type}"])
+    return "\n".join([*lines, "---", "", "본문이다.", ""])
+
+
+def approved_term(term_id: str, aliases: list[str], *, relations: list[tuple[str, str]] | None = None) -> str:
+    lines = [
+        "---",
+        f"id: {term_id}",
+        f"title: Term {term_id}",
+        "created: 2026-07-10T00:00:00Z",
+        "updated: 2026-07-10T00:00:00Z",
+        "classification: S0_PUBLIC",
+        "visibility: public",
+        "publish_state: approved",
+        APPROVAL_LINES,
+        "note_kind: glossary",
+        "aliases:",
+        *[f"  - {alias}" for alias in aliases],
+        "tags:",
+        "  - glossary",
+    ]
+    if relations:
+        lines.append("relations:")
+        for target, relation_type in relations:
+            lines.extend([f"  - target: {target}", f"    type: {relation_type}"])
+    return "\n".join([*lines, "---", "", "용어 설명이다.", ""])
+
+
+class GlossaryRelationBoundaryTests(unittest.TestCase):
+    """용어는 그래프 node가 아니다(ADR-0009). 관계 선언은 검증에서 막혀야 한다."""
+
+    def issues_for(self, files: dict[str, str]) -> list[str]:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "CORCOIDUM-Public" / "00_Drafts"
+            source.mkdir(parents=True)
+            paths = []
+            for name, text in files.items():
+                path = source / name
+                path.write_text(text, encoding="utf-8")
+                paths.append(path)
+            _, issues = load_and_validate_notes(paths)
+            return [issue.message for issue in issues]
+
+    def test_record_may_not_point_a_relation_at_a_glossary_term(self) -> None:
+        messages = self.issues_for(
+            {
+                "record.md": approved_record("r-one", relations=[("t-fallback", "related_to")]),
+                "term.md": approved_term("t-fallback", ["폴백"]),
+            }
+        )
+        self.assertTrue(any("glossary_target_is_not_a_graph_node" in message for message in messages), messages)
+
+    def test_glossary_term_may_not_declare_relations(self) -> None:
+        messages = self.issues_for(
+            {
+                "record.md": approved_record("r-one"),
+                "term.md": approved_term("t-fallback", ["폴백"], relations=[("r-one", "related_to")]),
+            }
+        )
+        self.assertTrue(
+            any("glossary_note_must_not_declare_relations" in message for message in messages), messages
+        )
+
+    def test_record_to_record_relations_stay_allowed(self) -> None:
+        messages = self.issues_for(
+            {
+                "one.md": approved_record("r-one", relations=[("r-two", "related_to")]),
+                "two.md": approved_record("r-two"),
+                "term.md": approved_term("t-fallback", ["폴백"]),
+            }
+        )
+        self.assertEqual(messages, [])

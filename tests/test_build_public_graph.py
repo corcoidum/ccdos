@@ -7,7 +7,19 @@ from pathlib import Path
 
 from automation.build_public_content import build_payload as build_content_payload
 from automation.build_public_content import render_payload as render_content_payload
-from automation.build_public_graph import build_payload, main, render_payload, validate_graph_payload
+from automation.build_public_graph import (
+    build_payload,
+    build_payload_from_notes,
+    main,
+    render_payload,
+    validate_graph_payload,
+)
+from automation.validate_notes import markdown_files, read_note
+
+
+def read_public_notes_without_cross_checks(source: Path) -> list:
+    """교차 검증을 건너뛰고 파싱만 한다. 빌더 자체의 방어를 확인하기 위해서다."""
+    return [read_note(path) for path in markdown_files([source])]
 
 
 def synthetic_note(
@@ -351,3 +363,22 @@ class BuildPublicGraphTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GraphEdgeOutsideNodeSetTests(unittest.TestCase):
+    """검증기가 먼저 막지만, 빠져나온 edge도 traceback 대신 읽을 수 있는 실패여야 한다."""
+
+    def test_edge_to_a_missing_node_fails_with_a_readable_message(self) -> None:
+        notes = []
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "CORCOIDUM-Public"
+            source.mkdir(parents=True)
+            (source / "one.md").write_text(
+                synthetic_note("r-one", relations=[("r-missing", "related_to")]), encoding="utf-8"
+            )
+            notes = read_public_notes_without_cross_checks(source)
+
+        with self.assertRaises(ValueError) as raised:
+            build_payload_from_notes(notes)
+        self.assertIn("relations point outside the public graph", str(raised.exception))
+        self.assertIn("r-missing", str(raised.exception))

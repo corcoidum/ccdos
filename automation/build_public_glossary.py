@@ -2,7 +2,7 @@
 
 Matching is deterministic substring search. Korean particles attach after a stem
 (폴백 → 폴백이 · 폴백을), so finding the stem needs no particle rules; the rendered
-span stops at the alias and leaves the particle outside it. See ADR-0008.
+span stops at the alias and leaves the particle outside it. See ADR-0009.
 """
 
 from __future__ import annotations

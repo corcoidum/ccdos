@@ -35,7 +35,7 @@
 | 기계 검증 | `automation/validate_notes.py` | 필수 frontmatter, Vault별 보안 분류, 주민등록번호·전화·이메일·비밀값 등 고신뢰 민감 패턴 차단 | 완전한 비식별 보장 |
 | 사람 승인 | `docs/governance/public-content-review.md` | 재식별 가능성·맥락 판단, checklist 완료 후 증적 기록 | 자동화 |
 | 증적 무효화 | 검증기 규칙 | 승인 후 수정된 노트의 이전 검토 증적 재사용 차단 | — |
-| 결정론적 빌드 | `automation/build_public_content.py`, `automation/build_public_graph.py` | `approved`·`published`만 `content/public/index.json`·`content/public/graph.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
+| 결정론적 빌드 | `automation/build_public_content.py`, `automation/build_public_graph.py`, `automation/build_public_glossary.py` | `approved`·`published`만 `content/public/`의 `index.json`·`graph.json`·`glossary.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
 | 자동 집행 | GitHub Actions | 위 규칙을 통과하지 못하면 배포 차단 | — |
 
 같은 원칙이 답변 계층에도 적용됩니다. `/api/answer`는 승인된 공개 출처만 근거로 전달하고, 비밀값 부재·근거 부재·rate limit·일일 예산 초과·provider 오류·잘못된 인용 중 어느 하나라도 발생하면 **생성 없이 retrieval-only로 폴백**합니다. 지식 그래프도 사람이 frontmatter에 직접 선언한 관계만 edge가 되며, 자동 관계 추론은 하지 않습니다.
@@ -55,13 +55,14 @@
 
 | 항목 | 수 |
 | --- | --- |
-| 발행된 공개 기록 | 16 |
-| 아키텍처 결정 기록(ADR) | 7 |
+| 발행된 공개 기록 | 20 |
+| 아키텍처 결정 기록(ADR) | 9 |
+| 공개 용어 | 4 |
 | 거버넌스 정책 문서 | 7 |
-| 자동화 스크립트 | 10 |
-| 테스트 | 8개 모듈 · 68개 |
+| 자동화 스크립트 | 11 |
+| 테스트 | 12개 모듈 · 107개 |
 
-`Phase 9 — Living Values`까지 완료했습니다. 네 가지 약속(H.OPE · T.RUST · M.ERCY · L.OVE) 각각에 승인·발행 증적이 있는 공개 기록이 3편 이상 쌓인 것을 2026-07-24에 확인했습니다. 판정 근거는 [Phase 9 완료 보고서](docs/architecture/phase-9-completion-report.md)에, 완료 기준은 [Phase 9 계획](docs/architecture/phase-9-plan.md)에 있습니다.
+`Phase 9 — Living Values`를 완료하고 `Phase 10 — Field Case Study`를 진행 중입니다. Phase 9는 네 가지 약속(H.OPE · T.RUST · M.ERCY · L.OVE) 각각에 승인·발행 증적이 있는 공개 기록이 3편 이상 쌓인 것을 2026-07-24에 확인했습니다. 판정 근거는 [Phase 9 완료 보고서](docs/architecture/phase-9-completion-report.md)에, 진행 중인 단계의 목적과 완료 기준은 [Phase 10 계획](docs/architecture/phase-10-plan.md)에 있습니다.
 
 ## 검증하기
 
@@ -98,7 +99,7 @@ docs/                 아키텍처, 거버넌스, ADR, 런북
 vaults/               Vault 구조 — 승인된 공개 기록과 로컬 Vault 구조 예시
 schemas/              공통 메타데이터 스키마
 templates/            Obsidian 노트 템플릿
-content/              승인된 공개 콘텐츠 산출물 (index.json, graph.json)
+content/              승인된 공개 콘텐츠 산출물 (index.json, graph.json, glossary.json)
 site/                 Cloudflare Worker API + 정적 웹 애플리케이션
 automation/           검증·발행·그래프·Discord·주간 검토 자동화
 rag/                  승인된 문서만 검색하는 RAG
@@ -119,5 +120,7 @@ scripts/              저장소 수준 검증 도구
 | [0005](docs/adr/0005-derived-note-navigation.md) | 파생 노트 내비게이션 |
 | [0006](docs/adr/0006-content-scaling-ladder.md) | git이 DB다 — 실측 트리거 전까지 DB 도입 금지 |
 | [0007](docs/adr/0007-read-only-knowledge-map.md) | 읽기 전용 지식 지도 |
+| [0008](docs/adr/0008-grounding-eval.md) | Grounding Eval로 답변 계층 판단 품질 측정 |
+| [0009](docs/adr/0009-public-glossary-nodes.md) | 승인된 공개 용어 node와 본문 용어 표시 |
 
 거버넌스 정책은 [`docs/governance/`](docs/governance/)에, 배포 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)에 있습니다. Worker 이름은 `ccdos`입니다.
