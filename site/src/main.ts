@@ -1055,7 +1055,7 @@ function openNoteModal(
     const body = createElement("div", "note-modal-body");
     // 이전 본문의 anchor가 사라지므로 열려 있던 설명 참조도 함께 버린다.
     closeActiveGlossaryPopup = null;
-    // ADR-0008: 최초 도입 범위는 /garden 본문이다.
+    // ADR-0009: 최초 도입 범위는 /garden 본문이다.
     const glossaryEnabled = currentRoute() === "/garden";
     appendNoteBody(body, nextNote, glossaryEnabled ? openTermNote : undefined);
     const connections = createNoteConnectionsSection(nextNote, (target) =>

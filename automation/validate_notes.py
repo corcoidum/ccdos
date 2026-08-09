@@ -382,7 +382,11 @@ def collect_duplicate_id_issues(files: list[Path]) -> list[ValidationIssue]:
 
 
 def collect_relation_target_issues(notes: list[ParsedNote]) -> list[ValidationIssue]:
-    """Resolve public relations only against approved notes in the Public Vault."""
+    """Resolve public relations only against approved, graph-eligible notes in the Public Vault.
+
+    Glossary terms are deliberately not graph nodes (ADR-0009), so an edge pointing at one
+    could never be built. Rejecting it here keeps the failure on the note that declared it.
+    """
     all_notes_by_id = {
         note.metadata["id"]: note
         for note in notes
@@ -410,6 +414,10 @@ def collect_relation_target_issues(notes: list[ParsedNote]) -> list[ValidationIs
                 issues.append(relation_issue(note, index, target, rule))
             elif target_note.metadata.get("publish_state") not in PUBLISHABLE_STATES:
                 issues.append(relation_issue(note, index, target, "target_must_be_approved_or_published"))
+            elif target_note.metadata.get("note_kind") == GLOSSARY_KIND:
+                issues.append(relation_issue(note, index, target, "glossary_target_is_not_a_graph_node"))
+            elif note.metadata.get("note_kind") == GLOSSARY_KIND:
+                issues.append(relation_issue(note, index, target, "glossary_note_must_not_declare_relations"))
     return issues
 
 

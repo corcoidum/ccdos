@@ -1,5 +1,5 @@
 // 용어 표시는 승인된 glossary.json이 결정한다. 브라우저는 추론하지 않고, 빌드가 정한
-// (기록, 용어, alias) 조합만 첫 등장 위치에 표시한다. ADR-0008.
+// (기록, 용어, alias) 조합만 첫 등장 위치에 표시한다. ADR-0009.
 export type GlossaryTerm = {
   id: string;
   title: string;
