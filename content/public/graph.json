@@ -19,6 +19,30 @@
       "related_notes": []
     },
     {
+      "id": "deciding-what-not-to-store",
+      "type": "note",
+      "label": "무엇을 저장하지 않을지부터 정했다",
+      "url": "/garden?note=deciding-what-not-to-store",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-08-09T04:36:49Z",
+      "published_at": null,
+      "backlinks": [
+        {
+          "source": "testing-the-boundary-before-the-feature",
+          "type": "builds_on"
+        }
+      ],
+      "related_notes": [
+        "graceful-fallback-hid-the-outage",
+        "safe-automation-case-study"
+      ]
+    },
+    {
       "id": "discord-webhook-403-lesson",
       "type": "note",
       "label": "403은 항상 권한 문제가 아니다",
@@ -104,8 +128,15 @@
       "state": "published",
       "updated": "2026-07-22T00:09:24Z",
       "published_at": "2026-07-22T00:15:52Z",
-      "backlinks": [],
-      "related_notes": []
+      "backlinks": [
+        {
+          "source": "testing-the-boundary-before-the-feature",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "testing-the-boundary-before-the-feature"
+      ]
     },
     {
       "id": "from-working-site-to-trustworthy-system",
@@ -122,8 +153,15 @@
       "state": "published",
       "updated": "2026-07-20T02:24:51Z",
       "published_at": "2026-07-20T02:24:55Z",
-      "backlinks": [],
-      "related_notes": []
+      "backlinks": [
+        {
+          "source": "testing-the-boundary-before-the-feature",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "testing-the-boundary-before-the-feature"
+      ]
     },
     {
       "id": "graceful-fallback-hid-the-outage",
@@ -140,6 +178,10 @@
       "published_at": "2026-07-22T10:54:24Z",
       "backlinks": [
         {
+          "source": "deciding-what-not-to-store",
+          "type": "related_to"
+        },
+        {
           "source": "proving-grounded-answers",
           "type": "builds_on"
         },
@@ -149,6 +191,7 @@
         }
       ],
       "related_notes": [
+        "deciding-what-not-to-store",
         "search-that-does-not-guess"
       ]
     },
@@ -320,6 +363,10 @@
       "published_at": "2026-07-20T02:24:55Z",
       "backlinks": [
         {
+          "source": "deciding-what-not-to-store",
+          "type": "related_to"
+        },
+        {
           "source": "discord-webhook-403-lesson",
           "type": "related_to"
         },
@@ -337,6 +384,7 @@
         }
       ],
       "related_notes": [
+        "deciding-what-not-to-store",
         "discord-webhook-403-lesson"
       ]
     },
@@ -369,6 +417,25 @@
       ],
       "related_notes": [
         "graceful-fallback-hid-the-outage"
+      ]
+    },
+    {
+      "id": "testing-the-boundary-before-the-feature",
+      "type": "note",
+      "label": "기능보다 경계를 먼저 시험했다",
+      "url": "/garden?note=testing-the-boundary-before-the-feature",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-08-09T04:45:53Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "failed-qa-became-a-test",
+        "from-working-site-to-trustworthy-system"
       ]
     },
     {
@@ -407,7 +474,12 @@
       "state": "published",
       "updated": "2026-08-03T05:39:29Z",
       "published_at": "2026-08-03T06:25:20Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "deciding-what-not-to-store",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "moving-recheck-dates-out-of-memory"
       ]
@@ -440,6 +512,21 @@
     {
       "source": "an-open-link-must-be-visible",
       "target": "one-link-less-explanation",
+      "type": "builds_on"
+    },
+    {
+      "source": "deciding-what-not-to-store",
+      "target": "graceful-fallback-hid-the-outage",
+      "type": "related_to"
+    },
+    {
+      "source": "deciding-what-not-to-store",
+      "target": "safe-automation-case-study",
+      "type": "related_to"
+    },
+    {
+      "source": "deciding-what-not-to-store",
+      "target": "what-comes-with-one-appointment",
       "type": "builds_on"
     },
     {
@@ -511,6 +598,21 @@
       "source": "safe-automation-case-study",
       "target": "empty-garden-is-a-promise",
       "type": "supports"
+    },
+    {
+      "source": "testing-the-boundary-before-the-feature",
+      "target": "deciding-what-not-to-store",
+      "type": "builds_on"
+    },
+    {
+      "source": "testing-the-boundary-before-the-feature",
+      "target": "failed-qa-became-a-test",
+      "type": "related_to"
+    },
+    {
+      "source": "testing-the-boundary-before-the-feature",
+      "target": "from-working-site-to-trustworthy-system",
+      "type": "related_to"
     },
     {
       "source": "what-comes-with-one-appointment",

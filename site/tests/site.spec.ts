@@ -572,10 +572,13 @@ test("/graph는 승인된 공개 node와 edge를 읽기 전용으로 탐색한�
   await expect(page.locator(".knowledge-map-index li:not([hidden])")).toHaveCount(
     Math.min(4, trustCount),
   );
-  if (trustCount > 4) {
-    await page.locator(".knowledge-map-index-more").click();
-    await expect(page.locator(".knowledge-map-index li:not([hidden])")).toHaveCount(trustCount);
+  // 목록은 4개씩 펼쳐진다. 기록이 늘어도 깨지지 않도록 "더 보기"가 사라질 때까지 누른 뒤 전체를 확인한다.
+  const indexMoreButton = page.locator(".knowledge-map-index-more");
+  for (let click = 0; click < 50 && (await indexMoreButton.isVisible()); click += 1) {
+    await indexMoreButton.click();
   }
+  await expect(indexMoreButton).toBeHidden();
+  await expect(page.locator(".knowledge-map-index li:not([hidden])")).toHaveCount(trustCount);
 
   const selected = page.locator(".knowledge-map-index li:not([hidden]) button").first();
   const selectedId = await selected.getAttribute("data-node-id");
