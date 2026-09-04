@@ -28,9 +28,9 @@
         "healthcare-ops",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-08-09T04:36:49Z",
-      "published_at": null,
+      "published_at": "2026-09-04T11:55:05Z",
       "backlinks": [
         {
           "source": "testing-the-boundary-before-the-feature",
@@ -429,9 +429,9 @@
         "healthcare-ops",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-08-09T04:45:53Z",
-      "published_at": null,
+      "published_at": "2026-09-04T11:55:05Z",
       "backlinks": [],
       "related_notes": [
         "failed-qa-became-a-test",
