@@ -510,9 +510,9 @@
         "healthcare-ops",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-09-16T07:05:00Z",
-      "published_at": null,
+      "published_at": "2026-09-16T07:24:23Z",
       "backlinks": [],
       "related_notes": [
         "deciding-what-not-to-store",
