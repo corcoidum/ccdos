@@ -35,11 +35,16 @@
         {
           "source": "testing-the-boundary-before-the-feature",
           "type": "builds_on"
+        },
+        {
+          "source": "what-must-not-be-decided-yet",
+          "type": "related_to"
         }
       ],
       "related_notes": [
         "graceful-fallback-hid-the-outage",
-        "safe-automation-case-study"
+        "safe-automation-case-study",
+        "what-must-not-be-decided-yet"
       ]
     },
     {
@@ -111,9 +116,15 @@
         {
           "source": "safe-automation-case-study",
           "type": "supports"
+        },
+        {
+          "source": "what-must-not-be-decided-yet",
+          "type": "related_to"
         }
       ],
-      "related_notes": []
+      "related_notes": [
+        "what-must-not-be-decided-yet"
+      ]
     },
     {
       "id": "failed-qa-became-a-test",
@@ -432,7 +443,12 @@
       "state": "published",
       "updated": "2026-08-09T04:45:53Z",
       "published_at": "2026-09-04T11:55:05Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "what-must-not-be-decided-yet",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "failed-qa-became-a-test",
         "from-working-site-to-trustworthy-system"
@@ -482,6 +498,25 @@
       ],
       "related_notes": [
         "moving-recheck-dates-out-of-memory"
+      ]
+    },
+    {
+      "id": "what-must-not-be-decided-yet",
+      "type": "note",
+      "label": "아직 정하면 안 되는 것부터 적었다",
+      "url": "/garden?note=what-must-not-be-decided-yet",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-09-16T07:05:00Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "deciding-what-not-to-store",
+        "empty-garden-is-a-promise"
       ]
     },
     {
@@ -623,6 +658,21 @@
       "source": "what-comes-with-one-appointment",
       "target": "moving-recheck-dates-out-of-memory",
       "type": "related_to"
+    },
+    {
+      "source": "what-must-not-be-decided-yet",
+      "target": "deciding-what-not-to-store",
+      "type": "related_to"
+    },
+    {
+      "source": "what-must-not-be-decided-yet",
+      "target": "empty-garden-is-a-promise",
+      "type": "related_to"
+    },
+    {
+      "source": "what-must-not-be-decided-yet",
+      "target": "testing-the-boundary-before-the-feature",
+      "type": "builds_on"
     },
     {
       "source": "when-automation-creates-new-work",
