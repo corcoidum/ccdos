@@ -13,9 +13,9 @@
         "project-log",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-09-22T09:20:08Z",
-      "published_at": null,
+      "published_at": "2026-09-22T09:33:10Z",
       "backlinks": [],
       "related_notes": [
         "when-automation-creates-new-work"
@@ -489,9 +489,9 @@
         "hope",
         "learning"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-09-15T09:01:35Z",
-      "published_at": null,
+      "published_at": "2026-09-22T09:33:10Z",
       "backlinks": [
         {
           "source": "a-week-after-the-check-came-closer",
