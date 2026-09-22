@@ -2,6 +2,26 @@
   "version": 2,
   "nodes": [
     {
+      "id": "a-week-after-the-check-came-closer",
+      "type": "note",
+      "label": "확인이 가까워진 뒤의 일주일 — 내시경 운영 시스템 제작 기록",
+      "url": "/garden?note=a-week-after-the-check-came-closer",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "hope",
+        "project-log",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-09-22T09:20:08Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "when-automation-creates-new-work"
+      ]
+    },
+    {
       "id": "an-open-link-must-be-visible",
       "type": "note",
       "label": "열린 링크도 보이지 않으면 닫힌 것과 같다",
@@ -87,6 +107,10 @@
         {
           "source": "failed-qa-became-a-test",
           "type": "demonstrates"
+        },
+        {
+          "source": "the-check-was-too-far",
+          "type": "builds_on"
         },
         {
           "source": "what-comes-with-one-appointment",
@@ -455,6 +479,30 @@
       ]
     },
     {
+      "id": "the-check-was-too-far",
+      "type": "note",
+      "label": "코드가 느린 게 아니라 확인이 멀었다",
+      "url": "/garden?note=the-check-was-too-far",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "hope",
+        "learning"
+      ],
+      "state": "approved",
+      "updated": "2026-09-15T09:01:35Z",
+      "published_at": null,
+      "backlinks": [
+        {
+          "source": "a-week-after-the-check-came-closer",
+          "type": "builds_on"
+        }
+      ],
+      "related_notes": [
+        "when-automation-creates-new-work"
+      ]
+    },
+    {
       "id": "value-of-invisible-work",
       "type": "note",
       "label": "화면에 보이지 않는 작업의 가치",
@@ -492,7 +540,15 @@
       "published_at": "2026-08-03T06:25:20Z",
       "backlinks": [
         {
+          "source": "a-week-after-the-check-came-closer",
+          "type": "builds_on"
+        },
+        {
           "source": "deciding-what-not-to-store",
+          "type": "builds_on"
+        },
+        {
+          "source": "the-check-was-too-far",
           "type": "builds_on"
         }
       ],
@@ -534,16 +590,41 @@
       "published_at": "2026-07-25T22:37:00Z",
       "backlinks": [
         {
+          "source": "a-week-after-the-check-came-closer",
+          "type": "related_to"
+        },
+        {
           "source": "moving-recheck-dates-out-of-memory",
           "type": "builds_on"
+        },
+        {
+          "source": "the-check-was-too-far",
+          "type": "related_to"
         }
       ],
       "related_notes": [
+        "a-week-after-the-check-came-closer",
+        "the-check-was-too-far",
         "value-of-invisible-work"
       ]
     }
   ],
   "edges": [
+    {
+      "source": "a-week-after-the-check-came-closer",
+      "target": "the-check-was-too-far",
+      "type": "builds_on"
+    },
+    {
+      "source": "a-week-after-the-check-came-closer",
+      "target": "what-comes-with-one-appointment",
+      "type": "builds_on"
+    },
+    {
+      "source": "a-week-after-the-check-came-closer",
+      "target": "when-automation-creates-new-work",
+      "type": "related_to"
+    },
     {
       "source": "an-open-link-must-be-visible",
       "target": "one-link-less-explanation",
@@ -647,6 +728,21 @@
     {
       "source": "testing-the-boundary-before-the-feature",
       "target": "from-working-site-to-trustworthy-system",
+      "type": "related_to"
+    },
+    {
+      "source": "the-check-was-too-far",
+      "target": "doubt-into-a-ladder",
+      "type": "builds_on"
+    },
+    {
+      "source": "the-check-was-too-far",
+      "target": "what-comes-with-one-appointment",
+      "type": "builds_on"
+    },
+    {
+      "source": "the-check-was-too-far",
+      "target": "when-automation-creates-new-work",
       "type": "related_to"
     },
     {
