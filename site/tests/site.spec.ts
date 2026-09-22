@@ -674,7 +674,10 @@ test("Map node는 선택 시 해당 Living Value 색과 gold 관계선을 사용
   }
 
   for (const value of valueTags) {
-    const graphNode = publicGraph.nodes.find((node) => node.tags.includes(value));
+    // 여러 가치 tag를 가진 node는 첫 번째 가치 색을 쓰므로, 그 가치가 대표인 node를 고른다.
+    const graphNode = publicGraph.nodes.find(
+      (node) => valueTags.find((tag) => node.tags.includes(tag)) === value,
+    );
     if (!graphNode) {
       throw new Error(`${value} 색상 테스트에 사용할 graph node가 없습니다.`);
     }
