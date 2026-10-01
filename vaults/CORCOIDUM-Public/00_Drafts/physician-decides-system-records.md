@@ -5,7 +5,14 @@ created: 2026-10-01T12:12:44Z
 updated: 2026-10-01T12:40:22Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: draft
+publish_state: approved
+review_requested_at: 2026-10-01T12:47:07Z
+privacy_reviewed_by: corcoidum
+privacy_reviewed_at: 2026-10-01T12:47:07Z
+privacy_review_result: passed
+reviewed_revision: 2026-10-01T12:40:22Z
+approved_by: corcoidum
+approved_at: 2026-10-01T12:47:07Z
 tags:
   - trust
   - healthcare-ops

@@ -16,7 +16,12 @@
       "state": "published",
       "updated": "2026-09-22T09:20:08Z",
       "published_at": "2026-09-22T09:33:10Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "physician-decides-system-records",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "when-automation-creates-new-work"
       ]
@@ -367,6 +372,25 @@
       "related_notes": []
     },
     {
+      "id": "physician-decides-system-records",
+      "type": "note",
+      "label": "결정은 의사가, 기록은 시스템이 — 내시경 운영 시스템 제작 기록",
+      "url": "/garden?note=physician-decides-system-records",
+      "tags": [
+        "case-study",
+        "healthcare-ops",
+        "project-log",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-10-01T12:40:22Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": [
+        "what-comes-with-one-appointment"
+      ]
+    },
+    {
       "id": "proving-grounded-answers",
       "type": "note",
       "label": "내 AI 답변 계층이 지어내지 않는다는 걸 어떻게 증명했나",
@@ -548,12 +572,17 @@
           "type": "builds_on"
         },
         {
+          "source": "physician-decides-system-records",
+          "type": "related_to"
+        },
+        {
           "source": "the-check-was-too-far",
           "type": "builds_on"
         }
       ],
       "related_notes": [
-        "moving-recheck-dates-out-of-memory"
+        "moving-recheck-dates-out-of-memory",
+        "physician-decides-system-records"
       ]
     },
     {
@@ -569,7 +598,12 @@
       "state": "published",
       "updated": "2026-09-16T07:05:00Z",
       "published_at": "2026-09-16T07:24:23Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "physician-decides-system-records",
+          "type": "demonstrates"
+        }
+      ],
       "related_notes": [
         "deciding-what-not-to-store",
         "empty-garden-is-a-promise"
@@ -699,6 +733,21 @@
       "source": "only-reviewed-relations-become-graph",
       "target": "empty-garden-is-a-promise",
       "type": "builds_on"
+    },
+    {
+      "source": "physician-decides-system-records",
+      "target": "a-week-after-the-check-came-closer",
+      "type": "builds_on"
+    },
+    {
+      "source": "physician-decides-system-records",
+      "target": "what-comes-with-one-appointment",
+      "type": "related_to"
+    },
+    {
+      "source": "physician-decides-system-records",
+      "target": "what-must-not-be-decided-yet",
+      "type": "demonstrates"
     },
     {
       "source": "proving-grounded-answers",
