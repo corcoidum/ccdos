@@ -382,9 +382,9 @@
         "project-log",
         "trust"
       ],
-      "state": "approved",
+      "state": "published",
       "updated": "2026-10-01T12:40:22Z",
-      "published_at": null,
+      "published_at": "2026-10-01T13:24:00Z",
       "backlinks": [],
       "related_notes": [
         "what-comes-with-one-appointment"
