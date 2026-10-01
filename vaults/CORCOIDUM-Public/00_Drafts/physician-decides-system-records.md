@@ -1,18 +1,11 @@
 ---
-id: medication-check-that-decides-nothing
-title: 약을 정하지 않는 약 확인 기능 — 내시경 운영 시스템 제작 기록
+id: physician-decides-system-records
+title: 결정은 의사가, 기록은 시스템이 — 내시경 운영 시스템 제작 기록
 created: 2026-10-01T12:12:44Z
-updated: 2026-10-01T12:12:44Z
+updated: 2026-10-01T12:40:22Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
-review_requested_at: 2026-10-01T12:26:04Z
-privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-10-01T12:26:04Z
-privacy_review_result: passed
-reviewed_revision: 2026-10-01T12:12:44Z
-approved_by: corcoidum
-approved_at: 2026-10-01T12:26:04Z
+publish_state: draft
 tags:
   - trust
   - healthcare-ops
@@ -95,4 +88,4 @@ relations:
 
 고민하는 단계의 기록에 "계산할 수 있다는 것과 결정해도 된다는 것은 다르다"고 적었다. 그때는 문서 속 한 줄이었다. 이번에 그 한 줄은 데이터베이스 제약과 거절 응답이 되었다. 결정할 사람이 없으면 저장되지 않고, 날짜가 바뀌면 지난 결정으로는 다음 단계로 넘어갈 수 없고, 끝까지 가도 시스템은 "준비 완료"라고 말하지 않는다.
 
-약 확인 기능이 약에 대해 아무것도 정하지 않는다는 것은 기능이 부족하다는 뜻이 아니다. 정할 사람의 결정이 빠짐없이, 그 결정을 내린 사람의 이름과 함께, 시간이 지나도 바뀌지 않게 남는다는 뜻이다. 이 시스템이 맡은 일은 처음부터 그것이었다.
+복용약 확인 기능이 중단 여부를 정하지 않는다고 해서 기능이 부족한 것은 아니다. 결정은 의사가 내리고, 시스템은 그 결정이 빠짐없이, 결정한 사람의 이름과 함께, 시간이 지나도 바뀌지 않게 남도록 지킨다. 이 시스템이 맡은 일은 처음부터 그것이었다.

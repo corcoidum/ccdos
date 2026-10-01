@@ -16,12 +16,7 @@
       "state": "published",
       "updated": "2026-09-22T09:20:08Z",
       "published_at": "2026-09-22T09:33:10Z",
-      "backlinks": [
-        {
-          "source": "medication-check-that-decides-nothing",
-          "type": "builds_on"
-        }
-      ],
+      "backlinks": [],
       "related_notes": [
         "when-automation-creates-new-work"
       ]
@@ -271,25 +266,6 @@
       "published_at": "2026-07-27T11:28:18Z",
       "backlinks": [],
       "related_notes": []
-    },
-    {
-      "id": "medication-check-that-decides-nothing",
-      "type": "note",
-      "label": "약을 정하지 않는 약 확인 기능 — 내시경 운영 시스템 제작 기록",
-      "url": "/garden?note=medication-check-that-decides-nothing",
-      "tags": [
-        "case-study",
-        "healthcare-ops",
-        "project-log",
-        "trust"
-      ],
-      "state": "approved",
-      "updated": "2026-10-01T12:12:44Z",
-      "published_at": null,
-      "backlinks": [],
-      "related_notes": [
-        "what-comes-with-one-appointment"
-      ]
     },
     {
       "id": "moonlight-and-the-name-claude",
@@ -572,16 +548,11 @@
           "type": "builds_on"
         },
         {
-          "source": "medication-check-that-decides-nothing",
-          "type": "related_to"
-        },
-        {
           "source": "the-check-was-too-far",
           "type": "builds_on"
         }
       ],
       "related_notes": [
-        "medication-check-that-decides-nothing",
         "moving-recheck-dates-out-of-memory"
       ]
     },
@@ -598,12 +569,7 @@
       "state": "published",
       "updated": "2026-09-16T07:05:00Z",
       "published_at": "2026-09-16T07:24:23Z",
-      "backlinks": [
-        {
-          "source": "medication-check-that-decides-nothing",
-          "type": "demonstrates"
-        }
-      ],
+      "backlinks": [],
       "related_notes": [
         "deciding-what-not-to-store",
         "empty-garden-is-a-promise"
@@ -712,21 +678,6 @@
     {
       "source": "leave-the-constellation-uncropped",
       "target": "moonlight-and-the-name-claude",
-      "type": "demonstrates"
-    },
-    {
-      "source": "medication-check-that-decides-nothing",
-      "target": "a-week-after-the-check-came-closer",
-      "type": "builds_on"
-    },
-    {
-      "source": "medication-check-that-decides-nothing",
-      "target": "what-comes-with-one-appointment",
-      "type": "related_to"
-    },
-    {
-      "source": "medication-check-that-decides-nothing",
-      "target": "what-must-not-be-decided-yet",
       "type": "demonstrates"
     },
     {
