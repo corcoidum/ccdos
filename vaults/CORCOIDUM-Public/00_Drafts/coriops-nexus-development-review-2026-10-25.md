@@ -5,7 +5,7 @@ created: 2026-10-25T12:02:29Z
 updated: 2026-10-25T12:02:29Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
+publish_state: published
 review_requested_at: 2026-10-25T12:08:38Z
 privacy_reviewed_by: corcoidum
 privacy_reviewed_at: 2026-10-25T12:08:38Z
@@ -13,6 +13,7 @@ privacy_review_result: passed
 reviewed_revision: 2026-10-25T12:02:29Z
 approved_by: corcoidum
 approved_at: 2026-10-25T12:08:38Z
+published_at: 2026-10-25T12:15:16Z
 tags:
   - trust
   - mercy
