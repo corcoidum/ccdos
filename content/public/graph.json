@@ -44,6 +44,23 @@
       "related_notes": []
     },
     {
+      "id": "coriops-nexus-development-review-2026-10-25",
+      "type": "note",
+      "label": "CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로",
+      "url": "/garden?note=coriops-nexus-development-review-2026-10-25",
+      "tags": [
+        "healthcare-ops",
+        "mercy",
+        "project-review",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-10-25T12:02:29Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "deciding-what-not-to-store",
       "type": "note",
       "label": "무엇을 저장하지 않을지부터 정했다",
