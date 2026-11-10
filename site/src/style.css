@@ -1,38 +1,76 @@
 :root {
-  color: #f4dfc5;
-  background: #041817;
+  color: #0e1a33;
+  background: #f3f6fb;
   font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --night: #041817;
-  --night-deep: #021211;
-  --night-raised: #082321;
-  --night-soft: #0b2c29;
-  --ivory: #f4dfc5;
-  --ivory-strong: #fff0dc;
-  --muted: #b8ad8d;
-  --muted-strong: #d7c9aa;
-  --coral: #df7150;
-  --coral-bright: #f08b69;
-  --gold: #c9b274;
-  --gold-soft: #d8bd83;
-  --gold-strong: #b7973f;
-  --moss: #a7b66c;
-  --value-hope: var(--gold);
-  --value-trust: var(--muted-strong);
-  --value-mercy: var(--moss);
-  --value-love: var(--coral-bright);
-  --line: rgba(201, 178, 116, 0.2);
-  --line-strong: rgba(201, 178, 116, 0.38);
-  --surface: #071f1d;
-  --surface-hover: #0b2c29;
+  /* "새벽 관측소" 팔레트. 토큰 이름은 이전 어두운 테마에서 온 것이며 역할로 읽는다:
+     --night* = 바탕과 면, --ivory* = 본문 글자, --gold*·--coral* = 강조, --moss = 보조 강조. */
+  --night: #f3f6fb;
+  --night-deep: #e8edf6;
+  --night-raised: #ffffff;
+  --night-soft: #e4eaf5;
+  --ivory: #0e1a33;
+  --ivory-strong: #060d1f;
+  --muted: #4a5674;
+  --muted-strong: #36415c;
+  --coral: #12387e;
+  --coral-bright: #1d4fb0;
+  --gold: #12387e;
+  --gold-soft: #2a55a8;
+  --gold-strong: #0d2a61;
+  --moss: #1a6347;
+  --value-hope: #1a6347;
+  --value-trust: #12387e;
+  --value-mercy: #7e2436;
+  --value-love: #86590e;
+  --line: rgba(14, 26, 51, 0.14);
+  --line-strong: rgba(14, 26, 51, 0.3);
+  --surface: #ffffff;
+  --surface-hover: #eef2fa;
+  --scrim: rgba(14, 26, 51, 0.5);
+  --shadow: rgba(14, 26, 51, 0.22);
   --content: 1360px;
   --page-gutter: clamp(20px, 3vw, 48px);
   --shell-width: min(calc(100% - var(--page-gutter) - var(--page-gutter)), var(--content));
-  --serif: "Noto Serif KR", "NanumMyeongjo", Batang, "AppleMyungjo", Georgia, serif;
-  --latin-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --serif: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --latin-serif: "Avenir Next", "Segoe UI", Pretendard, "Noto Sans KR", system-ui, sans-serif;
   --radius-card: 18px;
   --radius-panel: 22px;
+}
+
+/* "깊은 우주" 팔레트: 지식 지도 화면 전체와, 밝은 화면 안의 별자리 그림 창에만 쓴다. */
+html[data-route="graph"],
+.hero-visual {
+  --night: #070b1a;
+  --night-deep: #040712;
+  --night-raised: #0e1530;
+  --night-soft: #141d3f;
+  --ivory: #eef2ff;
+  --ivory-strong: #ffffff;
+  --muted: #a9b4d6;
+  --muted-strong: #cbd3ee;
+  --coral: #7fb0ff;
+  --coral-bright: #a5c7ff;
+  --gold: #7fb0ff;
+  --gold-soft: #a5c7ff;
+  --gold-strong: #5f95ee;
+  --moss: #5fd3a2;
+  --value-hope: #5fd3a2;
+  --value-trust: #7fb0ff;
+  --value-mercy: #ff8fa6;
+  --value-love: #f2c063;
+  --line: rgba(169, 180, 214, 0.22);
+  --line-strong: rgba(169, 180, 214, 0.42);
+  --surface: #0b1126;
+  --surface-hover: #141d3f;
+  --scrim: rgba(2, 4, 12, 0.7);
+  --shadow: var(--shadow);
+  color: var(--ivory);
+}
+
+html[data-route="graph"] {
+  color-scheme: dark;
 }
 
 * {
@@ -169,12 +207,12 @@ img {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid var(--line);
-  background: rgba(4, 24, 23, 0.88);
+  background: color-mix(in srgb, var(--night) 88%, transparent);
 }
 
 @supports (backdrop-filter: blur(1px)) {
   .site-header {
-    background: rgba(4, 24, 23, 0.72);
+    background: color-mix(in srgb, var(--night) 72%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
@@ -246,7 +284,7 @@ img {
   border-radius: 0 0 var(--radius-panel) var(--radius-panel);
   color: var(--ivory);
   background: var(--night-deep);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+  box-shadow: 0 28px 80px var(--shadow);
   opacity: 0;
   pointer-events: none;
   scrollbar-color: var(--line-strong) var(--night-deep);
@@ -454,7 +492,7 @@ img {
 }
 
 .living-values-note-list li + li {
-  border-top: 1px solid rgba(201, 178, 116, 0.16);
+  border-top: 1px solid color-mix(in srgb, var(--gold) 16%, transparent);
 }
 
 .living-values-note-button {
@@ -721,14 +759,14 @@ img {
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--night-deep);
-  box-shadow: 0 36px 90px -52px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 36px 90px -52px var(--shadow);
 }
 
 .hero-visual::before {
   position: absolute;
   inset: -24px;
   background:
-    linear-gradient(rgb(2 18 17 / 42%), rgb(2 18 17 / 58%)),
+    linear-gradient(rgb(4 7 18 / 42%), rgb(4 7 18 / 58%)),
     var(--hero-image) center / cover no-repeat;
   content: "";
   filter: blur(18px) saturate(0.78);
@@ -939,6 +977,11 @@ img {
   list-style: none;
 }
 
+/* 마지막 칸이 줄의 남은 자리를 채워, 열 수가 바뀌어도 빈 칸이 생기지 않게 한다. */
+.journey-step:last-child {
+  grid-column-end: -1;
+}
+
 .journey-step {
   min-height: 206px;
   padding: 26px 22px 28px;
@@ -1019,7 +1062,7 @@ img {
 
 .value-item:hover {
   border-color: var(--gold-soft);
-  box-shadow: 0 24px 60px -38px rgba(216, 189, 131, 0.72);
+  box-shadow: 0 24px 60px -38px color-mix(in srgb, var(--gold-soft) 72%, transparent);
   transform: translateY(-6px);
 }
 
@@ -1296,7 +1339,7 @@ img {
 .note-entry:hover {
   border-color: var(--gold-soft);
   background: var(--night-raised);
-  box-shadow: 0 24px 60px -38px rgba(216, 189, 131, 0.72);
+  box-shadow: 0 24px 60px -38px color-mix(in srgb, var(--gold-soft) 72%, transparent);
   transform: translateY(-5px);
 }
 
@@ -1364,7 +1407,7 @@ img {
   align-items: center;
   justify-content: center;
   padding: 28px;
-  background: rgba(2, 12, 11, 0.66);
+  background: var(--scrim);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   animation: overlay-fade 160ms ease both;
@@ -1379,7 +1422,7 @@ img {
   background: var(--night-raised);
   border: 1px solid var(--line-strong);
   border-radius: 18px;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 30px 90px var(--shadow);
   animation: modal-rise 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -1478,7 +1521,7 @@ img {
 .note-inline-link {
   color: var(--coral-bright);
   text-decoration: underline;
-  text-decoration-color: rgba(255, 138, 116, 0.55);
+  text-decoration-color: color-mix(in srgb, var(--coral-bright) 55%, transparent);
   text-underline-offset: 0.18em;
 }
 
@@ -1514,7 +1557,7 @@ img {
 .glossary-term:hover,
 .glossary-term[aria-expanded="true"] {
   border-bottom-style: solid;
-  background: rgba(167, 182, 108, 0.14);
+  background: color-mix(in srgb, var(--moss) 14%, transparent);
 }
 
 .glossary-term:focus-visible {
@@ -1535,7 +1578,7 @@ img {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-card);
   background: var(--night-raised);
-  box-shadow: 0 18px 38px rgba(2, 18, 17, 0.55);
+  box-shadow: 0 18px 38px var(--shadow);
   gap: 8px;
   text-align: left;
   white-space: normal;
@@ -1639,7 +1682,7 @@ img {
 .note-relation-button:hover {
   padding-right: 10px;
   padding-left: 10px;
-  background: rgba(167, 182, 108, 0.06);
+  background: color-mix(in srgb, var(--moss) 6%, transparent);
 }
 
 .note-relation-button:focus-visible {
@@ -1727,15 +1770,15 @@ img {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-card);
   background:
-    radial-gradient(circle at 50% 48%, rgba(167, 182, 108, 0.12), transparent 28%),
-    radial-gradient(circle at 24% 24%, rgba(201, 178, 116, 0.08), transparent 23%),
+    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--moss) 12%, transparent), transparent 28%),
+    radial-gradient(circle at 24% 24%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 23%),
     var(--night-deep);
 }
 
 .knowledge-map-canvas::before {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(244, 223, 197, 0.36) 0 1px, transparent 1.2px);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--ivory) 36%, transparent) 0 1px, transparent 1.2px);
   background-size: 47px 47px;
   content: "";
   opacity: 0.28;
@@ -1767,7 +1810,7 @@ img {
 }
 
 .knowledge-map-edge {
-  stroke: rgba(201, 178, 116, 0.52);
+  stroke: color-mix(in srgb, var(--gold) 52%, transparent);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
   transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease;
@@ -1803,7 +1846,7 @@ img {
 }
 
 .knowledge-map-node-halo {
-  fill: rgba(201, 178, 116, 0.08);
+  fill: color-mix(in srgb, var(--gold) 8%, transparent);
   stroke: transparent;
   stroke-width: 2;
   transition: fill 180ms ease, stroke 180ms ease;
@@ -1839,7 +1882,7 @@ img {
 
 .knowledge-map-node.is-selected .knowledge-map-node-halo,
 .knowledge-map-node:focus-visible .knowledge-map-node-halo {
-  fill: rgba(167, 182, 108, 0.16);
+  fill: color-mix(in srgb, var(--moss) 16%, transparent);
   stroke: var(--map-accent);
 }
 
@@ -1938,7 +1981,7 @@ img {
 .knowledge-map-index-button:hover,
 .knowledge-map-index-button.is-selected {
   color: var(--ivory-strong);
-  background: rgba(167, 182, 108, 0.06);
+  background: color-mix(in srgb, var(--moss) 6%, transparent);
 }
 
 .knowledge-map-index-button:focus-visible {
@@ -2072,7 +2115,7 @@ img {
 }
 
 .knowledge-map-connection-button:hover {
-  background: rgba(201, 178, 116, 0.06);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
 
 .knowledge-map-connection-button:focus-visible {
@@ -2470,7 +2513,7 @@ img {
 .phase-item:hover {
   border-color: var(--gold-soft);
   background: var(--night-raised);
-  box-shadow: 0 24px 60px -38px rgba(216, 189, 131, 0.72);
+  box-shadow: 0 24px 60px -38px color-mix(in srgb, var(--gold-soft) 72%, transparent);
   transform: translateX(6px);
 }
 
@@ -2655,7 +2698,7 @@ img {
   padding: 24px;
   border: 1px solid var(--line-strong);
   border-radius: 14px;
-  background: rgba(167, 182, 108, 0.05);
+  background: color-mix(in srgb, var(--moss) 5%, transparent);
 }
 
 .phase-legend {
@@ -2799,7 +2842,7 @@ img {
   margin: 46px auto 0;
   padding-top: 24px;
   border-top: 1px solid var(--line);
-  color: #958b70;
+  color: var(--muted);
   font-size: 0.74rem;
 }
 
