@@ -2,6 +2,18 @@
   "version": 2,
   "notes": [
     {
+      "id": "approval-flow-check",
+      "title": "승인 흐름 점검용 합성 노트",
+      "updated": "2026-11-10T08:40:00Z",
+      "published_at": null,
+      "tags": [
+        "trust",
+        "automation"
+      ],
+      "state": "approved",
+      "body": "합성 본문입니다. 라벨 승인 워크플로의 거부·승인·무효화 경로를 점검하기 위한 문장이며 실제 기록이 아닙니다. 이 노트는 병합하지 않습니다."
+    },
+    {
       "id": "coriops-nexus-development-review-2026-10-25",
       "title": "CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로",
       "updated": "2026-10-25T12:02:29Z",
