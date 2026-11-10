@@ -33,7 +33,8 @@
 | 단계 | 구현 | 하는 일 | 하지 않는 일 |
 | --- | --- | --- | --- |
 | 기계 검증 | `automation/validate_notes.py` | 필수 frontmatter, Vault별 보안 분류, 주민등록번호·전화·이메일·비밀값 등 고신뢰 민감 패턴 차단 | 완전한 비식별 보장 |
-| 사람 승인 | `docs/governance/public-content-review.md` | 재식별 가능성·맥락 판단, checklist 완료 후 증적 기록 | 자동화 |
+| 사람 승인 | `docs/governance/public-content-review.md` | 재식별 가능성·맥락 판단, checklist 완료 후 `approve` 라벨 | 자동화 |
+| 증적 기록 | `automation/apply_approval.py`, `Approval evidence` 워크플로 | 체크리스트 완료 확인, 라벨을 붙인 사람의 결정을 frontmatter에 기록, 승인 뒤 수정 시 증적 삭제 | 안전 여부 판단 |
 | 증적 무효화 | 검증기 규칙 | 승인 후 수정된 노트의 이전 검토 증적 재사용 차단 | — |
 | 결정론적 빌드 | `automation/build_public_content.py`, `automation/build_public_graph.py`, `automation/build_public_glossary.py` | `approved`·`published`만 `content/public/`의 `index.json`·`graph.json`·`glossary.json`으로 수집, `--check`로 재현성 검증 | 추론·자동 관계 생성 |
 | 자동 집행 | GitHub Actions | 위 규칙을 통과하지 못하면 배포 차단 | — |
@@ -56,11 +57,11 @@
 | 항목 | 수 |
 | --- | --- |
 | 발행된 공개 기록 | 20 |
-| 아키텍처 결정 기록(ADR) | 9 |
+| 아키텍처 결정 기록(ADR) | 10 |
 | 공개 용어 | 4 |
 | 거버넌스 정책 문서 | 7 |
-| 자동화 스크립트 | 11 |
-| 테스트 | 12개 모듈 · 107개 |
+| 자동화 스크립트 | 12 |
+| 테스트 | 13개 모듈 · 123개 |
 
 `Phase 9 — Living Values`를 완료하고 `Phase 10 — Field Case Study`를 진행 중입니다. Phase 9는 네 가지 약속(H.OPE · T.RUST · M.ERCY · L.OVE) 각각에 승인·발행 증적이 있는 공개 기록이 3편 이상 쌓인 것을 2026-07-24에 확인했습니다. 판정 근거는 [Phase 9 완료 보고서](docs/architecture/phase-9-completion-report.md)에, 진행 중인 단계의 목적과 완료 기준은 [Phase 10 계획](docs/architecture/phase-10-plan.md)에 있습니다.
 
@@ -122,5 +123,6 @@ scripts/              저장소 수준 검증 도구
 | [0007](docs/adr/0007-read-only-knowledge-map.md) | 읽기 전용 지식 지도 |
 | [0008](docs/adr/0008-grounding-eval.md) | Grounding Eval로 답변 계층 판단 품질 측정 |
 | [0009](docs/adr/0009-public-glossary-nodes.md) | 승인된 공개 용어 node와 본문 용어 표시 |
+| [0010](docs/adr/0010-label-approval-evidence.md) | 라벨로 표시한 사람의 승인을 기계가 받아 적는다 (제안됨) |
 
 거버넌스 정책은 [`docs/governance/`](docs/governance/)에, 배포 절차는 [Cloudflare Worker 배포 Runbook](docs/runbooks/cloudflare-worker-deploy.md)에 있습니다. Worker 이름은 `ccdos`입니다.

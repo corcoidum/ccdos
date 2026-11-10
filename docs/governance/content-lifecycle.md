@@ -25,6 +25,7 @@ stateDiagram-v2
 - `approved`에는 승인자와 승인 시각을 기록한다.
 - 배포 뒤를 포함해 내용이 바뀌면 다시 `draft`로 되돌리고, 새 검토를 요청한다.
 - AI 생성물은 항상 `_AI_Staging`에 저장하고, 신뢰할 수 있는 지식처럼 표시하지 않는다.
+- 예외는 하나다. 정원사 에이전트의 공개 초안은 병합되지 않은 `garden/…` Pull Request 브랜치를 staging으로 삼는다([ADR-0010](../adr/0010-label-approval-evidence.md)). 사람의 병합과 `approve` 라벨 없이는 `main`에도, 발행 대상에도 들어가지 않는다.
 
 Public 노트의 상세 checklist와 변경 이력 규칙은 [public-content-review.md](public-content-review.md)를 따른다.
 

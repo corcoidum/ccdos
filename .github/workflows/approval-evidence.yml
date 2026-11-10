@@ -1,0 +1,222 @@
+name: Approval evidence
+
+# 사람이 PR의 검토 체크리스트를 모두 체크하고 approve 라벨을 붙이면, 그 결정을 노트 frontmatter에 기록한다.
+# 판단은 사람이 하고 이 워크플로는 받아 적기만 한다. 근거와 한계는 docs/adr/0010-label-approval-evidence.md.
+#
+# pull_request_target을 쓰는 이유: 워크플로 정의가 항상 main의 것이어야 PR이 이 절차 자체를 바꿀 수 없다.
+# 그 대신 PR 브랜치의 코드를 쓰기 권한으로 실행하게 되므로, 아래 세 조건을 모두 만족할 때만 동작한다.
+#   1. 라벨을 붙인 사람이 저장소 소유자다.
+#   2. PR 브랜치가 fork가 아니라 이 저장소에 있다.
+#   3. PR이 바꾼 파일이 공개 노트와 그 산출물뿐이다 (실행되는 코드는 전부 main 이력의 것).
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: approval-evidence-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NOTE_ONLY_PATTERN: '^(vaults/CORCOIDUM-Public/.+\.md|content/public/(index|graph|glossary)\.json)$'
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+
+jobs:
+  setup-labels:
+    # 1회 설정: Actions 탭에서 수동 실행하면 이 흐름이 쓰는 라벨 두 개를 만든다.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create the labels this flow relies on
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create idea --repo "$GITHUB_REPOSITORY" --force --color 1A6347 \
+            --description "폰에서 던진 한 줄 글감 (공개)"
+          gh label create approve --repo "$GITHUB_REPOSITORY" --force --color 7E2436 \
+            --description "검토 체크리스트를 마친 뒤 소유자가 붙이는 승인"
+
+  record:
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.action == 'labeled'
+      && github.event.label.name == 'approve'
+      && github.event.sender.login == github.repository_owner
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+      APPROVER: ${{ github.event.sender.login }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Refuse unless the pull request changes only public notes
+        run: |
+          git diff --name-only "origin/${BASE_REF}...HEAD" > "$RUNNER_TEMP/changed.txt"
+          if grep -vE "$NOTE_ONLY_PATTERN" "$RUNNER_TEMP/changed.txt" > "$RUNNER_TEMP/outside.txt"; then
+            {
+              echo "FAIL: the approve label only works on pull requests that change public notes alone."
+              echo "Files outside vaults/CORCOIDUM-Public and content/public:"
+              sed 's/^/  /' "$RUNNER_TEMP/outside.txt"
+            } | tee "$RUNNER_TEMP/result.txt"
+            exit 1
+          fi
+          if [ ! -f automation/apply_approval.py ]; then
+            echo "FAIL: this branch predates the approval flow; update it from ${BASE_REF} and label again." \
+              | tee "$RUNNER_TEMP/result.txt"
+            exit 1
+          fi
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Record approval evidence when the review checklist is complete
+        run: |
+          set -o pipefail
+          python automation/apply_approval.py approve \
+            --changed-files "$RUNNER_TEMP/changed.txt" --approver "$APPROVER" \
+            2>&1 | tee "$RUNNER_TEMP/result.txt"
+      - name: Rebuild the approved-content outputs and re-run the gate
+        run: |
+          set -o pipefail
+          {
+            python automation/build_public_content.py
+            python automation/build_public_graph.py
+            python automation/build_public_glossary.py
+            python automation/validate_notes.py vaults/CORCOIDUM-Public
+            python automation/build_public_content.py --check
+            python automation/build_public_graph.py --check
+            python automation/build_public_glossary.py --check
+            python -m unittest discover -s tests
+            python evals/grounding_eval.py --min-pass 1.0
+          } 2>&1 | tee "$RUNNER_TEMP/gate.txt"
+      - name: Commit the evidence to the pull request branch
+        run: |
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add vaults/CORCOIDUM-Public content/public
+          git commit -m "Record approval evidence for #${PR_NUMBER}" \
+            -m "Recorded for ${APPROVER}, who applied the approve label after completing the privacy review checklist in the pull request."
+          # 그 사이 브랜치가 움직였으면 push가 거부된다. 검토한 내용과 다른 것에 증적이 붙지 않게 하는 장치다.
+          git push origin "HEAD:refs/heads/${HEAD_REF}"
+      - name: Report success on the pull request
+        run: |
+          {
+            echo "승인 증적을 기록하고 공개 산출물을 다시 만들었습니다. 병합하면 배포됩니다."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/result.txt"
+            echo '```'
+            echo
+            echo "이 뒤에 브랜치를 고치면 증적은 자동으로 지워지고 노트는 \`draft\`로 돌아갑니다."
+          } > "$RUNNER_TEMP/comment.md"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@"$RUNNER_TEMP/comment.md" --silent
+      - name: Report the refusal and take the label back
+        if: ${{ failure() }}
+        run: |
+          {
+            echo "승인 증적을 기록하지 않았습니다. 아래를 고친 뒤 \`approve\` 라벨을 다시 붙여 주세요."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/result.txt" 2>/dev/null || echo "FAIL: see the workflow run log."
+            if [ -f "$RUNNER_TEMP/gate.txt" ]; then grep -E '^(FAIL|ERROR)' "$RUNNER_TEMP/gate.txt" | head -20 || true; fi
+            echo '```'
+            echo
+            echo "실행 기록: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > "$RUNNER_TEMP/comment.md"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@"$RUNNER_TEMP/comment.md" --silent || true
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/approve" --silent || true
+
+  revoke:
+    # 승인 뒤에 사람이 브랜치를 고치면 이전 증적을 재사용할 수 없다. 이 워크플로 자신의 push는 이 이벤트를 일으키지 않는다.
+    if: >-
+      github.event_name == 'pull_request_target'
+      && github.event.action == 'synchronize'
+      && contains(github.event.pull_request.labels.*.name, 'approve')
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      BASE_REF: ${{ github.event.pull_request.base.ref }}
+    steps:
+      - name: Take the approve label back first
+        run: gh api -X DELETE "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/approve" --silent || true
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Stop if the pull request no longer changes only public notes
+        id: scope
+        run: |
+          git diff --name-only "origin/${BASE_REF}...HEAD" > "$RUNNER_TEMP/changed.txt"
+          if grep -qvE "$NOTE_ONLY_PATTERN" "$RUNNER_TEMP/changed.txt" || [ ! -f automation/apply_approval.py ]; then
+            echo "note_only=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "note_only=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v6
+        if: ${{ steps.scope.outputs.note_only == 'true' }}
+        with:
+          python-version: "3.12"
+      - name: Return approved notes to draft and rebuild the outputs
+        if: ${{ steps.scope.outputs.note_only == 'true' }}
+        run: |
+          set -o pipefail
+          python automation/apply_approval.py revoke --changed-files "$RUNNER_TEMP/changed.txt" 2>&1 | tee "$RUNNER_TEMP/result.txt"
+          python automation/build_public_content.py
+          python automation/build_public_graph.py
+          python automation/build_public_glossary.py
+          if git diff --quiet; then
+            echo "Nothing to revoke."
+            exit 0
+          fi
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add vaults/CORCOIDUM-Public content/public
+          git commit -m "Revoke approval evidence for #${PR_NUMBER}" \
+            -m "The branch changed after approval, so the earlier review no longer covers its content."
+          git push origin "HEAD:refs/heads/${HEAD_REF}"
+      - name: Explain what happened on the pull request
+        if: ${{ always() }}
+        env:
+          NOTE_ONLY: ${{ steps.scope.outputs.note_only }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "승인 뒤에 브랜치가 바뀌어 \`approve\` 라벨을 거두었습니다."
+            echo
+            if [ "$NOTE_ONLY" = "true" ] && [ "$JOB_STATUS" = "success" ]; then
+              echo "이전 승인 증적을 지우고 해당 노트를 \`draft\`로 되돌렸습니다. 다시 읽고 체크리스트를 확인한 뒤 라벨을 붙여 주세요."
+            else
+              echo "**증적을 자동으로 지우지 못했습니다.** 노트에 남은 승인 증적은 지금 내용을 검토한 것이 아닙니다."
+              echo "\`publish_state\`를 \`draft\`로 되돌리고 증적 필드를 직접 지운 뒤 다시 검토해 주세요."
+              echo
+              echo "실행 기록: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            fi
+          } > "$RUNNER_TEMP/comment.md"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F body=@"$RUNNER_TEMP/comment.md" --silent || true
