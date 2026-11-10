@@ -1,0 +1,41 @@
+name: 아이디어
+description: 폰에서 던지는 한 줄 글감. 이 저장소는 공개이므로 올리는 즉시 누구나 볼 수 있습니다.
+title: "[idea] "
+labels:
+  - idea
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **이 이슈는 올리는 즉시 공개됩니다.** 공개해도 되는 한 줄만 적습니다.
+
+        - 환자·보호자·직원을 알아볼 수 있는 정보, 기관명, 날짜와 사건의 조합은 쓰지 않습니다.
+        - API key, token, 내부 주소, 계정 정보는 쓰지 않습니다.
+        - 아직 공개하기 이른 생각은 여기가 아니라 로컬 Obsidian 인박스에 둡니다.
+  - type: dropdown
+    id: value
+    attributes:
+      label: 가치 축
+      description: 이 글감이 가장 가까운 약속 하나를 고릅니다.
+      options:
+        - H.OPE (성장)
+        - T.RUST (명확한 사고)
+        - M.ERCY (위로)
+        - L.OVE (일상)
+    validations:
+      required: true
+  - type: textarea
+    id: memo
+    attributes:
+      label: 한 줄 메모
+      description: 장면이나 질문 하나면 충분합니다. 글로 다듬는 것은 나중 일입니다.
+      placeholder: "예) 자동화를 하나 붙였더니 확인할 것이 하나 더 생겼다"
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: 공개 경계 확인
+      options:
+        - label: 식별 가능한 사람·기관 정보와 비밀값이 없다.
+          required: true
