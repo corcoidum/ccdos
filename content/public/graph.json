@@ -44,21 +44,6 @@
       "related_notes": []
     },
     {
-      "id": "approval-flow-check",
-      "type": "note",
-      "label": "승인 흐름 점검용 합성 노트",
-      "url": "/garden?note=approval-flow-check",
-      "tags": [
-        "automation",
-        "trust"
-      ],
-      "state": "approved",
-      "updated": "2026-11-10T08:40:00Z",
-      "published_at": null,
-      "backlinks": [],
-      "related_notes": []
-    },
-    {
       "id": "coriops-nexus-development-review-2026-10-25",
       "type": "note",
       "label": "CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로",
