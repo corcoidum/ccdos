@@ -299,8 +299,8 @@ const gardenScene: SceneDefinition = {
     }
 
     const tree = new Group();
-    tree.position.y = 0.5;
-    tree.scale.setScalar(1.15);
+    tree.position.y = 1.2;
+    tree.scale.setScalar(1.5);
     context.world.add(tree);
     const positions = new Float32Array(segments.length * 6);
     const lines = glowLines(context, positions, context.color("--orbit-mercy"), 0.5);
@@ -365,7 +365,7 @@ const labScene: SceneDefinition = {
         fade[index] = edgeFade(column, columns, row, rows);
       }
     }
-    const field = glowPoints(context, positions, colors, 0.13);
+    const field = glowPoints(context, positions, colors, 0.15);
     context.world.add(field.points);
     const blue = context.color("--orbit-trust");
     const ivory = context.color("--ivory");
@@ -394,10 +394,10 @@ const labScene: SceneDefinition = {
         const first = Math.sin(Math.hypot(x - sourceA.x, y - sourceA.y) * 3.1 - phase);
         const other = Math.sin(Math.hypot(x - sourceB.x, y - sourceB.y) * 3.1 - phase) * second;
         const height = (first + other) / (1 + second);
-        const light = (height * 0.5 + 0.5) ** 1.4;
+        const light = (height * 0.5 + 0.5) ** 1.15;
         positions[index * 3 + 2] = height * 0.14;
         mixed.copy(blue).lerp(ivory, light * second);
-        setColor(colors, index, mixed, (0.16 + light * 0.84) * fade[index]);
+        setColor(colors, index, mixed, (0.26 + light * 0.74) * fade[index]);
       }
       field.geometry.attributes.position.needsUpdate = true;
       field.geometry.attributes.color.needsUpdate = true;
