@@ -44,6 +44,22 @@
       "related_notes": []
     },
     {
+      "id": "approval-label-records-the-decision",
+      "type": "note",
+      "label": "승인은 판단이고, 받아 적기는 기계의 일이다",
+      "url": "/garden?note=approval-label-records-the-decision",
+      "tags": [
+        "automation",
+        "governance",
+        "trust"
+      ],
+      "state": "approved",
+      "updated": "2026-11-10T09:32:06Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "coriops-nexus-development-review-2026-10-25",
       "type": "note",
       "label": "CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로",
