@@ -2328,8 +2328,6 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   const main = createElement("main", "site-main");
   main.id = "main-content";
   main.append(pageFor(route));
-  // 화면별 팔레트(지식 지도만 어두운 우주색)를 CSS가 고를 수 있게 현재 route를 알려 준다.
-  document.documentElement.dataset.route = route.slice(1);
   appRoot.replaceChildren(skipLink, createHeader(route), main, createFooter());
   setupReveals(main);
   renderedRoute = route;
