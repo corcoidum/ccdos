@@ -748,11 +748,130 @@ test("Map node는 선택 시 해당 Living Value 색과 gold 관계선을 사용
     .toBe(true);
 });
 
+test("Map은 연결이 많은 기록을 크게 그리고 서로 겹치지 않게 놓는다", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/graph");
+
+  const degrees = new Map<string, number>();
+  for (const edge of publicGraph.edges) {
+    degrees.set(edge.source, (degrees.get(edge.source) ?? 0) + 1);
+    degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
+  }
+  const placed = await page.locator(".knowledge-map-node").evaluateAll((groups) =>
+    groups.map((group) => {
+      const [x, y] = (group.getAttribute("transform") ?? "")
+        .replace(/[^0-9. -]/g, "")
+        .trim()
+        .split(/\s+/)
+        .map(Number);
+      return {
+        id: group.getAttribute("data-node-id") ?? "",
+        x,
+        y,
+        radius: Number(group.querySelector(".knowledge-map-node-core")?.getAttribute("r")),
+      };
+    }),
+  );
+  expect(placed).toHaveLength(publicGraph.nodes.length);
+  for (const node of placed) {
+    // 지도 안에 있고, 크기는 연결 수의 순서를 따른다.
+    expect(node.x - node.radius).toBeGreaterThanOrEqual(0);
+    expect(node.x + node.radius).toBeLessThanOrEqual(1000);
+    expect(node.y - node.radius).toBeGreaterThanOrEqual(0);
+    expect(node.y + node.radius).toBeLessThanOrEqual(680);
+  }
+  const byDegree = [...placed].sort(
+    (left, right) => (degrees.get(left.id) ?? 0) - (degrees.get(right.id) ?? 0),
+  );
+  for (let index = 1; index < byDegree.length; index += 1) {
+    expect(byDegree[index].radius).toBeGreaterThanOrEqual(byDegree[index - 1].radius);
+  }
+  for (let i = 0; i < placed.length; i += 1) {
+    for (let j = i + 1; j < placed.length; j += 1) {
+      const distance = Math.hypot(placed[i].x - placed[j].x, placed[i].y - placed[j].y);
+      expect(distance, `${placed[i].id} / ${placed[j].id}`).toBeGreaterThan(
+        placed[i].radius + placed[j].radius,
+      );
+    }
+  }
+
+  // 같은 graph.json은 다시 열어도 같은 자리에 놓인다.
+  await page.reload();
+  const again = await page.locator(".knowledge-map-node").evaluateAll((groups) =>
+    groups.map((group) => group.getAttribute("transform")),
+  );
+  expect(again).toEqual(
+    placed.map((node) => `translate(${node.x.toFixed(1)} ${node.y.toFixed(1)})`),
+  );
+});
+
+test("Map은 가리킨 기록의 이웃만 남기고, 버튼으로 확대하고 되돌린다", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/graph");
+
+  const firstEdge = publicGraph.edges[0];
+  if (!firstEdge) {
+    throw new Error("Map hover 테스트에 사용할 edge가 없습니다.");
+  }
+  const neighbours = new Set<string>([firstEdge.source]);
+  for (const edge of publicGraph.edges) {
+    if (edge.source === firstEdge.source) neighbours.add(edge.target);
+    if (edge.target === firstEdge.source) neighbours.add(edge.source);
+  }
+  const selectedBefore = await page
+    .locator(".knowledge-map-node.is-selected")
+    .getAttribute("data-node-id");
+  if (selectedBefore) {
+    neighbours.add(selectedBefore);
+  }
+
+  // 가리키기 전에는 아무것도 흐려지지 않는다.
+  await expect(page.locator(".knowledge-map-node.is-muted")).toHaveCount(0);
+  const source = page.locator(`.knowledge-map-node[data-node-id="${firstEdge.source}"]`);
+  await source.hover();
+  await expect(source).toHaveClass(/is-hovered/);
+  await expect(page.locator(".knowledge-map-node.is-muted")).toHaveCount(
+    publicGraph.nodes.length - neighbours.size,
+  );
+  await expect(source.locator(".knowledge-map-node-title")).toHaveCSS("opacity", "1");
+  // 가리키는 것만으로는 선택이 바뀌지 않는다.
+  if (selectedBefore) {
+    await expect(
+      page.locator(`.knowledge-map-node[data-node-id="${selectedBefore}"]`),
+    ).toHaveClass(/is-selected/);
+  }
+  await page.locator(".knowledge-map-status").hover();
+  await expect(page.locator(".knowledge-map-node.is-muted")).toHaveCount(0);
+
+  const viewport = page.locator(".knowledge-map-viewport");
+  const reset = page.getByRole("button", { name: "지도를 처음 크기로 맞춤" });
+  await expect(reset).toBeDisabled();
+  await page.getByRole("button", { name: "지도 확대" }).click();
+  await page.getByRole("button", { name: "지도 확대" }).click();
+  await expect(viewport).toHaveAttribute("transform", /scale\(1\.690\)/);
+  await expect(page.locator(".knowledge-map-svg")).toHaveClass(/is-zoomed/);
+  await reset.click();
+  await expect(viewport).toHaveAttribute("transform", "translate(0.0 0.0) scale(1.000)");
+  await expect(reset).toBeDisabled();
+});
+
 test("모바일 Knowledge Map은 제목 목록을 4개씩 펼친다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/graph");
 
-  await expect(page.locator(".knowledge-map-canvas")).toBeHidden();
+  // 좁은 화면에서도 지도는 보이고, 제목 전체를 읽는 목록이 그 아래에 그대로 있다.
+  await expect(page.locator(".knowledge-map-canvas")).toBeVisible();
+  const mapShape = await page.locator(".knowledge-map-svg").evaluate((svg) => {
+    const bounds = svg.getBoundingClientRect();
+    return { ratio: bounds.width / bounds.height, viewBox: svg.getAttribute("viewBox") };
+  });
+  expect(mapShape.viewBox).toBe("0 0 680 680");
+  expect(mapShape.ratio).toBeCloseTo(1, 2);
+  for (const name of ["지도 확대", "지도 축소", "지도를 처음 크기로 맞춤"]) {
+    const bounds = await page.getByRole("button", { name }).boundingBox();
+    expect(bounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(bounds?.width ?? 0).toBeGreaterThanOrEqual(44);
+  }
   await expect(page.locator(".knowledge-map-index")).toBeVisible();
   await expect(page.locator(".knowledge-map-index-button")).toHaveCount(publicGraph.nodes.length);
   await expect(page.locator(".knowledge-map-index li:not([hidden])")).toHaveCount(

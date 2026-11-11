@@ -164,37 +164,162 @@ export function connectionsForNote(
   );
 }
 
-function graphPositions(nodes: PublicGraphNode[]): Map<string, GraphPosition> {
-  const positions = new Map<string, GraphPosition>();
-  const centerX = 500;
-  const centerY = 340;
-  const radiusX = 385;
-  const radiusY = 255;
+type LayoutNode = GraphPosition & { id: string; vx: number; vy: number; radius: number; pinned: boolean };
+
+type GraphLayout = {
+  nodes: Map<string, LayoutNode>;
+  tick: (alpha: number) => void;
+};
+
+type ViewSize = { width: number; height: number };
+
+const WIDE_VIEW: ViewSize = { width: 1000, height: 680 };
+const NARROW_VIEW: ViewSize = { width: 680, height: 680 };
+const TITLE_LIMIT = 18;
+
+/** 연결이 많은 기록일수록 크게 그린다. */
+function nodeRadius(degree: number): number {
+  return Math.min(13 + Math.sqrt(degree) * 4.5, 30);
+}
+
+/**
+ * 연결된 기록은 서로 당기고 모든 기록은 서로 밀어내는 force layout.
+ * 시작 위치와 계산이 모두 결정론적이라, 같은 graph.json은 언제나 같은 모양으로 놓인다.
+ */
+function createLayout(
+  nodes: PublicGraphNode[],
+  edges: ReadonlyArray<{ source: string; target: string }>,
+  view: ViewSize,
+): GraphLayout {
+  const centerX = view.width / 2;
+  const centerY = view.height / 2;
+  const degrees = new Map<string, number>();
+  for (const edge of edges) {
+    degrees.set(edge.source, (degrees.get(edge.source) ?? 0) + 1);
+    degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
+  }
+  const layoutNodes = new Map<string, LayoutNode>();
   nodes.forEach((node, index) => {
     const angle = -Math.PI / 2 + (2 * Math.PI * index) / Math.max(nodes.length, 1);
-    positions.set(node.id, {
-      x: centerX + radiusX * Math.cos(angle),
-      y: centerY + radiusY * Math.sin(angle),
+    layoutNodes.set(node.id, {
+      id: node.id,
+      x: centerX + view.width * 0.3 * Math.cos(angle),
+      y: centerY + view.height * 0.3 * Math.sin(angle),
+      vx: 0,
+      vy: 0,
+      radius: nodeRadius(degrees.get(node.id) ?? 0),
+      pinned: false,
     });
   });
-  return positions;
+  const list = [...layoutNodes.values()];
+  const links = edges
+    .map((edge) => ({ source: layoutNodes.get(edge.source), target: layoutNodes.get(edge.target) }))
+    .filter((link): link is { source: LayoutNode; target: LayoutNode } => Boolean(link.source && link.target));
+  // 가로로 넓은 화면에서는 세로로 더 강하게 모아, 지도가 화면 비율을 따라 퍼지게 한다.
+  const gravityY = view.width / view.height;
+
+  const tick = (alpha: number): void => {
+    for (let i = 0; i < list.length; i += 1) {
+      const a = list[i];
+      for (let j = i + 1; j < list.length; j += 1) {
+        const b = list[j];
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < 0.01) {
+          // 겹친 두 점은 index로 정한 방향으로 떼어, 난수 없이도 풀리게 한다.
+          dx = (i % 2 === 0 ? 1 : -1) * 0.5;
+          dy = 0.5;
+          distance = Math.hypot(dx, dy);
+        }
+        const repel = (alpha * 5200) / (distance * distance);
+        const gap = a.radius + b.radius + 22;
+        const overlap = distance < gap ? (gap - distance) * 0.5 : 0;
+        const push = repel + overlap;
+        const ux = dx / distance;
+        const uy = dy / distance;
+        a.vx -= ux * push;
+        a.vy -= uy * push;
+        b.vx += ux * push;
+        b.vy += uy * push;
+      }
+    }
+    for (const { source, target } of links) {
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const distance = Math.hypot(dx, dy) || 1;
+      const rest = 96 + source.radius + target.radius;
+      const pull = alpha * 0.07 * (distance - rest);
+      source.vx += (dx / distance) * pull;
+      source.vy += (dy / distance) * pull;
+      target.vx -= (dx / distance) * pull;
+      target.vy -= (dy / distance) * pull;
+    }
+    for (const node of list) {
+      node.vx += (centerX - node.x) * alpha * 0.014;
+      node.vy += (centerY - node.y) * alpha * 0.014 * gravityY;
+      node.vx *= 0.8;
+      node.vy *= 0.8;
+      if (!node.pinned) {
+        node.x += node.vx;
+        node.y += node.vy;
+      }
+    }
+  };
+
+  for (let step = 0; step < 420; step += 1) {
+    tick(Math.max(0.02, 1 - step / 380));
+  }
+
+  // 계산된 모양을 화면 안에 맞춘다. 이름표가 붙을 아래쪽 여백을 조금 더 남긴다.
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const node of list) {
+    minX = Math.min(minX, node.x - node.radius);
+    maxX = Math.max(maxX, node.x + node.radius);
+    minY = Math.min(minY, node.y - node.radius);
+    maxY = Math.max(maxY, node.y + node.radius + 20);
+  }
+  // 좁은 화면에서는 오른쪽 아래의 확대 버튼이 기록을 가리지 않도록 아래를 더 비운다.
+  const bottomReserve = view.width === view.height ? 64 : 0;
+  if (list.length > 0) {
+    const margin = 44;
+    const scale = Math.min(
+      (view.width - margin * 2) / Math.max(maxX - minX, 1),
+      (view.height - margin * 2 - bottomReserve) / Math.max(maxY - minY, 1),
+      1.3,
+    );
+    for (const node of list) {
+      node.x = centerX + (node.x - (minX + maxX) / 2) * scale;
+      node.y = centerY - bottomReserve / 2 + (node.y - (minY + maxY) / 2) * scale;
+      node.vx = 0;
+      node.vy = 0;
+    }
+  }
+  return { nodes: layoutNodes, tick };
 }
 
 function edgeLine(
-  source: GraphPosition,
-  target: GraphPosition,
+  source: LayoutNode,
+  target: LayoutNode,
 ): { x1: number; y1: number; x2: number; y2: number } {
   const dx = target.x - source.x;
   const dy = target.y - source.y;
   const length = Math.hypot(dx, dy) || 1;
-  const startPadding = 34;
-  const endPadding = 40;
+  const startPadding = source.radius + 5;
+  const endPadding = target.radius + 10;
   return {
     x1: source.x + (dx / length) * startPadding,
     y1: source.y + (dy / length) * startPadding,
     x2: target.x - (dx / length) * endPadding,
     y2: target.y - (dy / length) * endPadding,
   };
+}
+
+function shortTitle(title: string): string {
+  return title.length > TITLE_LIMIT ? `${title.slice(0, TITLE_LIMIT - 1)}…` : title;
 }
 
 function directionSymbol(direction: RelationDirection): string {
@@ -222,7 +347,12 @@ export function createKnowledgeMap({
   const graphNodeIds = new Set(graphNodes.map((node) => node.id));
   const recordNumberFor = (node: PublicGraphNode, index: number): number =>
     recordNumbers.get(node.id) ?? graphNodes.length - index;
-  const positions = graphPositions(graphNodes);
+  // 좁은 화면에서는 정사각형 무대에 맞춰 배치해 점이 지나치게 작아지지 않게 한다.
+  const view = window.matchMedia("(max-width: 760px)").matches ? NARROW_VIEW : WIDE_VIEW;
+  const visibleEdges = graph.edges.filter(
+    (edge) => graphNodeIds.has(edge.source) && graphNodeIds.has(edge.target),
+  );
+  const layout = createLayout(graphNodes, visibleEdges, view);
   const root = createElement("div", "knowledge-map-interface");
   root.dataset.swipeIgnore = "";
 
@@ -251,12 +381,13 @@ export function createKnowledgeMap({
   status.setAttribute("aria-live", "polite");
   controls.append(valueField, relationField, status);
 
-  const layout = createElement("div", "knowledge-map-layout");
+  const mapLayout = createElement("div", "knowledge-map-layout");
   const visualColumn = createElement("div", "knowledge-map-visual-column");
   const canvas = createElement("div", "knowledge-map-canvas");
   const svg = createSvgElement("svg");
   svg.classList.add("knowledge-map-svg");
-  svg.setAttribute("viewBox", "0 0 1000 680");
+  svg.setAttribute("viewBox", `0 0 ${view.width} ${view.height}`);
+  svg.style.aspectRatio = `${view.width} / ${view.height}`;
   svg.setAttribute("role", "group");
   svg.setAttribute("aria-label", "승인된 공개 기록의 관계 지도");
 
@@ -266,33 +397,31 @@ export function createKnowledgeMap({
   marker.setAttribute("viewBox", "0 0 10 10");
   marker.setAttribute("refX", "8");
   marker.setAttribute("refY", "5");
-  marker.setAttribute("markerWidth", "7");
-  marker.setAttribute("markerHeight", "7");
+  // 선 굵기와 무관하게 화살촉 크기를 고정한다.
+  marker.setAttribute("markerUnits", "userSpaceOnUse");
+  marker.setAttribute("markerWidth", "11");
+  marker.setAttribute("markerHeight", "11");
   marker.setAttribute("orient", "auto-start-reverse");
   const arrow = createSvgElement("path");
   arrow.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
   marker.append(arrow);
   definitions.append(marker);
-  svg.append(definitions);
+  // 확대·이동은 이 묶음 하나의 transform으로 처리한다.
+  const viewport = createSvgElement("g");
+  viewport.classList.add("knowledge-map-viewport");
+  svg.append(definitions, viewport);
 
   const edgeElements = new Map<string, SVGLineElement>();
   graph.edges.forEach((edge, index) => {
-    const source = positions.get(edge.source);
-    const target = positions.get(edge.target);
-    if (!source || !target || !graphNodeIds.has(edge.source) || !graphNodeIds.has(edge.target)) {
+    if (!layout.nodes.has(edge.source) || !layout.nodes.has(edge.target)) {
       return;
     }
-    const coordinates = edgeLine(source, target);
     const line = createSvgElement("line");
     const key = `${edge.source}:${edge.target}:${edge.type}:${index}`;
     line.classList.add("knowledge-map-edge");
     line.dataset.source = edge.source;
     line.dataset.target = edge.target;
     line.dataset.type = edge.type;
-    line.setAttribute("x1", String(coordinates.x1));
-    line.setAttribute("y1", String(coordinates.y1));
-    line.setAttribute("x2", String(coordinates.x2));
-    line.setAttribute("y2", String(coordinates.y2));
     if (edge.type !== "related_to") {
       line.setAttribute("marker-end", "url(#knowledge-map-arrow)");
     } else {
@@ -300,13 +429,13 @@ export function createKnowledgeMap({
     }
     line.setAttribute("aria-hidden", "true");
     edgeElements.set(key, line);
-    svg.append(line);
+    viewport.append(line);
   });
 
   const nodeElements = new Map<string, SVGGElement>();
   graphNodes.forEach((node, index) => {
     const recordNumber = recordNumberFor(node, index);
-    const position = positions.get(node.id);
+    const position = layout.nodes.get(node.id);
     if (!position) {
       return;
     }
@@ -317,31 +446,74 @@ export function createKnowledgeMap({
     if (valueTag) {
       group.dataset.value = valueTag;
     }
-    group.setAttribute("transform", `translate(${position.x} ${position.y})`);
     group.setAttribute("role", "button");
     group.setAttribute("tabindex", "0");
     group.setAttribute("aria-label", `${recordNumber}. ${node.label}`);
     const halo = createSvgElement("circle");
     halo.classList.add("knowledge-map-node-halo");
-    halo.setAttribute("r", "34");
+    halo.setAttribute("r", String(position.radius + 9));
     const circle = createSvgElement("circle");
     circle.classList.add("knowledge-map-node-core");
-    circle.setAttribute("r", "25");
+    circle.setAttribute("r", String(position.radius));
     const label = createSvgElement("text");
     label.classList.add("knowledge-map-node-number");
     label.setAttribute("text-anchor", "middle");
     label.setAttribute("dominant-baseline", "central");
+    label.style.fontSize = `${Math.max(10, position.radius * 0.6).toFixed(1)}px`;
     label.textContent = String(recordNumber).padStart(2, "0");
-    group.append(halo, circle, label);
+    // 제목은 가리키거나 선택했을 때, 그리고 확대했을 때만 보인다.
+    const title = createSvgElement("text");
+    title.classList.add("knowledge-map-node-title");
+    title.setAttribute("text-anchor", "middle");
+    title.setAttribute("y", String(position.radius + 18));
+    title.setAttribute("aria-hidden", "true");
+    title.textContent = shortTitle(node.label);
+    group.append(halo, circle, label, title);
     nodeElements.set(node.id, group);
-    svg.append(group);
+    viewport.append(group);
   });
-  canvas.append(svg);
+
+  const placeElements = (): void => {
+    for (const [nodeId, group] of nodeElements) {
+      const position = layout.nodes.get(nodeId);
+      if (position) {
+        group.setAttribute("transform", `translate(${position.x.toFixed(1)} ${position.y.toFixed(1)})`);
+      }
+    }
+    for (const line of edgeElements.values()) {
+      const source = layout.nodes.get(line.dataset.source ?? "");
+      const target = layout.nodes.get(line.dataset.target ?? "");
+      if (!source || !target) {
+        continue;
+      }
+      const coordinates = edgeLine(source, target);
+      line.setAttribute("x1", coordinates.x1.toFixed(1));
+      line.setAttribute("y1", coordinates.y1.toFixed(1));
+      line.setAttribute("x2", coordinates.x2.toFixed(1));
+      line.setAttribute("y2", coordinates.y2.toFixed(1));
+    }
+  };
+  placeElements();
+
+  const zoomControls = createElement("div", "knowledge-map-zoom");
+  zoomControls.setAttribute("role", "group");
+  zoomControls.setAttribute("aria-label", "지도 확대와 축소");
+  const zoomInButton = createElement("button", "knowledge-map-zoom-button", "+");
+  zoomInButton.type = "button";
+  zoomInButton.setAttribute("aria-label", "지도 확대");
+  const zoomOutButton = createElement("button", "knowledge-map-zoom-button", "−");
+  zoomOutButton.type = "button";
+  zoomOutButton.setAttribute("aria-label", "지도 축소");
+  const zoomResetButton = createElement("button", "knowledge-map-zoom-button knowledge-map-zoom-reset", "맞춤");
+  zoomResetButton.type = "button";
+  zoomResetButton.setAttribute("aria-label", "지도를 처음 크기로 맞춤");
+  zoomControls.append(zoomInButton, zoomOutButton, zoomResetButton);
+  canvas.append(svg, zoomControls);
 
   const legend = createElement("ul", "knowledge-map-legend");
   for (const [className, label] of [
     ["is-directed", "화살표 · 선언된 방향 관계"],
-    ["is-undirected", "직선 · related_to 양방향 해석"],
+    ["is-undirected", "점선 · related_to 양방향 해석"],
   ]) {
     const item = createElement("li");
     item.append(createElement("span", `knowledge-map-legend-line ${className}`), document.createTextNode(label));
@@ -381,12 +553,14 @@ export function createKnowledgeMap({
 
   const details = createElement("aside", "knowledge-map-details");
   details.setAttribute("aria-live", "polite");
-  layout.append(visualColumn, details);
-  root.append(controls, layout);
+  mapLayout.append(visualColumn, details);
+  root.append(controls, mapLayout);
 
   let activeValue = "all";
   let activeRelation: "all" | RelationType = "all";
   let selectedId: string | null = graphNodes[0]?.id ?? null;
+  // 가리키는 동안에는 그 기록의 이웃을 미리 보여 주고, 선택은 바꾸지 않는다.
+  let hoveredId: string | null = null;
   let visibleIndexCount = INDEX_PAGE_SIZE;
 
   const visibleNodes = (): PublicGraphNode[] =>
@@ -460,11 +634,10 @@ export function createKnowledgeMap({
     );
   };
 
-  const renderState = (): void => {
-    const visibleIds = visibleNodeIds();
-    if (!selectedId || !visibleIds.has(selectedId)) {
-      selectedId = graphNodes.find((node) => visibleIds.has(node.id))?.id ?? null;
-    }
+  const renderHighlight = (visibleIds: Set<string>): number => {
+    // 가리키는 동안에만 나머지를 흐리게 한다. 선택만 한 상태에서는 지도 전체가 또렷하게 남는다.
+    const hovering = hoveredId !== null && visibleIds.has(hoveredId);
+    const focusId = hovering ? hoveredId : selectedId;
     let visibleEdgeCount = 0;
     const connectedIds = new Set<string>();
     for (const line of edgeElements.values()) {
@@ -475,29 +648,39 @@ export function createKnowledgeMap({
         visibleIds.has(source) &&
         visibleIds.has(target) &&
         (activeRelation === "all" || type === activeRelation);
-      const active = visible && (source === selectedId || target === selectedId);
+      const active = visible && (source === focusId || target === focusId);
       line.classList.toggle("is-hidden", !visible);
       line.classList.toggle("is-active", active);
-      line.classList.toggle("is-muted", visible && source !== selectedId && target !== selectedId);
+      line.classList.toggle("is-muted", hovering && visible && !active);
       if (visible) {
         visibleEdgeCount += 1;
-        if (source === selectedId) connectedIds.add(target);
-        if (target === selectedId) connectedIds.add(source);
+        if (source === focusId) connectedIds.add(target);
+        if (target === focusId) connectedIds.add(source);
       }
     }
     for (const [nodeId, group] of nodeElements) {
       const visible = visibleIds.has(nodeId);
       group.classList.toggle("is-hidden", !visible);
       group.classList.toggle("is-selected", nodeId === selectedId);
+      group.classList.toggle("is-hovered", nodeId === hoveredId);
       group.classList.toggle("is-connected", connectedIds.has(nodeId));
       group.classList.toggle(
         "is-muted",
-        visible && selectedId !== null && nodeId !== selectedId && !connectedIds.has(nodeId),
+        hovering && visible && nodeId !== focusId && nodeId !== selectedId && !connectedIds.has(nodeId),
       );
       group.setAttribute("aria-pressed", String(nodeId === selectedId));
       group.setAttribute("aria-hidden", String(!visible));
       group.setAttribute("tabindex", visible ? "0" : "-1");
     }
+    return visibleEdgeCount;
+  };
+
+  const renderState = (): void => {
+    const visibleIds = visibleNodeIds();
+    if (!selectedId || !visibleIds.has(selectedId)) {
+      selectedId = graphNodes.find((node) => visibleIds.has(node.id))?.id ?? null;
+    }
+    const visibleEdgeCount = renderHighlight(visibleIds);
     const filteredNodes = visibleNodes();
     const revealedIds = new Set(
       filteredNodes.slice(0, visibleIndexCount).map((node) => node.id),
@@ -572,6 +755,131 @@ export function createKnowledgeMap({
     renderState();
   });
 
+  // ---- 확대·이동·끌기 ----
+  const MIN_ZOOM = 0.6;
+  const MAX_ZOOM = 3;
+  const camera = { x: 0, y: 0, scale: 1 };
+  const applyCamera = (): void => {
+    viewport.setAttribute(
+      "transform",
+      `translate(${camera.x.toFixed(1)} ${camera.y.toFixed(1)}) scale(${camera.scale.toFixed(3)})`,
+    );
+    svg.classList.toggle("is-zoomed", camera.scale >= 1.45);
+    zoomResetButton.disabled = camera.scale === 1 && camera.x === 0 && camera.y === 0;
+  };
+  const viewPoint = (event: { clientX: number; clientY: number }): GraphPosition => {
+    const bounds = svg.getBoundingClientRect();
+    return {
+      x: ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * view.width,
+      y: ((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * view.height,
+    };
+  };
+  const zoomAt = (point: GraphPosition, factor: number): void => {
+    const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.scale * factor));
+    const ratio = next / camera.scale;
+    camera.x = point.x - (point.x - camera.x) * ratio;
+    camera.y = point.y - (point.y - camera.y) * ratio;
+    camera.scale = next;
+    applyCamera();
+  };
+  const viewCenter = { x: view.width / 2, y: view.height / 2 };
+  zoomInButton.addEventListener("click", () => zoomAt(viewCenter, 1.3));
+  zoomOutButton.addEventListener("click", () => zoomAt(viewCenter, 1 / 1.3));
+  zoomResetButton.addEventListener("click", () => {
+    camera.x = 0;
+    camera.y = 0;
+    camera.scale = 1;
+    applyCamera();
+  });
+  // 페이지 스크롤을 가로채지 않도록, 휠 확대는 Ctrl/⌘(트랙패드 pinch 포함)와 함께일 때만 받는다.
+  svg.addEventListener(
+    "wheel",
+    (event) => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
+      event.preventDefault();
+      zoomAt(viewPoint(event), Math.exp(-event.deltaY * 0.01));
+    },
+    { passive: false },
+  );
+
+  type Gesture =
+    | { kind: "pan"; pointerId: number; start: GraphPosition; origin: GraphPosition }
+    | { kind: "node"; pointerId: number; node: LayoutNode; moved: boolean; start: GraphPosition };
+  let gesture: Gesture | null = null;
+  svg.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || gesture) {
+      return;
+    }
+    const point = viewPoint(event);
+    const group = (event.target as Element).closest<SVGGElement>(".knowledge-map-node");
+    const node = group ? layout.nodes.get(group.dataset.nodeId ?? "") : undefined;
+    gesture = node
+      ? { kind: "node", pointerId: event.pointerId, node, moved: false, start: point }
+      : { kind: "pan", pointerId: event.pointerId, start: point, origin: { x: camera.x, y: camera.y } };
+  });
+  svg.addEventListener("pointermove", (event) => {
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+    const point = viewPoint(event);
+    if (gesture.kind === "pan") {
+      camera.x = gesture.origin.x + point.x - gesture.start.x;
+      camera.y = gesture.origin.y + point.y - gesture.start.y;
+      svg.classList.add("is-panning");
+      applyCamera();
+      return;
+    }
+    if (!gesture.moved && Math.hypot(point.x - gesture.start.x, point.y - gesture.start.y) < 5) {
+      return;
+    }
+    if (!gesture.moved) {
+      gesture.moved = true;
+      svg.setPointerCapture(event.pointerId);
+      svg.classList.add("is-dragging");
+    }
+    // 끄는 기록은 손끝에 고정하고, 이어진 기록들이 따라오도록 몇 걸음만 다시 푼다.
+    gesture.node.pinned = true;
+    gesture.node.x = (point.x - camera.x) / camera.scale;
+    gesture.node.y = (point.y - camera.y) / camera.scale;
+    layout.tick(0.12);
+    layout.tick(0.12);
+    placeElements();
+  });
+  const endGesture = (event: PointerEvent): void => {
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+    if (gesture.kind === "node") {
+      gesture.node.pinned = false;
+      gesture.node.vx = 0;
+      gesture.node.vy = 0;
+    }
+    gesture = null;
+    svg.classList.remove("is-panning", "is-dragging");
+  };
+  svg.addEventListener("pointerup", endGesture);
+  svg.addEventListener("pointercancel", endGesture);
+
+  for (const [nodeId, group] of nodeElements) {
+    group.addEventListener("pointerenter", (event) => {
+      if (event.pointerType !== "mouse" || gesture) {
+        return;
+      }
+      hoveredId = nodeId;
+      renderHighlight(visibleNodeIds());
+    });
+    group.addEventListener("pointerleave", () => {
+      if (hoveredId !== nodeId) {
+        return;
+      }
+      hoveredId = null;
+      renderHighlight(visibleNodeIds());
+    });
+  }
+
+  applyCamera();
   renderState();
   return root;
 }

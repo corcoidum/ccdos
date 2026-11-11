@@ -1822,6 +1822,56 @@ img {
   width: 100%;
   height: auto;
   aspect-ratio: 1000 / 680;
+  cursor: grab;
+  /* 세로 스크롤은 페이지에 맡기고, 가로로 끄는 동작만 지도 이동으로 받는다. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.knowledge-map-svg.is-panning,
+.knowledge-map-svg.is-dragging {
+  cursor: grabbing;
+}
+
+.knowledge-map-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.knowledge-map-zoom-button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ivory);
+  background: rgba(4, 24, 23, 0.82);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.knowledge-map-zoom-reset {
+  font-size: 0.78rem;
+}
+
+.knowledge-map-zoom-button:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+
+.knowledge-map-zoom-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.knowledge-map-zoom-button:focus-visible {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 2px;
 }
 
 .knowledge-map-node {
@@ -1841,8 +1891,8 @@ img {
 }
 
 .knowledge-map-edge {
-  stroke: rgba(201, 178, 116, 0.52);
-  stroke-width: 2;
+  stroke: rgba(201, 178, 116, 0.42);
+  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
   transition: opacity 180ms ease, stroke 180ms ease, stroke-width 180ms ease;
 }
@@ -1885,7 +1935,8 @@ img {
 
 .knowledge-map-node-core {
   fill: var(--night-raised);
-  stroke: var(--gold);
+  /* 쉬고 있을 때에도 각 기록은 자기 Living Value 색 테두리를 가진다. */
+  stroke: var(--map-accent);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
   transition: fill 180ms ease, stroke 180ms ease;
@@ -1897,6 +1948,31 @@ img {
   font-weight: 800;
   letter-spacing: 0.05em;
   pointer-events: none;
+}
+
+.knowledge-map-node-title {
+  fill: var(--ivory);
+  stroke: var(--night-deep);
+  stroke-width: 4px;
+  paint-order: stroke;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.knowledge-map-node.is-selected .knowledge-map-node-title,
+.knowledge-map-node.is-hovered .knowledge-map-node-title,
+.knowledge-map-node.is-connected .knowledge-map-node-title,
+.knowledge-map-node:focus-visible .knowledge-map-node-title,
+.knowledge-map-svg.is-zoomed .knowledge-map-node:not(.is-muted) .knowledge-map-node-title {
+  opacity: 1;
+}
+
+.knowledge-map-node.is-hovered .knowledge-map-node-halo {
+  fill: rgba(167, 182, 108, 0.16);
+  stroke: var(--map-accent);
 }
 
 .knowledge-map-node.is-muted {
@@ -3219,8 +3295,7 @@ img {
     grid-column: auto;
   }
 
-  /* 작은 화면에서는 축소된 SVG보다 전체 제목을 읽을 수 있는 목록을 canonical UI로 둔다. */
-  .knowledge-map-canvas,
+  /* 작은 화면에서도 지도를 보여 주되, 전체 제목을 읽는 canonical UI는 아래 목록이다. */
   .knowledge-map-legend {
     display: none;
   }
