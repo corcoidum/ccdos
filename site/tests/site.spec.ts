@@ -48,10 +48,10 @@ const publicNotesById = new Map(publicNotes.map((note) => [note.id, note]));
 const firstPublicNote = publicNotes[0];
 const primaryRoutes = ["os", "garden", "lab", "projects", "graph"] as const;
 const valueRoutes = [
-  { path: "hope", tag: "hope", name: "H.OPE", image: "/assets/value-hope.webp" },
-  { path: "trust", tag: "trust", name: "T.RUST", image: "/assets/value-trust.webp" },
-  { path: "mercy", tag: "mercy", name: "M.ERCY", image: "/assets/value-mercy.webp" },
-  { path: "love", tag: "love", name: "L.OVE", image: "/assets/value-love.webp" },
+  { path: "hope", tag: "hope", name: "H.OPE" },
+  { path: "trust", tag: "trust", name: "T.RUST" },
+  { path: "mercy", tag: "mercy", name: "M.ERCY" },
+  { path: "love", tag: "love", name: "L.OVE" },
 ] as const;
 const valueTitleTokens = {
   hope: "--value-hope",
@@ -102,31 +102,39 @@ test("/love 직접 접속은 가치 히어로와 실제 love 기록을 보여 �
   await expect(page.locator("#value-note-list-love .note-entry")).toHaveCount(loveNotes.length);
 });
 
-test("네 가치 공간은 서로 다른 전용 3:2 hero 이미지를 사용한다", async ({ page }) => {
-  const sources: string[] = [];
+test("모든 공간의 hero는 그림 대신 자기 장면의 3:2 무대를 쓴다", async ({ page }) => {
+  const scenes = [
+    { path: "/os", scene: "orbit" },
+    { path: "/garden", scene: "garden" },
+    { path: "/lab", scene: "lab" },
+    { path: "/projects", scene: "projects" },
+    { path: "/graph", scene: "graph" },
+    ...valueRoutes.map((value) => ({ path: `/${value.path}`, scene: value.tag })),
+  ];
+  const descriptions: string[] = [];
 
-  for (const value of valueRoutes) {
-    await page.goto(`/${value.path}`);
-    const heroImage = page.locator(".hero-visual img");
-    await expect(heroImage).toHaveAttribute("src", value.image);
-    await expect(heroImage).toHaveAttribute("alt", /.+/);
-
-    const image = await heroImage.evaluate((element) => ({
-      complete: element.complete,
-      naturalWidth: element.naturalWidth,
-      naturalHeight: element.naturalHeight,
-      objectFit: getComputedStyle(element).objectFit,
-    }));
-    expect(image.complete).toBeTruthy();
-    expect(image.naturalWidth).toBe(1536);
-    expect(image.naturalHeight).toBe(1024);
-    expect(image.objectFit).toBe("contain");
-    const source = await heroImage.getAttribute("src");
-    sources.push(source ?? "");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const { path, scene } of scenes) {
+    await page.goto(path);
+    const stage = page.locator(".hero-stage");
+    await expect(stage).toHaveCount(1);
+    await expect(stage).toHaveAttribute("data-scene", scene);
+    await expect(stage).toHaveAttribute("role", "img");
+    // 3D를 못 쓰는 기기에서도 남는 정적 그림이 처음부터 DOM에 있다.
+    expect(await stage.locator(".hero-stage-poster > *").count()).toBeGreaterThan(0);
+    await expect(page.locator(".hero-visual img")).toHaveCount(0);
+    const shape = await stage.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { ratio: bounds.width / bounds.height, touchAction: getComputedStyle(element).touchAction };
+    });
+    expect(shape.ratio).toBeCloseTo(1.5, 2);
+    expect(shape.touchAction).toBe("pan-y");
+    descriptions.push((await stage.getAttribute("aria-label")) ?? "");
   }
 
-  expect(new Set(sources).size).toBe(valueRoutes.length);
-  expect(sources.every((source) => !source.includes("constellation-"))).toBeTruthy();
+  // 장면마다 무엇을 그렸는지 글로 다르게 설명한다.
+  expect(descriptions.every((description) => description.length > 20)).toBeTruthy();
+  expect(new Set(descriptions).size).toBe(scenes.length);
 });
 
 test("OS의 네 가지 약속 카드는 각각의 가치 공간으로 이동한다", async ({ page }) => {
@@ -1260,91 +1268,22 @@ test("Hero와 본문은 모든 대표 viewport에서 같은 fluid shell을 사�
   }
 });
 
-test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop만 hero를 채운다", async ({ page }) => {
-  for (const viewport of [
-    { width: 1440, height: 900 },
-    { width: 1306, height: 810 },
-    { width: 1280, height: 800 },
-    { width: 1120, height: 800 },
-  ]) {
-    await page.setViewportSize(viewport);
-    await page.goto("/garden");
-    const geometry = await page.evaluate(() => {
-      const rect = (selector: string) => {
-        const bounds = document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
-        if (!bounds) {
-          throw new Error(`${selector} is missing`);
-        }
-        return {
-          top: bounds.top,
-          right: bounds.right,
-          bottom: bounds.bottom,
-          left: bounds.left,
-          width: bounds.width,
-          height: bounds.height,
-        };
-      };
-      return {
-        visual: rect(".hero-visual"),
-        frame: rect(".hero-frame"),
-        image: rect(".hero-visual img"),
-        naturalRatio: (() => {
-          const image = document.querySelector<HTMLImageElement>(".hero-visual img")!;
-          return image.naturalWidth / image.naturalHeight;
-        })(),
-        nodeFrames: [...document.querySelectorAll<HTMLElement>(".constellation-node")].map(
-          (node) => {
-            const bounds = node.getBoundingClientRect();
-            return {
-              top: bounds.top,
-              right: bounds.right,
-              bottom: bounds.bottom,
-              left: bounds.left,
-            };
-          },
-        ),
-        backdrop: getComputedStyle(document.querySelector<HTMLElement>(".hero-visual")!, "::before")
-          .backgroundImage,
-        objectFit: getComputedStyle(document.querySelector<HTMLImageElement>(".hero-visual img")!)
-          .objectFit,
-      };
-    });
-
-    for (const edge of ["right", "left"] as const) {
-      expect(Math.abs(geometry.frame[edge] - geometry.visual[edge])).toBeLessThanOrEqual(1);
-    }
-    for (const edge of ["top", "right", "bottom", "left"] as const) {
-      expect(Math.abs(geometry.image[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
-    }
-    expect(geometry.frame.top).toBeGreaterThanOrEqual(geometry.visual.top - 1);
-    expect(geometry.frame.bottom).toBeLessThanOrEqual(geometry.visual.bottom + 1);
-    expect(geometry.frame.width / geometry.frame.height).toBeCloseTo(geometry.naturalRatio, 2);
-    expect(geometry.naturalRatio).toBeCloseTo(1.5, 2);
-    expect(geometry.objectFit).toBe("contain");
-    expect(geometry.backdrop).not.toBe("none");
-    for (const node of geometry.nodeFrames) {
-      expect(node.left).toBeGreaterThanOrEqual(geometry.frame.left - 1);
-      expect(node.right).toBeLessThanOrEqual(geometry.frame.right + 1);
-      expect(node.top).toBeGreaterThanOrEqual(geometry.frame.top - 1);
-      expect(node.bottom).toBeLessThanOrEqual(geometry.frame.bottom + 1);
-    }
+test("움직임 줄이기 설정에서도 hero 무대는 제자리에 그려진다", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const path of ["/os", "/mercy"]) {
+    await page.goto(path);
+    const stage = page.locator(".hero-stage");
+    await expect(stage).toBeVisible();
+    const before = await stage.boundingBox();
+    await stage.hover();
+    await stage.click();
+    const after = await stage.boundingBox();
+    expect(after).toEqual(before);
+    await expect(page.locator(".hero-stage canvas")).toHaveCount(
+      await page.locator(".hero-stage.is-live").count(),
+    );
   }
-
-  await page.setViewportSize({ width: 1024, height: 900 });
-  await page.goto("/garden");
-  const stacked = await page.locator(".hero-visual img").evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    const visual = element.closest<HTMLElement>(".hero-visual")!;
-    return {
-      width: bounds.width,
-      height: bounds.height,
-      objectFit: getComputedStyle(element).objectFit,
-      backdropDisplay: getComputedStyle(visual, "::before").display,
-    };
-  });
-  expect(stacked.width / stacked.height).toBeCloseTo(1.5, 2);
-  expect(stacked.objectFit).toBe("contain");
-  expect(stacked.backdropDisplay).toBe("none");
 });
 
 test("OS desktop hero는 메시지와 궤도 장식을 균형 잡힌 두 열로 보여 준다", async ({ page }) => {
@@ -1417,11 +1356,16 @@ test("OS 궤도 장식은 네 가치를 담고 3D 없이도 정적 궤도로 읽
     "L.OVE일상",
   ]);
 
-  // 다른 화면으로 떠나면 장식을 정리하고, 돌아오면 다시 하나만 만든다.
+  // 다른 화면으로 가면 이전 장식을 정리하고 그 화면의 장식 하나만 남긴다.
   await page.locator(".site-nav").getByRole("link", { name: "Garden" }).click();
-  await expect(page.locator(".hero-stage")).toHaveCount(0);
+  await expect(page.locator(".hero-stage")).toHaveCount(1);
+  await expect(page.locator(".hero-stage")).toHaveAttribute("data-scene", "garden");
+  await expect(page.locator(".hero-stage canvas")).toHaveCount(
+    await page.locator(".hero-stage.is-live").count(),
+  );
   await page.locator(".site-nav").getByRole("link", { name: "OS" }).click();
   await expect(page.locator(".hero-stage")).toHaveCount(1);
+  await expect(page.locator(".hero-stage")).toHaveAttribute("data-scene", "orbit");
   await expect(page.locator(".hero-stage canvas")).toHaveCount(
     await page.locator(".hero-stage.is-live").count(),
   );

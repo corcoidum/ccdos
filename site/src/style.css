@@ -723,19 +723,6 @@ img {
   box-shadow: 0 36px 90px -52px rgba(0, 0, 0, 0.9);
 }
 
-.hero-visual::before {
-  position: absolute;
-  inset: -24px;
-  background:
-    linear-gradient(rgb(2 18 17 / 42%), rgb(2 18 17 / 58%)),
-    var(--hero-image) center / cover no-repeat;
-  content: "";
-  filter: blur(18px) saturate(0.78);
-  opacity: 0.82;
-  pointer-events: none;
-  transform: scale(1.06);
-}
-
 .hero-frame {
   position: relative;
   z-index: 1;
@@ -813,6 +800,26 @@ img {
   fill: var(--ivory);
 }
 
+/* 장면마다 별가루에 섞이는 대표 색. */
+.hero-stage { --scene-accent: var(--ivory); }
+.hero-stage[data-scene="garden"],
+.hero-stage[data-scene="mercy"] { --scene-accent: var(--orbit-mercy); }
+.hero-stage[data-scene="lab"],
+.hero-stage[data-scene="trust"] { --scene-accent: var(--orbit-trust); }
+.hero-stage[data-scene="projects"],
+.hero-stage[data-scene="hope"] { --scene-accent: var(--orbit-hope); }
+.hero-stage[data-scene="love"] { --scene-accent: var(--orbit-love); }
+
+.scene-dust {
+  fill: var(--ivory);
+  opacity: 0.5;
+}
+
+.scene-dust--accent {
+  fill: var(--scene-accent);
+  opacity: 0.9;
+}
+
 .orbit-label {
   position: absolute;
   top: 0;
@@ -879,14 +886,6 @@ img {
   opacity: 0;
 }
 
-.hero-visual img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-}
-
 @keyframes node-float {
   0%,
   100% {
@@ -896,22 +895,6 @@ img {
   50% {
     transform: translateY(-5px);
   }
-}
-
-.hero--garden .hero-visual img {
-  object-position: 55% center;
-}
-
-.hero--lab .hero-visual img {
-  object-position: 50% center;
-}
-
-.hero--projects .hero-visual img {
-  object-position: 62% center;
-}
-
-.hero--graph .hero-visual img {
-  object-position: 55% center;
 }
 
 .reveal {
@@ -3037,20 +3020,11 @@ img {
     border: 1px solid var(--line);
   }
 
-  .hero-visual::before {
-    display: none;
-  }
-
   .hero-frame {
     position: relative;
     inset: auto;
     width: 100%;
     aspect-ratio: auto;
-  }
-
-  .hero-visual img {
-    height: auto;
-    aspect-ratio: 3 / 2;
   }
 
   .section-heading {

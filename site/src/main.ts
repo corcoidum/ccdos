@@ -41,15 +41,16 @@ type HeroAction = {
   style: "primary" | "secondary";
 };
 
+type HeroScene = "orbit" | "garden" | "lab" | "projects" | "graph" | ValueTag;
+
 type HeroConfig = {
   routeName: string;
   kicker: string;
   title: string;
   description: string;
-  // image 대신 scene을 주면 hero에 마우스 반응형 3D 장식을 그린다.
-  image?: string;
+  // hero 오른쪽의 마우스 반응형 3D 장식과, 그것을 글로 설명하는 대체 텍스트.
+  scene: HeroScene;
   imageAlt: string;
-  scene?: "orbit";
   actions: HeroAction[];
   note: string;
   showCredo?: boolean;
@@ -67,7 +68,6 @@ type ValueSpaceConfig = {
   name: string;
   meaning: string;
   description: string;
-  image: string;
   imageAlt: string;
 };
 
@@ -139,8 +139,7 @@ const valueSpaces: readonly ValueSpaceConfig[] = [
     meaning: "성장 · 재시작 · 학습",
     description:
       "배움의 공백과 실패를 끝으로 보지 않습니다. 다시 시작한 학습과 새 기술, 다시 시도한 기록을 다음 성장의 발판으로 남깁니다.",
-    image: "/assets/value-hope.webp",
-    imageAlt: "갈라진 땅에서 책장 계단이 새벽 별을 향해 다시 오르는 H.OPE 별자리",
+    imageAlt: "빛의 점들이 나선을 그리며 위로 감아 오르는 H.OPE 장식. 마우스를 올리면 꼭대기의 빛까지 길이 열린다.",
   },
   {
     path: "/trust",
@@ -149,8 +148,7 @@ const valueSpaces: readonly ValueSpaceConfig[] = [
     meaning: "명확한 사고 · 시스템 · 기술",
     description:
       "설명할 수 있고 다시 검증할 수 있는 시스템을 만듭니다. 구축과 검증, 디버깅의 근거를 남겨 기술 위에 신뢰를 쌓습니다.",
-    image: "/assets/value-trust.webp",
-    imageAlt: "빛이 투명한 프리즘과 검증 관문을 통과하는 정밀한 T.RUST 천체 장치",
+    imageAlt: "반듯한 결정 격자가 천천히 도는 T.RUST 장식. 마우스로 건드리면 흔들렸다가 제자리로 돌아온다.",
   },
   {
     path: "/mercy",
@@ -159,8 +157,7 @@ const valueSpaces: readonly ValueSpaceConfig[] = [
     meaning: "사람의 부담을 줄이는 기술",
     description:
       "현장의 마찰을 먼저 보고 반복 업무와 불필요한 부담을 줄이는 자동화를 만듭니다. 기능 수보다 사람이 되찾은 여유를 성과로 봅니다.",
-    image: "/assets/value-mercy.webp",
-    imageAlt: "도르래가 무거운 돌을 들어 올리고 열린 손에는 깃털이 놓인 M.ERCY 별자리",
+    imageAlt: "잔잔한 수면을 그린 M.ERCY 장식. 마우스가 닿은 자리에서 파문이 부드럽게 번진다.",
   },
   {
     path: "/love",
@@ -169,8 +166,7 @@ const valueSpaces: readonly ValueSpaceConfig[] = [
     meaning: "가족 · 일상 · 지속 가능성",
     description:
       "가족과 일상, 건강을 희생하지 않아도 이어 갈 수 있는 기술을 선택합니다. 일과 삶을 함께 지키는 지속 가능한 리듬을 기록합니다.",
-    image: "/assets/value-love.webp",
-    imageAlt: "집과 가족의 식탁을 달과 계절의 순환이 감싸는 L.OVE 별자리",
+    imageAlt: "두 개의 빛이 서로를 도는 L.OVE 장식. 마우스를 올리면 둘이 가까워지며 사이가 따뜻해진다.",
   },
 ];
 const valueRouteDefinitions: RouteDefinition[] = valueSpaces.map(({ path, name, meaning }) => ({
@@ -463,17 +459,7 @@ const orbitValues: ReadonlyArray<{ key: ValueTag; name: string; meaning: string;
 let heroSceneCleanup: (() => void) | null = null;
 let heroSceneToken = 0;
 
-function createOrbitStage(description: string): HTMLElement {
-  const stage = createElement("div", "hero-stage");
-  stage.setAttribute("role", "img");
-  stage.setAttribute("aria-label", description);
-  stage.dataset.swipeIgnore = "";
-
-  // 3D가 준비되기 전, 그리고 WebGL을 쓸 수 없는 기기에서 보이는 정적 궤도.
-  const poster = document.createElementNS(SVG_NS, "svg");
-  poster.setAttribute("class", "hero-stage-poster");
-  poster.setAttribute("viewBox", "0 0 600 400");
-  poster.setAttribute("aria-hidden", "true");
+function createOrbitPoster(poster: SVGSVGElement): void {
   const flatten = 0.47;
   for (const value of orbitValues) {
     const ring = document.createElementNS(SVG_NS, "ellipse");
@@ -495,15 +481,49 @@ function createOrbitStage(description: string): HTMLElement {
   spark.setAttribute("cy", "200");
   spark.setAttribute("r", "7");
   poster.append(spark);
+}
+
+/** 3D를 쓸 수 없을 때 남는 정적 별가루. 자리는 수식으로 정해 언제나 같은 모양이다. */
+function createDustPoster(poster: SVGSVGElement): void {
+  for (let index = 0; index < 64; index += 1) {
+    const angle = index * 2.399963;
+    const radius = 18 + Math.sqrt(index) * 23;
+    const dot = document.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("class", index % 4 === 0 ? "scene-dust scene-dust--accent" : "scene-dust");
+    dot.setAttribute("cx", (300 + Math.cos(angle) * radius * 1.35).toFixed(1));
+    dot.setAttribute("cy", (200 + Math.sin(angle) * radius * 0.9).toFixed(1));
+    dot.setAttribute("r", index % 7 === 0 ? "2.6" : "1.5");
+    poster.append(dot);
+  }
+}
+
+function createHeroStage(scene: HeroScene, description: string): HTMLElement {
+  const stage = createElement("div", "hero-stage");
+  stage.dataset.scene = scene;
+  stage.setAttribute("role", "img");
+  stage.setAttribute("aria-label", description);
+  stage.dataset.swipeIgnore = "";
+
+  // 3D가 준비되기 전, 그리고 WebGL을 쓸 수 없는 기기에서 보이는 정적 그림.
+  const poster = document.createElementNS(SVG_NS, "svg");
+  poster.setAttribute("class", "hero-stage-poster");
+  poster.setAttribute("viewBox", "0 0 600 400");
+  poster.setAttribute("aria-hidden", "true");
   stage.append(poster);
 
-  const labels = {} as Record<ValueTag, HTMLElement>;
-  for (const value of orbitValues) {
-    const label = createElement("span", `orbit-label orbit-label--${value.key}`, value.name);
-    label.setAttribute("aria-hidden", "true");
-    label.append(createElement("small", undefined, value.meaning));
-    labels[value.key] = label;
-    stage.append(label);
+  let labels: Record<ValueTag, HTMLElement> | undefined;
+  if (scene === "orbit") {
+    createOrbitPoster(poster);
+    labels = {} as Record<ValueTag, HTMLElement>;
+    for (const value of orbitValues) {
+      const label = createElement("span", `orbit-label orbit-label--${value.key}`, value.name);
+      label.setAttribute("aria-hidden", "true");
+      label.append(createElement("small", undefined, value.meaning));
+      labels[value.key] = label;
+      stage.append(label);
+    }
+  } else {
+    createDustPoster(poster);
   }
   const hint = createElement("p", "hero-stage-hint", "마우스를 올려 보세요");
   hint.setAttribute("aria-hidden", "true");
@@ -512,14 +532,14 @@ function createOrbitStage(description: string): HTMLElement {
   // 3D 코드는 화면이 그려진 뒤에 따로 불러온다. 그 사이 route가 바뀌면 붙이지 않는다.
   const token = ++heroSceneToken;
   void import("./hero-scene")
-    .then(({ mountOrbitScene }) => {
+    .then(({ mountHeroScene }) => {
       if (token !== heroSceneToken || !stage.isConnected) {
         return;
       }
-      heroSceneCleanup = mountOrbitScene(stage, labels);
+      heroSceneCleanup = mountHeroScene(scene, stage, labels);
     })
     .catch(() => {
-      // 불러오지 못하면 정적 궤도를 그대로 둔다.
+      // 불러오지 못하면 정적 그림을 그대로 둔다.
     });
   return stage;
 }
@@ -549,22 +569,8 @@ function createHero(config: HeroConfig): HTMLElement {
 
   const visual = createElement("figure", "hero-visual");
   const frame = createElement("div", "hero-frame");
-  if (config.scene === "orbit") {
-    visual.classList.add("hero-visual--scene");
-    frame.append(createOrbitStage(config.imageAlt));
-  } else if (config.image) {
-    // 원본 별자리는 자르지 않고 보여 주며, 같은 이미지의 ambient backdrop만 패널의 남는 영역을 채운다.
-    visual.style.setProperty("--hero-image", `url("${config.image}")`);
-    const image = createElement("img");
-    image.src = config.image;
-    image.alt = config.imageAlt;
-    image.width = 1536;
-    image.height = 1024;
-    image.decoding = "async";
-    image.loading = "eager";
-    image.setAttribute("fetchpriority", "high");
-    frame.append(image);
-  }
+  visual.classList.add("hero-visual--scene");
+  frame.append(createHeroStage(config.scene, config.imageAlt));
   visual.append(frame);
 
   inner.append(copy, visual);
@@ -690,7 +696,7 @@ function renderValueSpace(value: ValueSpaceConfig): HTMLElement {
       kicker: `살아 있는 가치 · ${value.name}`,
       title: `${value.name}\n${value.meaning}`,
       description: value.description,
-      image: value.image,
+      scene: value.tag,
       imageAlt: value.imageAlt,
       actions: [
         { label: `${value.name} 기록 보기`, href: "#value-records", style: "primary" },
@@ -1611,8 +1617,8 @@ function renderGarden(): HTMLElement {
       title: "돌봄으로 자라는\n지식의 정원",
       description:
         "완성된 정답보다 사람의 검토를 거친 생각이 자라는 곳입니다. 기록은 속도가 아니라 책임으로 공개됩니다.",
-      image: "/assets/constellation-garden.jpg",
-      imageAlt: "별자리와 뿌리의 빛으로 연결된 한 그루의 새싹과 지식의 정원",
+      scene: "garden",
+      imageAlt: "씨앗에서 빛의 가지가 뻗어 자라는 Garden 장식. 마우스를 올리면 가지 끝까지 자라 꽃눈이 켜진다.",
       actions: [
         { label: "공개 기록 보기", href: "#public-notes", style: "primary" },
         { label: "Lab으로 이어가기", href: "/lab", style: "secondary" },
@@ -1769,8 +1775,8 @@ function renderLab(): HTMLElement {
       title: "작게 만들고,\n정직하게 검증하며\n계속 배운다.",
       description:
         "완벽해진 뒤 시작하지 않습니다. 합성 데이터와 작은 가설로 실험하고, 실패와 변경의 이유까지 다음 배움으로 남깁니다.",
-      image: "/assets/constellation-lab.jpg",
-      imageAlt: "실험 플라스크를 중심으로 코드, 가설, 배움의 별자리가 연결된 연구 지도",
+      scene: "lab",
+      imageAlt: "물결이 퍼지는 점의 장을 그린 Lab 장식. 마우스가 둘째 물결을 만들면 두 물결이 만나 간섭 무늬가 생긴다.",
       actions: [
         { label: "현재 실험 보기", href: "#experiments", style: "primary" },
         { label: "검색 직접 써보기", href: "#wiki-search", style: "secondary" },
@@ -1901,8 +1907,8 @@ function renderGraph(): HTMLElement {
       title: "사람이 검토한 연결을\n읽기 전용 지도로 봅니다.",
       description:
         "승인된 공개 기록과 사람이 선언한 관계만 표시합니다. 자동 추론이나 비공개 지식은 이 지도에 들어오지 않습니다.",
-      image: "/assets/constellation-garden.jpg",
-      imageAlt: "별자리와 뿌리의 빛으로 연결된 공개 지식의 정원",
+      scene: "graph",
+      imageAlt: "빛나는 점들이 선으로 이어진 연결망을 그린 Map 장식. 마우스를 올리면 선이 밝아지고 빛이 선을 따라 흐른다.",
       actions: [
         { label: "연결 지도 보기", href: "#knowledge-map", style: "primary" },
         { label: "Garden 기록 보기", href: "/garden", style: "secondary" },
@@ -1939,8 +1945,8 @@ function renderProjects(): HTMLElement {
       title: "사람을 위한\n시스템을 증거와 함께\n세상에 연결한다.",
       description:
         "기술 자체보다 누구의 어떤 부담을 줄였는지, 어떤 안전 경계를 지켰는지, 무엇으로 검증했는지를 보여 줍니다.",
-      image: "/assets/constellation-projects.jpg",
-      imageAlt: "나침반과 완료된 이정표 별들이 미래의 산맥으로 이어지는 프로젝트 로드맵",
+      scene: "projects",
+      imageAlt: "흩어져 떠다니는 점들을 그린 Projects 장식. 마우스를 올리면 점들이 제자리를 찾아 계단 모양의 구조로 정렬된다.",
       actions: [
         { label: "대표 프로젝트 보기", href: "#case-study", style: "primary" },
         { label: "Phase 여정 보기", href: "#roadmap", style: "secondary" },
