@@ -46,8 +46,10 @@ type HeroConfig = {
   kicker: string;
   title: string;
   description: string;
-  image: string;
+  // image 대신 scene을 주면 hero에 마우스 반응형 3D 장식을 그린다.
+  image?: string;
   imageAlt: string;
+  scene?: "orbit";
   actions: HeroAction[];
   note: string;
   showCredo?: boolean;
@@ -451,6 +453,77 @@ function createSectionHeading(eyebrow: string, title: string, description: strin
   return heading;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+const orbitValues: ReadonlyArray<{ key: ValueTag; name: string; meaning: string; radius: number; angle: number }> = [
+  { key: "hope", name: "H.OPE", meaning: "성장", radius: 110, angle: 0.4 },
+  { key: "trust", name: "T.RUST", meaning: "명확한 사고", radius: 157, angle: 2.2 },
+  { key: "mercy", name: "M.ERCY", meaning: "위로", radius: 203, angle: 3.9 },
+  { key: "love", name: "L.OVE", meaning: "일상", radius: 250, angle: 5.3 },
+];
+let heroSceneCleanup: (() => void) | null = null;
+let heroSceneToken = 0;
+
+function createOrbitStage(description: string): HTMLElement {
+  const stage = createElement("div", "hero-stage");
+  stage.setAttribute("role", "img");
+  stage.setAttribute("aria-label", description);
+  stage.dataset.swipeIgnore = "";
+
+  // 3D가 준비되기 전, 그리고 WebGL을 쓸 수 없는 기기에서 보이는 정적 궤도.
+  const poster = document.createElementNS(SVG_NS, "svg");
+  poster.setAttribute("class", "hero-stage-poster");
+  poster.setAttribute("viewBox", "0 0 600 400");
+  poster.setAttribute("aria-hidden", "true");
+  const flatten = 0.47;
+  for (const value of orbitValues) {
+    const ring = document.createElementNS(SVG_NS, "ellipse");
+    ring.setAttribute("class", `orbit-ring orbit-ring--${value.key}`);
+    ring.setAttribute("cx", "300");
+    ring.setAttribute("cy", "200");
+    ring.setAttribute("rx", String(value.radius));
+    ring.setAttribute("ry", (value.radius * flatten).toFixed(1));
+    const moon = document.createElementNS(SVG_NS, "circle");
+    moon.setAttribute("class", `orbit-moon orbit-moon--${value.key}`);
+    moon.setAttribute("cx", (300 + Math.cos(value.angle) * value.radius).toFixed(1));
+    moon.setAttribute("cy", (200 - Math.sin(value.angle) * value.radius * flatten).toFixed(1));
+    moon.setAttribute("r", "5");
+    poster.append(ring, moon);
+  }
+  const spark = document.createElementNS(SVG_NS, "circle");
+  spark.setAttribute("class", "orbit-spark");
+  spark.setAttribute("cx", "300");
+  spark.setAttribute("cy", "200");
+  spark.setAttribute("r", "7");
+  poster.append(spark);
+  stage.append(poster);
+
+  const labels = {} as Record<ValueTag, HTMLElement>;
+  for (const value of orbitValues) {
+    const label = createElement("span", `orbit-label orbit-label--${value.key}`, value.name);
+    label.setAttribute("aria-hidden", "true");
+    label.append(createElement("small", undefined, value.meaning));
+    labels[value.key] = label;
+    stage.append(label);
+  }
+  const hint = createElement("p", "hero-stage-hint", "마우스를 올려 보세요");
+  hint.setAttribute("aria-hidden", "true");
+  stage.append(hint);
+
+  // 3D 코드는 화면이 그려진 뒤에 따로 불러온다. 그 사이 route가 바뀌면 붙이지 않는다.
+  const token = ++heroSceneToken;
+  void import("./hero-scene")
+    .then(({ mountOrbitScene }) => {
+      if (token !== heroSceneToken || !stage.isConnected) {
+        return;
+      }
+      heroSceneCleanup = mountOrbitScene(stage, labels);
+    })
+    .catch(() => {
+      // 불러오지 못하면 정적 궤도를 그대로 둔다.
+    });
+  return stage;
+}
+
 function createHero(config: HeroConfig): HTMLElement {
   const hero = createElement("section", `hero hero--${config.routeName}`);
   const inner = createElement("div", "hero-inner");
@@ -475,31 +548,22 @@ function createHero(config: HeroConfig): HTMLElement {
   copy.append(actions, createElement("p", "hero-note", config.note));
 
   const visual = createElement("figure", "hero-visual");
-  // 원본 별자리는 자르지 않고 보여 주며, 같은 이미지의 ambient backdrop만 패널의 남는 영역을 채운다.
-  visual.style.setProperty("--hero-image", `url("${config.image}")`);
   const frame = createElement("div", "hero-frame");
-  const image = createElement("img");
-  image.src = config.image;
-  image.alt = config.imageAlt;
-  image.width = 1536;
-  image.height = 1024;
-  image.decoding = "async";
-  image.loading = "eager";
-  image.setAttribute("fetchpriority", "high");
-  frame.append(image);
-  if (config.routeName === "os") {
-    const constellationNav = createElement("nav", "constellation-nav");
-    constellationNav.setAttribute("aria-label", "별자리 공간 바로가기");
-    for (const [route, label, modifier] of [
-      ["/os", "OS", "os"],
-      ["/garden", "Garden", "garden"],
-      ["/lab", "Lab", "lab"],
-      ["/projects", "Projects", "projects"],
-    ] as const) {
-      const node = createRouteLink(route, label, `constellation-node constellation-node--${modifier}`);
-      constellationNav.append(node);
-    }
-    frame.append(constellationNav);
+  if (config.scene === "orbit") {
+    visual.classList.add("hero-visual--scene");
+    frame.append(createOrbitStage(config.imageAlt));
+  } else if (config.image) {
+    // 원본 별자리는 자르지 않고 보여 주며, 같은 이미지의 ambient backdrop만 패널의 남는 영역을 채운다.
+    visual.style.setProperty("--hero-image", `url("${config.image}")`);
+    const image = createElement("img");
+    image.src = config.image;
+    image.alt = config.imageAlt;
+    image.width = 1536;
+    image.height = 1024;
+    image.decoding = "async";
+    image.loading = "eager";
+    image.setAttribute("fetchpriority", "high");
+    frame.append(image);
   }
   visual.append(frame);
 
@@ -538,9 +602,9 @@ function renderOs(): HTMLElement {
       title: "사람의 마음을 잃지 않은\n기술로, 복잡한 삶과 일을\n더 나은 흐름으로 바꾼다.",
       description:
         "늦게 다시 시작하더라도 배움을 멈추지 않고, 일과 가족, 기술과 인간다움이 함께 살아갈 수 있는 미래를 만듭니다.",
-      image: "/assets/constellation-os.jpg",
+      scene: "orbit",
       imageAlt:
-        "심장을 중심으로 정원, 실험실, 나침반과 별들이 연결된 CORCOIDUM OS 별자리 지도",
+        "작은 빛을 중심으로 H.OPE, T.RUST, M.ERCY, L.OVE 네 가치가 궤도를 도는 장식. 마우스를 올리면 별가루가 흐르고 가까운 궤도가 밝아진다.",
       actions: [
         { label: "OS 여정 시작하기", href: "#journey", style: "primary" },
         { label: "Projects 보기", href: "/projects", style: "secondary" },
@@ -2314,6 +2378,9 @@ function render({ announce = false, restoreHistory = false }: RenderOptions = {}
   closeActivePhaseModal?.({ syncHistory: false });
   livingValuesDrawerCleanup?.();
   livingValuesDrawerCleanup = null;
+  heroSceneCleanup?.();
+  heroSceneCleanup = null;
+  heroSceneToken += 1;
   const route = currentRoute();
   if (window.location.pathname !== route) {
     const url = new URL(window.location.href);
@@ -2368,7 +2435,7 @@ function gestureTargetIsBlocked(target: EventTarget | null): boolean {
   }
   return Boolean(
     target.closest(
-      "a, button, input, textarea, select, [contenteditable='true'], .constellation-nav, [data-swipe-ignore]",
+      "a, button, input, textarea, select, [contenteditable='true'], [data-swipe-ignore]",
     ),
   );
 }
