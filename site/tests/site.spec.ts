@@ -1149,7 +1149,7 @@ test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop�
     { width: 1120, height: 800 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/os");
+    await page.goto("/garden");
     const geometry = await page.evaluate(() => {
       const rect = (selector: string) => {
         const bounds = document.querySelector<HTMLElement>(selector)?.getBoundingClientRect();
@@ -1212,7 +1212,7 @@ test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop�
   }
 
   await page.setViewportSize({ width: 1024, height: 900 });
-  await page.goto("/os");
+  await page.goto("/garden");
   const stacked = await page.locator(".hero-visual img").evaluate((element) => {
     const bounds = element.getBoundingClientRect();
     const visual = element.closest<HTMLElement>(".hero-visual")!;
@@ -1228,14 +1228,7 @@ test("별자리 원본은 모든 화면에서 잘리지 않고 ambient backdrop�
   expect(stacked.backdropDisplay).toBe("none");
 });
 
-test("OS desktop hero는 메시지와 지도를 균형 잡힌 두 열로 보여 준다", async ({ page }) => {
-  const expectedAreas = new Map([
-    ["OS", { x: [0.58, 0.76], y: [0, 0.24], href: "/os" }],
-    ["Garden", { x: [0.18, 0.44], y: [0.34, 0.64], href: "/garden" }],
-    ["Lab", { x: [0.78, 1], y: [0.32, 0.64], href: "/lab" }],
-    ["Projects", { x: [0.5, 0.82], y: [0.72, 1], href: "/projects" }],
-  ]);
-
+test("OS desktop hero는 메시지와 궤도 장식을 균형 잡힌 두 열로 보여 준다", async ({ page }) => {
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 1280, height: 800 },
@@ -1252,31 +1245,13 @@ test("OS desktop hero는 메시지와 지도를 균형 잡힌 두 열로 보여 
         const rect = element.getBoundingClientRect();
         return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
       };
-      const frame = bounds(".hero--os .hero-frame");
       return {
         hero: bounds(".hero--os .hero-inner"),
         copy: bounds(".hero--os .hero-copy"),
         visual: bounds(".hero--os .hero-visual"),
-        visualBorderRadius: Number.parseFloat(getComputedStyle(document.querySelector<HTMLElement>(".hero--os .hero-visual")!).borderTopLeftRadius),
-        frame,
-        image: bounds(".hero--os .hero-visual img"),
-        navigation: bounds(".hero--os .constellation-nav"),
-        nodes: [...document.querySelectorAll<HTMLAnchorElement>(".hero--os .constellation-node")].map(
-          (node) => {
-            const rect = node.getBoundingClientRect();
-            return {
-              label: node.textContent?.trim() ?? "",
-              href: node.getAttribute("href"),
-              x: (rect.left + rect.width / 2 - frame.left) / frame.width,
-              y: (rect.top + rect.height / 2 - frame.top) / frame.height,
-              left: rect.left,
-              right: rect.right,
-              top: rect.top,
-              bottom: rect.bottom,
-              height: rect.height,
-            };
-          },
-        ),
+        frame: bounds(".hero--os .hero-frame"),
+        stage: bounds(".hero--os .hero-stage"),
+        images: document.querySelectorAll(".hero--os .hero-visual img").length,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
       };
@@ -1291,10 +1266,6 @@ test("OS desktop hero는 메시지와 지도를 균형 잡힌 두 열로 보여 
     expect(
       Math.abs(geometry.copy.width + columnGap + geometry.visual.width - geometry.hero.width),
     ).toBeLessThanOrEqual(1);
-    expect(geometry.visual.top).toBeGreaterThan(geometry.hero.top);
-    expect(geometry.visual.top + geometry.visual.height).toBeLessThan(
-      geometry.hero.top + geometry.hero.height,
-    );
     expect(
       Math.abs(
         geometry.visual.top +
@@ -1302,35 +1273,42 @@ test("OS desktop hero는 메시지와 지도를 균형 잡힌 두 열로 보여 
           (geometry.hero.top + geometry.hero.height / 2),
       ),
     ).toBeLessThanOrEqual(1);
-    expect(geometry.visualBorderRadius).toBeGreaterThanOrEqual(18);
     expect(geometry.frame.width / geometry.frame.height).toBeCloseTo(1.5, 2);
     for (const edge of ["top", "left", "width", "height"] as const) {
-      expect(Math.abs(geometry.image[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
-      expect(Math.abs(geometry.navigation[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
+      expect(Math.abs(geometry.stage[edge] - geometry.frame[edge])).toBeLessThanOrEqual(1);
     }
+    expect(geometry.images).toBe(0);
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
-
-    for (const node of geometry.nodes) {
-      const expected = expectedAreas.get(node.label);
-      expect(expected, `${node.label} 위치 계약이 없습니다.`).toBeDefined();
-      if (!expected) {
-        continue;
-      }
-      expect(node.href).toBe(expected.href);
-      expect(node.x).toBeGreaterThanOrEqual(expected.x[0]);
-      expect(node.x).toBeLessThanOrEqual(expected.x[1]);
-      expect(node.y).toBeGreaterThanOrEqual(expected.y[0]);
-      expect(node.y).toBeLessThanOrEqual(expected.y[1]);
-      expect(node.left).toBeGreaterThanOrEqual(geometry.frame.left - 1);
-      expect(node.right).toBeLessThanOrEqual(geometry.frame.left + geometry.frame.width + 1);
-      expect(node.top).toBeGreaterThanOrEqual(geometry.frame.top - 1);
-      expect(node.bottom).toBeLessThanOrEqual(geometry.frame.top + geometry.frame.height + 1);
-      expect(node.height).toBeGreaterThanOrEqual(44);
-    }
   }
 });
 
-test("모바일 OS 지도는 네 공간 링크와 Projects를 한 줄에 유지한다", async ({ page }) => {
+test("OS 궤도 장식은 네 가치를 담고 3D 없이도 정적 궤도로 읽힌다", async ({ page }) => {
+  await page.goto("/os");
+  const stage = page.locator(".hero--os .hero-stage");
+  await expect(stage).toHaveAttribute("role", "img");
+  await expect(stage).toHaveAttribute("aria-label", /H\.OPE.*T\.RUST.*M\.ERCY.*L\.OVE/);
+  // 정적 poster는 3D 로딩 여부와 무관하게 DOM에 있고, 네 궤도와 중심의 작은 빛을 그린다.
+  await expect(stage.locator(".hero-stage-poster .orbit-ring")).toHaveCount(4);
+  await expect(stage.locator(".hero-stage-poster .orbit-moon")).toHaveCount(4);
+  await expect(stage.locator(".hero-stage-poster .orbit-spark")).toHaveCount(1);
+  await expect(stage.locator(".orbit-label")).toHaveText([
+    "H.OPE성장",
+    "T.RUST명확한 사고",
+    "M.ERCY위로",
+    "L.OVE일상",
+  ]);
+
+  // 다른 화면으로 떠나면 장식을 정리하고, 돌아오면 다시 하나만 만든다.
+  await page.locator(".site-nav").getByRole("link", { name: "Garden" }).click();
+  await expect(page.locator(".hero-stage")).toHaveCount(0);
+  await page.locator(".site-nav").getByRole("link", { name: "OS" }).click();
+  await expect(page.locator(".hero-stage")).toHaveCount(1);
+  await expect(page.locator(".hero-stage canvas")).toHaveCount(
+    await page.locator(".hero-stage.is-live").count(),
+  );
+});
+
+test("모바일 OS 궤도 장식은 3:2 무대를 지키고 화면을 넘치지 않는다", async ({ page }) => {
   for (const viewport of [
     { width: 430, height: 900 },
     { width: 390, height: 844 },
@@ -1340,75 +1318,26 @@ test("모바일 OS 지도는 네 공간 링크와 Projects를 한 줄에 유지�
     await page.setViewportSize(viewport);
     await page.goto("/os");
     const geometry = await page.evaluate(() => {
-      const bounds = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector);
-        if (!element) {
-          throw new Error(`${selector} is missing`);
-        }
-        const rect = element.getBoundingClientRect();
-        return {
-          top: rect.top,
-          right: rect.right,
-          bottom: rect.bottom,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        };
-      };
-      const navigation = document.querySelector<HTMLElement>(".hero--os .constellation-nav")!;
+      const stage = document.querySelector<HTMLElement>(".hero--os .hero-stage")!;
+      const rect = stage.getBoundingClientRect();
       return {
-        frame: bounds(".hero--os .hero-frame"),
-        image: bounds(".hero--os .hero-visual img"),
-        navigation: bounds(".hero--os .constellation-nav"),
-        navigationColumns: getComputedStyle(navigation).gridTemplateColumns.split(" ").length,
-        nodes: [...document.querySelectorAll<HTMLAnchorElement>(".hero--os .constellation-node")].map(
-          (node) => {
-            const rect = node.getBoundingClientRect();
-            return {
-              label: node.textContent?.trim() ?? "",
-              top: rect.top,
-              right: rect.right,
-              bottom: rect.bottom,
-              left: rect.left,
-              height: rect.height,
-              whiteSpace: getComputedStyle(node).whiteSpace,
-            };
-          },
-        ),
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+        height: rect.height,
+        touchAction: getComputedStyle(stage).touchAction,
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
       };
     });
 
-    expect(geometry.image.width / geometry.image.height).toBeCloseTo(1.5, 2);
-    expect(geometry.navigation.top).toBeGreaterThanOrEqual(geometry.image.bottom - 1);
-    expect(Math.abs(geometry.frame.bottom - geometry.navigation.bottom)).toBeLessThanOrEqual(1);
-    expect(geometry.navigationColumns).toBe(4);
-    expect(geometry.nodes.map((node) => node.label)).toEqual(["OS", "Garden", "Lab", "Projects"]);
-    expect(
-      Math.max(...geometry.nodes.map((node) => node.top)) -
-        Math.min(...geometry.nodes.map((node) => node.top)),
-    ).toBeLessThanOrEqual(1);
-    expect(
-      Math.max(...geometry.nodes.map((node) => node.bottom)) -
-        Math.min(...geometry.nodes.map((node) => node.bottom)),
-    ).toBeLessThanOrEqual(1);
+    expect(geometry.width / geometry.height).toBeCloseTo(1.5, 2);
+    expect(geometry.left).toBeGreaterThanOrEqual(0);
+    expect(geometry.right).toBeLessThanOrEqual(viewport.width);
+    // 장식 위에서도 세로 스크롤은 막지 않는다.
+    expect(geometry.touchAction).toBe("pan-y");
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
-    for (const node of geometry.nodes) {
-      expect(node.left).toBeGreaterThanOrEqual(geometry.navigation.left - 1);
-      expect(node.right).toBeLessThanOrEqual(geometry.navigation.right + 1);
-      expect(node.height).toBeGreaterThanOrEqual(44);
-      expect(node.whiteSpace).toBe("nowrap");
-    }
   }
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/os");
-  await page
-    .getByRole("navigation", { name: "별자리 공간 바로가기" })
-    .getByRole("link", { name: "Projects" })
-    .click();
-  await expect(page).toHaveURL(/\/projects$/);
 });
 
 test("근거 답변 API는 Secret이 없을 때 retrieval-only로 폴백한다", async ({ request }) => {

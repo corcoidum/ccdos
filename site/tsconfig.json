@@ -3,7 +3,11 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": false,
@@ -12,5 +16,11 @@
     "noEmit": true,
     "strict": true
   },
-  "include": ["src/main.ts", "src/search.ts", "src/graph-view.ts", "src/phase-details.ts"]
+  "include": [
+    "src/main.ts",
+    "src/search.ts",
+    "src/graph-view.ts",
+    "src/phase-details.ts",
+    "src/hero-scene.ts"
+  ]
 }
