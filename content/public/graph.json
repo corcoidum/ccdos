@@ -60,6 +60,22 @@
       "related_notes": []
     },
     {
+      "id": "before-replacing-the-paper-schedule",
+      "type": "note",
+      "label": "종이 스케줄표를 바꾸기 전에",
+      "url": "/garden?note=before-replacing-the-paper-schedule",
+      "tags": [
+        "adoption",
+        "healthcare-ops",
+        "hope"
+      ],
+      "state": "approved",
+      "updated": "2026-11-14T01:53:15Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "coriops-nexus-development-review-2026-10-25",
       "type": "note",
       "label": "CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로",
