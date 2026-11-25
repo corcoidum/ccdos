@@ -60,6 +60,22 @@
       "related_notes": []
     },
     {
+      "id": "before-building-the-message-app",
+      "type": "note",
+      "label": "원내 메시지 앱을 만들기 전에",
+      "url": "/garden?note=before-building-the-message-app",
+      "tags": [
+        "communication",
+        "healthcare-ops",
+        "hope"
+      ],
+      "state": "approved",
+      "updated": "2026-11-25T13:29:37Z",
+      "published_at": null,
+      "backlinks": [],
+      "related_notes": []
+    },
+    {
       "id": "before-replacing-the-paper-schedule",
       "type": "note",
       "label": "종이 스케줄표를 바꾸기 전에",
