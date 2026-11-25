@@ -5,7 +5,14 @@ created: 2026-11-24T09:40:24Z
 updated: 2026-11-25T13:40:09Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: draft
+publish_state: approved
+review_requested_at: 2026-11-25T13:47:11Z
+privacy_reviewed_by: corcoidum
+privacy_reviewed_at: 2026-11-25T13:47:11Z
+privacy_review_result: passed
+reviewed_revision: 2026-11-25T13:40:09Z
+approved_by: corcoidum
+approved_at: 2026-11-25T13:47:11Z
 tags:
   - hope
   - healthcare-ops

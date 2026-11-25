@@ -38,6 +38,12 @@
   ],
   "mentions": [
     {
+      "note": "approval-label-records-the-decision",
+      "term": "term-review-evidence",
+      "alias": "승인 증적",
+      "context": "…한 편을 발행하려면 frontmatter에[승인 증적]일곱 필드를 손으로 적고, `index.j…"
+    },
+    {
       "note": "empty-garden-is-a-promise",
       "term": "term-ci-gate",
       "alias": "게이트",
