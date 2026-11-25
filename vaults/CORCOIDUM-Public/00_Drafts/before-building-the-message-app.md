@@ -2,10 +2,17 @@
 id: before-building-the-message-app
 title: 원내 메시지 앱을 만들기 전에
 created: 2026-11-24T09:40:24Z
-updated: 2026-11-25T13:29:37Z
+updated: 2026-11-25T13:40:09Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: draft
+publish_state: approved
+review_requested_at: 2026-11-25T13:47:11Z
+privacy_reviewed_by: corcoidum
+privacy_reviewed_at: 2026-11-25T13:47:11Z
+privacy_review_result: passed
+reviewed_revision: 2026-11-25T13:40:09Z
+approved_by: corcoidum
+approved_at: 2026-11-25T13:47:11Z
 tags:
   - hope
   - healthcare-ops
@@ -19,12 +26,3 @@ EMR에 딸린 채팅도 대안이 되지 못했다. 메신저처럼 실시간으
 지금 쓰는 메시지 기능에는 불편한 점이 여러 가지다. 한 번에 입력할 수 있는 글자 수가 너무 적다. 보낸 시간을 확인하기 어렵다. 잘못 입력했을 때 고치기 힘들고, 줄을 바꿔 쓰는 것도 불편하다.
 
 새 도구를 설계한다면 끝까지 양보하지 않을 기준은 하나다. 당일 확인, 당일 삭제.
-
-## 검토 체크
-
-- [ ] 실제 환자·보호자·직원 식별 정보가 없다.
-- [ ] 희귀한 사건 조합으로 재식별될 가능성이 없다.
-- [ ] API key, token, 내부 URL, 계정 정보가 없다.
-- [ ] 공개용 문서로 독립 작성했다.
-- [ ] 제목, 태그, 본문, 링크, frontmatter를 확인했다.
-- [ ] 관계 대상이 승인된 Public 노트인지 확인했다.

@@ -2,17 +2,17 @@
 id: approval-label-records-the-decision
 title: 승인은 판단이고, 받아 적기는 기계의 일이다
 created: 2026-11-10T09:32:06Z
-updated: 2026-11-10T09:32:06Z
+updated: 2026-11-25T13:40:09Z
 classification: S0_PUBLIC
 visibility: public
 publish_state: approved
-review_requested_at: 2026-11-10T13:42:21Z
+review_requested_at: 2026-11-25T13:47:11Z
 privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-11-10T13:42:21Z
+privacy_reviewed_at: 2026-11-25T13:47:11Z
 privacy_review_result: passed
-reviewed_revision: 2026-11-10T09:32:06Z
+reviewed_revision: 2026-11-25T13:40:09Z
 approved_by: corcoidum
-approved_at: 2026-11-10T13:42:21Z
+approved_at: 2026-11-25T13:47:11Z
 tags:
   - trust
   - governance
@@ -30,12 +30,3 @@ tags:
 검증은 16개 테스트로 했다. 체크리스트가 덜 채워졌거나, 인터뷰 PR이거나, 승인할 노트가 없거나, 검증기가 노트를 거부하면 아무것도 쓰지 않는지 확인한다. 기계가 적은 증적이 검증기를 통과하는지, 무효화가 원래 draft를 그대로 복원하는지, PR 템플릿의 체크 항목이 거버넌스 문서의 항목과 어긋나지 않는지도 확인한다. 워크플로 자체는 `main`에 병합된 뒤에만 실행되므로, 승인·거부·무효화 세 경로는 병합 후 합성 노트 PR로 따로 확인하기로 했다.
 
 한계도 그대로 적어 둔다. 워크플로는 노트가 공개해도 안전한지 판단하지 않는다. 체크박스가 체크되었는지만 본다. 읽지 않고 체크하는 것은 막지 못하며, 그 책임은 지금처럼 사람에게 있다. 달라진 것은 누가 타이핑하느냐뿐이다. 그 대신 손으로 적던 때에는 없던 장치가 하나 생겼다. 라벨 흐름 안에서는 체크리스트를 건너뛰고 증적만 적을 수 없다.
-
-## 검토 체크
-
-- [ ] 실제 환자·보호자·직원 식별 정보가 없다.
-- [ ] 희귀한 사건 조합으로 재식별될 가능성이 없다.
-- [ ] API key, token, 내부 URL, 계정 정보가 없다.
-- [ ] 공개용 문서로 독립 작성했다.
-- [ ] 제목, 태그, 본문, 링크, frontmatter를 확인했다.
-- [ ] 관계 대상이 승인된 Public 노트인지 확인했다.
