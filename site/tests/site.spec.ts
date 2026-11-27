@@ -863,6 +863,80 @@ test("Map은 가리킨 기록의 이웃만 남기고, 버튼으로 확대하고 
   await expect(reset).toBeDisabled();
 });
 
+test("모바일 Map은 두 손가락으로 벌리고 오므려 확대·축소하고 함께 끌어 옮긴다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/graph");
+  const svg = page.locator(".knowledge-map-svg");
+  await svg.scrollIntoViewIfNeeded();
+  const box = await svg.boundingBox();
+  if (!box) {
+    throw new Error("Knowledge Map SVG가 보이지 않습니다.");
+  }
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  const viewport = page.locator(".knowledge-map-viewport");
+  const scaleOf = async () =>
+    Number(/scale\(([0-9.]+)\)/.exec((await viewport.getAttribute("transform")) ?? "")?.[1]);
+  const translateOf = async () =>
+    (/translate\(([-0-9.]+) ([-0-9.]+)\)/.exec((await viewport.getAttribute("transform")) ?? "") ?? [])
+      .slice(1)
+      .map(Number);
+
+  const client = await page.context().newCDPSession(page);
+  const touch = async (type: "touchStart" | "touchMove" | "touchEnd", gap: number, shiftX = 0) =>
+    client.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints:
+        type === "touchEnd"
+          ? []
+          : [
+              { x: centerX - gap + shiftX, y: centerY, id: 1 },
+              { x: centerX + gap + shiftX, y: centerY, id: 2 },
+            ],
+    });
+  const pinch = async (from: number, to: number, shiftX = 0) => {
+    await touch("touchStart", from);
+    for (let step = 1; step <= 6; step += 1) {
+      await touch("touchMove", from + ((to - from) * step) / 6, (shiftX * step) / 6);
+    }
+    await touch("touchEnd", to);
+  };
+
+  expect(await scaleOf()).toBeCloseTo(1, 3);
+  // 벌리면 확대된다. 페이지 자체는 확대되지 않는다.
+  await pinch(40, 100);
+  expect(await scaleOf()).toBeGreaterThan(2);
+  await expect(page.locator(".knowledge-map-canvas")).toHaveClass(/has-pinched/);
+  // 오므리면 다시 축소된다.
+  const zoomed = await scaleOf();
+  await pinch(100, 50);
+  expect(await scaleOf()).toBeLessThan(zoomed);
+  // 두 손가락을 함께 끌면 확대 배율은 그대로 두고 지도만 옮긴다.
+  const beforeScale = await scaleOf();
+  const [beforeX] = await translateOf();
+  await pinch(60, 60, 80);
+  expect(await scaleOf()).toBeCloseTo(beforeScale, 2);
+  const [afterX] = await translateOf();
+  expect(afterX).toBeGreaterThan(beforeX + 40);
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBeCloseTo(1, 2);
+
+  await page.getByRole("button", { name: "지도를 처음 크기로 맞춤" }).click();
+  await expect(viewport).toHaveAttribute("transform", "translate(0.0 0.0) scale(1.000)");
+});
+
+test("Map 뒤의 은하수는 장식으로만 깔리고 지도 조작을 가로막지 않는다", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/graph");
+  const galaxy = page.locator(".knowledge-map-galaxy");
+  await expect(galaxy).toHaveCount(1);
+  await expect(galaxy).toHaveAttribute("aria-hidden", "true");
+  await expect(galaxy).toHaveCSS("pointer-events", "none");
+  // 은하수가 켜져도 기록은 그대로 눌러 선택된다.
+  const node = page.locator(".knowledge-map-node").nth(3);
+  await node.click();
+  await expect(node).toHaveClass(/is-selected/);
+});
+
 test("모바일 Knowledge Map은 제목 목록을 4개씩 펼친다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/graph");

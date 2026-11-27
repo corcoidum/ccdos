@@ -1799,6 +1799,59 @@ img {
   pointer-events: none;
 }
 
+.knowledge-map-galaxy {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 900ms ease;
+}
+
+.knowledge-map-galaxy.is-live {
+  opacity: 1;
+}
+
+.knowledge-map-galaxy-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 은하수가 켜지면 점 격자 배경은 물러난다. */
+.knowledge-map-canvas.has-galaxy::before {
+  opacity: 0;
+}
+
+/* 기록은 은하수 속의 별처럼, 자기 Living Value 색으로 은은하게 빛난다. */
+.knowledge-map-canvas.has-galaxy .knowledge-map-node-core {
+  filter: drop-shadow(0 0 6px var(--map-accent));
+}
+
+.knowledge-map-touch-hint {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  display: none;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: rgba(4, 24, 23, 0.72);
+  font-size: 0.72rem;
+  pointer-events: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .knowledge-map-touch-hint {
+    display: block;
+  }
+
+  .knowledge-map-canvas.has-pinched .knowledge-map-touch-hint {
+    display: none;
+  }
+}
+
 .knowledge-map-svg {
   position: relative;
   display: block;
@@ -1813,6 +1866,7 @@ img {
 }
 
 .knowledge-map-svg.is-panning,
+.knowledge-map-svg.is-pinching,
 .knowledge-map-svg.is-dragging {
   cursor: grabbing;
 }
@@ -1938,7 +1992,7 @@ img {
   stroke: var(--night-deep);
   stroke-width: 4px;
   paint-order: stroke;
-  font-size: 13px;
+  font-size: calc(13px / var(--map-zoom, 1));
   font-weight: 600;
   opacity: 0;
   pointer-events: none;
