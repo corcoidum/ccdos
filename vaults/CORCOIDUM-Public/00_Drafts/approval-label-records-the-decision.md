@@ -2,21 +2,19 @@
 id: approval-label-records-the-decision
 title: 승인은 판단이고, 받아 적기는 기계의 일이다
 created: 2026-11-10T09:32:06Z
-updated: 2026-11-25T13:40:09Z
+updated: 2026-11-27T15:13:56Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
-review_requested_at: 2026-11-25T13:47:11Z
-privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-11-25T13:47:11Z
-privacy_review_result: passed
-reviewed_revision: 2026-11-25T13:40:09Z
-approved_by: corcoidum
-approved_at: 2026-11-25T13:47:11Z
+publish_state: draft
 tags:
   - trust
   - governance
   - automation
+relations:
+  - target: empty-garden-is-a-promise
+    type: builds_on
+  - target: when-automation-creates-new-work
+    type: related_to
 ---
 
 공개 노트 한 편을 발행하려면 frontmatter에 승인 증적 일곱 필드를 손으로 적고, `index.json`·`graph.json`·`glossary.json` 세 산출물을 다시 만들어 커밋해야 했다. 이 일은 PC 앞에서만 할 수 있었다. 판단에는 몇 분이 걸렸지만 받아 적는 수고가 더 컸고, 2026년 10월 25일 이후 발행이 멈췄다.

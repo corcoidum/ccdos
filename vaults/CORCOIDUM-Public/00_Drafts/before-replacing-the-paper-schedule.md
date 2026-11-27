@@ -2,21 +2,21 @@
 id: before-replacing-the-paper-schedule
 title: 종이 스케줄표를 바꾸기 전에
 created: 2026-11-12T23:29:31Z
-updated: 2026-11-25T13:40:09Z
+updated: 2026-11-27T15:13:56Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
-review_requested_at: 2026-11-25T13:47:11Z
-privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-11-25T13:47:11Z
-privacy_review_result: passed
-reviewed_revision: 2026-11-25T13:40:09Z
-approved_by: corcoidum
-approved_at: 2026-11-25T13:47:11Z
+publish_state: draft
 tags:
   - hope
   - healthcare-ops
   - adoption
+relations:
+  - target: before-building-the-message-app
+    type: related_to
+  - target: when-automation-creates-new-work
+    type: related_to
+  - target: the-check-was-too-far
+    type: related_to
 ---
 
 종이 스케줄표는 일주일 단위로 한눈에 들어온다. 검진 대상자가 어떤 항목에 해당하는지는 펜으로 그린 동그라미만 보면 금방 확인된다. 그래서 한 주의 대상자를 빠르게 훑어볼 수 있고, 그 편함이 좋다.

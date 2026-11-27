@@ -2,23 +2,22 @@
 id: coriops-nexus-development-review-2026-10-25
 title: CoriOps Nexus 개발 리뷰 — 현장 장부에서 검증 가능한 운영 시스템으로
 created: 2026-10-25T12:02:29Z
-updated: 2026-10-25T12:02:29Z
+updated: 2026-11-27T15:13:56Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: published
-review_requested_at: 2026-10-25T12:08:38Z
-privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-10-25T12:08:38Z
-privacy_review_result: passed
-reviewed_revision: 2026-10-25T12:02:29Z
-approved_by: corcoidum
-approved_at: 2026-10-25T12:08:38Z
-published_at: 2026-10-25T12:15:16Z
+publish_state: draft
 tags:
   - trust
   - mercy
   - healthcare-ops
   - project-review
+relations:
+  - target: physician-decides-system-records
+    type: builds_on
+  - target: what-must-not-be-decided-yet
+    type: demonstrates
+  - target: moving-recheck-dates-out-of-memory
+    type: related_to
 ---
 
 CoriOps Nexus는 내시경·조직검체 장부에서 시작해, 후속 업무를 놓치지 않도록 돕는 원내 운영 시스템으로 발전하고 있다. 현재 개발 과정을 평가하면 **업무 문제를 구체화하고 검증 가능한 코드로 옮기는 방향은 좋다. 다음 단계의 핵심은 공통 데이터 모델 이전과 실패 복구이며, 실데이터 운영 준비는 별도로 남아 있다.**

@@ -2,21 +2,19 @@
 id: before-building-the-message-app
 title: 원내 메시지 앱을 만들기 전에
 created: 2026-11-24T09:40:24Z
-updated: 2026-11-25T13:40:09Z
+updated: 2026-11-27T15:13:56Z
 classification: S0_PUBLIC
 visibility: public
-publish_state: approved
-review_requested_at: 2026-11-25T13:47:11Z
-privacy_reviewed_by: corcoidum
-privacy_reviewed_at: 2026-11-25T13:47:11Z
-privacy_review_result: passed
-reviewed_revision: 2026-11-25T13:40:09Z
-approved_by: corcoidum
-approved_at: 2026-11-25T13:47:11Z
+publish_state: draft
 tags:
   - hope
   - healthcare-ops
   - communication
+relations:
+  - target: deciding-what-not-to-store
+    type: related_to
+  - target: what-comes-with-one-appointment
+    type: related_to
 ---
 
 원장님과 주고받는 메시지는 창이 여러 개 따로 뜬다. 메시지를 보낸 시각을 알 수 없어서 어느 것이 먼저 왔는지 알기 어렵고, 그래서 순서대로 처리하기가 힘들다. 엔터키를 잘못 누르면 메시지 창이 그대로 사라지기도 한다.
