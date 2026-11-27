@@ -54,10 +54,12 @@
         "trust"
       ],
       "state": "approved",
-      "updated": "2026-11-25T13:40:09Z",
+      "updated": "2026-11-27T15:13:56Z",
       "published_at": null,
       "backlinks": [],
-      "related_notes": []
+      "related_notes": [
+        "when-automation-creates-new-work"
+      ]
     },
     {
       "id": "before-building-the-message-app",
@@ -70,10 +72,19 @@
         "hope"
       ],
       "state": "approved",
-      "updated": "2026-11-25T13:40:09Z",
+      "updated": "2026-11-27T15:13:56Z",
       "published_at": null,
-      "backlinks": [],
-      "related_notes": []
+      "backlinks": [
+        {
+          "source": "before-replacing-the-paper-schedule",
+          "type": "related_to"
+        }
+      ],
+      "related_notes": [
+        "before-replacing-the-paper-schedule",
+        "deciding-what-not-to-store",
+        "what-comes-with-one-appointment"
+      ]
     },
     {
       "id": "before-replacing-the-paper-schedule",
@@ -86,10 +97,14 @@
         "hope"
       ],
       "state": "approved",
-      "updated": "2026-11-25T13:40:09Z",
+      "updated": "2026-11-27T15:13:56Z",
       "published_at": null,
       "backlinks": [],
-      "related_notes": []
+      "related_notes": [
+        "before-building-the-message-app",
+        "the-check-was-too-far",
+        "when-automation-creates-new-work"
+      ]
     },
     {
       "id": "coriops-nexus-development-review-2026-10-25",
@@ -102,11 +117,13 @@
         "project-review",
         "trust"
       ],
-      "state": "published",
-      "updated": "2026-10-25T12:02:29Z",
-      "published_at": "2026-10-25T12:15:16Z",
+      "state": "approved",
+      "updated": "2026-11-27T15:13:56Z",
+      "published_at": null,
       "backlinks": [],
-      "related_notes": []
+      "related_notes": [
+        "moving-recheck-dates-out-of-memory"
+      ]
     },
     {
       "id": "deciding-what-not-to-store",
@@ -123,6 +140,10 @@
       "published_at": "2026-09-04T11:55:05Z",
       "backlinks": [
         {
+          "source": "before-building-the-message-app",
+          "type": "related_to"
+        },
+        {
           "source": "testing-the-boundary-before-the-feature",
           "type": "builds_on"
         },
@@ -132,6 +153,7 @@
         }
       ],
       "related_notes": [
+        "before-building-the-message-app",
         "graceful-fallback-hid-the-outage",
         "safe-automation-case-study",
         "what-must-not-be-decided-yet"
@@ -203,6 +225,10 @@
       "updated": "2026-07-14T09:12:12Z",
       "published_at": "2026-07-14T09:14:52Z",
       "backlinks": [
+        {
+          "source": "approval-label-records-the-decision",
+          "type": "builds_on"
+        },
         {
           "source": "only-reviewed-relations-become-graph",
           "type": "builds_on"
@@ -375,11 +401,16 @@
       "published_at": "2026-07-26T14:53:48Z",
       "backlinks": [
         {
+          "source": "coriops-nexus-development-review-2026-10-25",
+          "type": "related_to"
+        },
+        {
           "source": "what-comes-with-one-appointment",
           "type": "related_to"
         }
       ],
       "related_notes": [
+        "coriops-nexus-development-review-2026-10-25",
         "what-comes-with-one-appointment"
       ]
     },
@@ -450,7 +481,12 @@
       "state": "published",
       "updated": "2026-10-01T12:40:22Z",
       "published_at": "2026-10-01T13:24:00Z",
-      "backlinks": [],
+      "backlinks": [
+        {
+          "source": "coriops-nexus-development-review-2026-10-25",
+          "type": "builds_on"
+        }
+      ],
       "related_notes": [
         "what-comes-with-one-appointment"
       ]
@@ -585,9 +621,14 @@
         {
           "source": "a-week-after-the-check-came-closer",
           "type": "builds_on"
+        },
+        {
+          "source": "before-replacing-the-paper-schedule",
+          "type": "related_to"
         }
       ],
       "related_notes": [
+        "before-replacing-the-paper-schedule",
         "when-automation-creates-new-work"
       ]
     },
@@ -633,6 +674,10 @@
           "type": "builds_on"
         },
         {
+          "source": "before-building-the-message-app",
+          "type": "related_to"
+        },
+        {
           "source": "deciding-what-not-to-store",
           "type": "builds_on"
         },
@@ -646,6 +691,7 @@
         }
       ],
       "related_notes": [
+        "before-building-the-message-app",
         "moving-recheck-dates-out-of-memory",
         "physician-decides-system-records"
       ]
@@ -664,6 +710,10 @@
       "updated": "2026-09-16T07:05:00Z",
       "published_at": "2026-09-16T07:24:23Z",
       "backlinks": [
+        {
+          "source": "coriops-nexus-development-review-2026-10-25",
+          "type": "demonstrates"
+        },
         {
           "source": "physician-decides-system-records",
           "type": "demonstrates"
@@ -693,6 +743,14 @@
           "type": "related_to"
         },
         {
+          "source": "approval-label-records-the-decision",
+          "type": "related_to"
+        },
+        {
+          "source": "before-replacing-the-paper-schedule",
+          "type": "related_to"
+        },
+        {
           "source": "moving-recheck-dates-out-of-memory",
           "type": "builds_on"
         },
@@ -703,6 +761,8 @@
       ],
       "related_notes": [
         "a-week-after-the-check-came-closer",
+        "approval-label-records-the-decision",
+        "before-replacing-the-paper-schedule",
         "the-check-was-too-far",
         "value-of-invisible-work"
       ]
@@ -728,6 +788,56 @@
       "source": "an-open-link-must-be-visible",
       "target": "one-link-less-explanation",
       "type": "builds_on"
+    },
+    {
+      "source": "approval-label-records-the-decision",
+      "target": "empty-garden-is-a-promise",
+      "type": "builds_on"
+    },
+    {
+      "source": "approval-label-records-the-decision",
+      "target": "when-automation-creates-new-work",
+      "type": "related_to"
+    },
+    {
+      "source": "before-building-the-message-app",
+      "target": "deciding-what-not-to-store",
+      "type": "related_to"
+    },
+    {
+      "source": "before-building-the-message-app",
+      "target": "what-comes-with-one-appointment",
+      "type": "related_to"
+    },
+    {
+      "source": "before-replacing-the-paper-schedule",
+      "target": "before-building-the-message-app",
+      "type": "related_to"
+    },
+    {
+      "source": "before-replacing-the-paper-schedule",
+      "target": "the-check-was-too-far",
+      "type": "related_to"
+    },
+    {
+      "source": "before-replacing-the-paper-schedule",
+      "target": "when-automation-creates-new-work",
+      "type": "related_to"
+    },
+    {
+      "source": "coriops-nexus-development-review-2026-10-25",
+      "target": "moving-recheck-dates-out-of-memory",
+      "type": "related_to"
+    },
+    {
+      "source": "coriops-nexus-development-review-2026-10-25",
+      "target": "physician-decides-system-records",
+      "type": "builds_on"
+    },
+    {
+      "source": "coriops-nexus-development-review-2026-10-25",
+      "target": "what-must-not-be-decided-yet",
+      "type": "demonstrates"
     },
     {
       "source": "deciding-what-not-to-store",
