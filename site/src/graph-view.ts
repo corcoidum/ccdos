@@ -508,7 +508,12 @@ export function createKnowledgeMap({
   zoomResetButton.type = "button";
   zoomResetButton.setAttribute("aria-label", "지도를 처음 크기로 맞춤");
   zoomControls.append(zoomInButton, zoomOutButton, zoomResetButton);
-  canvas.append(svg, zoomControls);
+  // 지도 뒤의 은하수. 장식이라 화면 낭독기에는 숨긴다.
+  const galaxyHost = createElement("div", "knowledge-map-galaxy");
+  galaxyHost.setAttribute("aria-hidden", "true");
+  const touchHint = createElement("p", "knowledge-map-touch-hint", "두 손가락으로 벌리거나 오므려 확대·축소하고, 두 손가락으로 끌어 옮깁니다.");
+  touchHint.setAttribute("aria-hidden", "true");
+  canvas.append(galaxyHost, svg, zoomControls, touchHint);
 
   const legend = createElement("ul", "knowledge-map-legend");
   for (const [className, label] of [
@@ -759,12 +764,16 @@ export function createKnowledgeMap({
   const MIN_ZOOM = 0.6;
   const MAX_ZOOM = 3;
   const camera = { x: 0, y: 0, scale: 1 };
+  let galaxy: { redraw: () => void } | null = null;
   const applyCamera = (): void => {
+    galaxy?.redraw();
     viewport.setAttribute(
       "transform",
       `translate(${camera.x.toFixed(1)} ${camera.y.toFixed(1)}) scale(${camera.scale.toFixed(3)})`,
     );
     svg.classList.toggle("is-zoomed", camera.scale >= 1.45);
+    // 제목 글씨는 확대해도 같은 크기로 읽히도록, 확대 배율만큼 거꾸로 줄인다.
+    svg.style.setProperty("--map-zoom", camera.scale.toFixed(3));
     zoomResetButton.disabled = camera.scale === 1 && camera.x === 0 && camera.y === 0;
   };
   const viewPoint = (event: { clientX: number; clientY: number }): GraphPosition => {
@@ -862,6 +871,76 @@ export function createKnowledgeMap({
   svg.addEventListener("pointerup", endGesture);
   svg.addEventListener("pointercancel", endGesture);
 
+  // ---- 두 손가락: 벌리고 오므려 확대·축소, 함께 끌어 이동 ----
+  // 한 손가락은 지금처럼 페이지 스크롤과 기록 선택에 두고, 두 손가락일 때만 지도가 받는다.
+  type Pinch = { distance: number; center: GraphPosition; origin: GraphPosition; scale: number };
+  let pinch: Pinch | null = null;
+  let touching = false;
+  const touchCenter = (touches: TouchList): { center: GraphPosition; distance: number } => {
+    const first = viewPoint(touches[0]);
+    const second = viewPoint(touches[1]);
+    return {
+      center: { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 },
+      distance: Math.max(Math.hypot(second.x - first.x, second.y - first.y), 1),
+    };
+  };
+  const startPinch = (touches: TouchList): void => {
+    const { center, distance } = touchCenter(touches);
+    pinch = { distance, center, origin: { x: camera.x, y: camera.y }, scale: camera.scale };
+    // 한 손가락으로 시작한 이동·끌기는 두 손가락이 되는 순간 접는다.
+    if (gesture?.kind === "node") {
+      gesture.node.pinned = false;
+    }
+    gesture = null;
+    svg.classList.remove("is-panning", "is-dragging");
+    svg.classList.add("is-pinching");
+    // 한 번 해 보면 안내는 더 필요 없다.
+    canvas.classList.add("has-pinched");
+  };
+  svg.addEventListener(
+    "touchstart",
+    (event) => {
+      touching = true;
+      if (event.touches.length >= 2) {
+        event.preventDefault();
+        startPinch(event.touches);
+      }
+    },
+    { passive: false },
+  );
+  svg.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!pinch || event.touches.length < 2) {
+        return;
+      }
+      event.preventDefault();
+      const { center, distance } = touchCenter(event.touches);
+      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, pinch.scale * (distance / pinch.distance)));
+      // 처음 두 손가락 사이에 있던 지도 지점이 지금 두 손가락 사이에 오도록 옮긴다.
+      const anchorX = (pinch.center.x - pinch.origin.x) / pinch.scale;
+      const anchorY = (pinch.center.y - pinch.origin.y) / pinch.scale;
+      camera.scale = next;
+      camera.x = center.x - anchorX * next;
+      camera.y = center.y - anchorY * next;
+      applyCamera();
+    },
+    { passive: false },
+  );
+  const endTouch = (event: TouchEvent): void => {
+    if (event.touches.length >= 2) {
+      startPinch(event.touches);
+      return;
+    }
+    if (pinch) {
+      pinch = null;
+      svg.classList.remove("is-pinching");
+    }
+    touching = event.touches.length > 0;
+  };
+  svg.addEventListener("touchend", endTouch);
+  svg.addEventListener("touchcancel", endTouch);
+
   for (const [nodeId, group] of nodeElements) {
     group.addEventListener("pointerenter", (event) => {
       if (event.pointerType !== "mouse" || gesture) {
@@ -878,6 +957,28 @@ export function createKnowledgeMap({
       renderHighlight(visibleNodeIds());
     });
   }
+
+  // ---- 은하수 배경: 화면이 그려진 뒤 따로 불러온다 ----
+  let pointerInside = false;
+  canvas.addEventListener("pointerenter", () => {
+    pointerInside = true;
+  });
+  canvas.addEventListener("pointerleave", () => {
+    pointerInside = false;
+  });
+  void import("./galaxy-backdrop")
+    .then(({ mountGalaxy }) => {
+      galaxy = mountGalaxy(galaxyHost, {
+        view: () => ({ ...camera, width: view.width, height: view.height }),
+        engaged: () => pointerInside || touching || gesture !== null || pinch !== null,
+      });
+      if (galaxy) {
+        canvas.classList.add("has-galaxy");
+      }
+    })
+    .catch(() => {
+      // 불러오지 못하면 기존 배경 그대로 둔다.
+    });
 
   applyCamera();
   renderState();
